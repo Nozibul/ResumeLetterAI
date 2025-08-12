@@ -11,7 +11,7 @@ This directory contains the frontend application for **ResumeLetterAI**, an inte
 
 The frontend is engineered following a **Feature-Sliced Design (FSD)** architecture, complemented by an **Atomic Design** system for UI components. This approach ensures a highly modular, scalable, and maintainable codebase.
 
-- **Live URL:** `[YProduction URL]`
+- **Live URL:** `[Production URL]`
 - **Staging URL:** `[Staging URL]`
 - **Storybook:** `[Link to deployed Storybook instance]`
 
