@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# ResumeLetterAI - Frontend
 
-## Getting Started
+![Vercel Deployment](https://therealsujitk-vercel-badge.vercel.app/?app=resumeletterai-frontend) <!-- Replace with your actual Vercel deployment badge URL -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-First, run the development server:
+This directory contains the frontend application for **ResumeLetterAI**, an intelligent, AI-powered resume and cover letter builder. It is a modern, enterprise-grade web application built with Next.js 15 and React.
+
+---
+
+## 🚀 Overview
+
+The frontend is engineered following a **Feature-Sliced Design (FSD)** architecture, complemented by an **Atomic Design** system for UI components. This approach ensures a highly modular, scalable, and maintainable codebase.
+
+- **Live URL:** `[Your Production URL]`
+- **Staging URL:** `[Your Staging URL]`
+- **Storybook:** `[Link to your deployed Storybook instance]`
+
+## ✨ Core Technologies
+
+- **Framework:** [Next.js](https://nextjs.org/) 15 (with App Router)
+- **UI Components:** [Shadcn/ui](https://ui.shadcn.com/) built on [Radix UI](https://www.radix-ui.com/) for accessibility
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **State Management:**
+  - **Global State:** [Zustand](https://zustand-demo.pmnd.rs/)
+  - **Form State:** [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)
+  - **Server Cache State:** [TanStack Query (React Query)](https://tanstack.com/query/latest)
+- **Testing:**
+  - **E2E:** [Cypress](https://www.cypress.io/)
+  - **Unit/Integration:** [Jest](https://jestjs.io/) + [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- **Linting & Formatting:** ESLint & Prettier
+- **Component Development:** [Storybook](https://storybook.js.org/) for isolated UI component development.
+
+## 📦 Getting Started
+
+### Prerequisites
+
+- Node.js (v18.x or later)
+- npm or yarn
+
+### Installation & Setup
+
+1.  **Navigate to the frontend directory:**
+    ```bash
+    cd frontend
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Set up environment variables:**
+    *   Copy the example environment file:
+      ```bash
+      cp .env.example .env.local
+      ```
+    *   Fill in the required variables in `.env.local`.
+
+### Running the Development Server
+
+To start the local development server, run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
