@@ -11,7 +11,7 @@ import Link from "next/link";
 
 const Header = () => {
       const unusedVariable = "hello" // ESLint এই লাইনটির জন্য এরর দেখাবে
-  console.log("Testing husky setup"); // ESLint এই লাইনটির জন্যও এরর দেখাতে পারে
+  console.log("Testing husky setup") // ESLint এই লাইনটির জন্যও এরর দেখাতে পারে
   return (
     <header className="p-4 bg-white shadow-md">
       <nav className="container mx-auto flex justify-between items-center">
