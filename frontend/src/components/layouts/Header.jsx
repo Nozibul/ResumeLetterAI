@@ -10,14 +10,20 @@ import Image from "next/image";
 import Link from "next/link";
 
 const Header = () => {
-     const unusedValue = 123 // This will trigger 'no-unused-vars' error
-  console.log("Testing husky hook"); // This might trigger 'no-console' error
+     const unusedValue = 1232
+  console.log('Testing husky hook'); // This might trigger 'no-console' error
+ 
+
+
+
+
+
 
   return (
-    <header className="p-4 bg-white shadow-md">
-      <nav className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="flex items-center space-x-2">
-          <Image
+     <header className="p-4 bg-white shadow-md">
+       <nav className="container mx-auto flex justify-between items-center">
+   <Link href="/" className="flex items-center space-x-2">
+                     <Image
             src="/logo.svg"
             alt="ResumeLetterAI Logo"
             width={40}
