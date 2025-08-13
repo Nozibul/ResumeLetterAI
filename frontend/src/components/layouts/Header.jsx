@@ -10,7 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 const Header = () => {
-    const unusedVariable = "hello" // ESLint এই লাইনটির জন্য এরর দেখাবে
+      const unusedVariable = "hello" // ESLint এই লাইনটির জন্য এরর দেখাবে
   console.log("Testing husky setup"); // ESLint এই লাইনটির জন্যও এরর দেখাতে পারে
   return (
     <header className="p-4 bg-white shadow-md">
