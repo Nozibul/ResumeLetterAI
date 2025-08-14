@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Generated files
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Minified or compiled files
+*.min.js
+*.min.css
+
+# Static assets that don’t need formatting
+public/**/*.svg
+public/**/*.png
+public/**/*.jpg
+public/**/*.jpeg
+public/**/*.gif
+
+# Env files
+.env
+.env.local
+.env.development
+.env.production
