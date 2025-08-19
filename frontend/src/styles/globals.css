@@ -1,26 +1,95 @@
-@import 'tailwindcss';
+/* Tailwind base imports */
+@import 'tailwindcss/base';
+@import 'tailwindcss/utilities';
+@import 'tailwindcss/theme';
 
+/* Optional animation library */
+@import 'tw-animate-css';
+
+/* Root Variables */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Border radius */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Colors */
+  --color-background: #ffffff;
+  --color-foreground: #1f2937;
+  --color-heading: #111827;
+  --color-primary: #1d4ed8; /* Royal Blue */
+  --color-secondary: #f59e0b; /* Amber */
+  --color-accent: #2563eb;
+  --color-muted: #6b7280;
+  --color-destructive: #dc2626;
+  --color-card: #f9fafb;
+  --color-popover: #ffffff;
+  --color-sidebar: #f3f4f6;
+
+  /* Fonts */
+  --font-sans: 'Calibri', Arial, Helvetica, sans-serif;
+  --font-heading: 'Calibri', Arial, Helvetica, sans-serif;
+
+  /* Layout */
+  --container-max-width: 1320px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* Base Styles */
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    padding: 0;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  h1 {
+    @apply text-h1 text-heading font-sans;
+  }
+  h2 {
+    @apply text-h2 text-heading font-sans;
+  }
+  h3 {
+    @apply text-h3 text-heading font-sans;
+  }
+  h4 {
+    @apply text-h4 text-heading font-sans;
+  }
+
+  a {
+    @apply text-primary no-underline hover:underline transition;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply border border-muted rounded-md p-sm 
+           focus:ring-2 focus:ring-accent focus:border-accent 
+           transition;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Layout Utility */
+.container {
+  margin: 0 auto;
+  max-width: var(--container-max-width);
+  padding: 1rem;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-block px-4 py-2 rounded-md font-sans 
+    bg-primary text-white hover:bg-accent transition;
+}
+.btn-secondary {
+  @apply inline-block px-4 py-2 rounded-md font-sans 
+    bg-secondary text-white hover:bg-accent transition;
+}
+
+/* Custom reusable components */
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg bg-primary text-white font-semibold;
+  }
 }
