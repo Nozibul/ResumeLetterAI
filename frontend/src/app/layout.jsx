@@ -6,8 +6,8 @@
  */
 
 import { Inter } from 'next/font/google';
-import Header from '@/components/layouts/Header';
-import Footer from '@/components/layouts/Footer';
+// import Header from '@/components/layouts/Header';
+// import Footer from '@/components/layouts/Footer';
 import '@/styles/globals.css';
 
 // 1. Font Configuration:
@@ -121,12 +121,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="flex min-h-full flex-col font-sans antialiased">
-        <Header />
+        {/* <Header /> */}
 
         {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
         <main className="flex-1">{children}</main>
 
-        <Footer />
+        {/* <Footer /> */}
       </body>
     </html>
   );

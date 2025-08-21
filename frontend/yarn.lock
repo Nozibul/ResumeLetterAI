@@ -711,7 +711,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tailwindcss/postcss@npm:^4":
+"@tailwindcss/postcss@npm:^4.1.12":
   version: 4.1.12
   resolution: "@tailwindcss/postcss@npm:4.1.12"
   dependencies:
@@ -2150,7 +2150,7 @@ __metadata:
   resolution: "frontend@workspace:."
   dependencies:
     "@eslint/eslintrc": "npm:^3"
-    "@tailwindcss/postcss": "npm:^4"
+    "@tailwindcss/postcss": "npm:^4.1.12"
     autoprefixer: "npm:^10.4.21"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"

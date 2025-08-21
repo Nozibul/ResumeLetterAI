@@ -1,10 +1,27 @@
+'use client';
+/**
+ * @file page.jsx -
+ * @author Nozibul Islam
+ *
+ * @copyright (c) 2025 ResumeLetterAI. All rights reserved.
+ * @license MIT
+ */
+
+import CategoryCard from '@/widgets/landing/categoryCard/CategoryCard';
+import { HeroSection } from '@/widgets/landing/hero-section/HeroSection';
+
 export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      hello
-      {/* <HeroSection />
+    <main className="min-h-screen bg-gradient-to-br to-blue-50 via-white-50 ">
+      <HeroSection />
+      <CategoryCard />
+      {/* Additional sections can be added here */}
+      {/* 
       <FeaturesSection />
-      <CTASection /> */}
-    </div>
+      <TestimonialsSection />
+      <PricingSection />
+      <FooterSection />
+      */}
+    </main>
   );
 }
