@@ -16,6 +16,7 @@ import RatingDisplay from '@/shared/components/atoms/ratingDisplay/RatingDisplay
 import TrustIndicator from '@/shared/components/atoms/trustIndicator/TrustIndicator';
 import Typography from '@/shared/components/atoms/typography/Typography';
 import FloatingElement from '@/shared/components/atoms/foatingElement/FloatingElement';
+import BannerSlide from './bannerSlide/BannerSlide';
 
 export const HeroSection = () => {
   return (
@@ -60,7 +61,7 @@ export const HeroSection = () => {
                 size="md"
                 icon={<Icon iconName="play" />}
               >
-                Watch Demo
+                Cover Letter
               </Button>
             </div>
 
@@ -76,7 +77,8 @@ export const HeroSection = () => {
           </div>
 
           {/* Right Section */}
-          <div className="md:col-span-2 border-2 p-4 flex justify-center md:justify-end items-center">
+          <div className="md:col-span-2 flex justify-center md:justify-end items-center">
+            <BannerSlide />
             <FloatingElement>AI-Powered</FloatingElement>
           </div>
         </div>

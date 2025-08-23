@@ -1,4 +1,3 @@
-'use client';
 /**
  * @file page.jsx -
  * @author Nozibul Islam
@@ -9,19 +8,16 @@
 
 import CategoryCard from '@/widgets/landing/categoryCard/CategoryCard';
 import { HeroSection } from '@/widgets/landing/hero-section/HeroSection';
+import ResumeGuide from '@/widgets/landing/resumeGuide/ResumeGuide';
+import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br to-blue-50 via-white-50 ">
+    <main className="min-h-screen bg-gradient-to-br from-white via-white to-purple-50">
       <HeroSection />
       <CategoryCard />
-      {/* Additional sections can be added here */}
-      {/* 
-      <FeaturesSection />
+      <ResumeGuide />
       <TestimonialsSection />
-      <PricingSection />
-      <FooterSection />
-      */}
     </main>
   );
 }

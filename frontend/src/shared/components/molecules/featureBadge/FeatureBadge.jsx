@@ -18,12 +18,14 @@ const FeatureBadge = memo(({ icon, text, color = 'blue', className = '' }) => {
   };
 
   return (
-    <div
-      className={`inline-flex items-center space-x-2 px-3 py-2 rounded-full border ${colors[color]} ${className}`}
-    >
-      <Icon iconName={icon} size="sm" />
-      <span className="text-sm font-medium">{text}</span>
-    </div>
+    <>
+      <div
+        className={`inline-flex items-center space-x-2 px-3 py-2 rounded-full border ${colors[color]} ${className}`}
+      >
+        <Icon iconName={icon} size="sm" />
+        <span className="text-sm font-medium">{text}</span>
+      </div>
+    </>
   );
 });
 

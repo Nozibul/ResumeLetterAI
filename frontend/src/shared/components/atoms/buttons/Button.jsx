@@ -31,7 +31,7 @@ const Button = memo(
       primary:
         'bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-600 hover:to-blue-400 text-white shadow-lg hover:shadow-xl focus:ring-blue-300 transform hover:scale-103',
       secondary:
-        'bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-300 hover:border-blue-700',
+        'bg-white border-1 border-blue-600 text-blue-700 hover:bg-blue-50 focus:ring-blue-300 hover:border-blue-700 ',
       ghost:
         'text-blue-600 hover:bg-blue-50 focus:ring-blue-300 hover:text-blue-700',
       outline:

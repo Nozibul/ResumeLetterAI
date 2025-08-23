@@ -12,12 +12,12 @@ const Typography = memo(
     const variants = {
       h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight',
       h2: 'text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight',
-      h3: 'text-xl md:text-2xl font-semibold text-gray-900',
+      h3: 'text-xl md:text-2xl font-bold font-family-sans text-gray-900 leading-tight',
       h4: 'text-lg md:text-xl font-semibold text-gray-900',
       lead: 'text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed',
-      body: 'text-base md:text-lg text-gray-600 leading-relaxed',
-      caption: 'text-md text-gray-500',
-      small: 'text-sm text-gray-500',
+      body: 'text-base md:text-lg text-gray-800 mt-2 leading-relaxed',
+      caption: 'text-md font-semibold text-gray-600',
+      small: 'text-sm text-gray-600',
     };
 
     const defaultTags = {
@@ -50,7 +50,7 @@ const Typography = memo(
         } else {
           // odd → single middle word
           const mid = Math.floor(len / 2);
-          isHighlight = i === mid || i === mid + 1;
+          isHighlight = i === mid;
         }
 
         return (
@@ -58,7 +58,7 @@ const Typography = memo(
             key={i}
             className={
               isHighlight
-                ? 'bg-gradient-to-r from-blue-500 to-purple-400 bg-clip-text text-transparent'
+                ? 'bg-gradient-to-r from-blue-600 to-purple-300 bg-clip-text text-transparent'
                 : ''
             }
           >

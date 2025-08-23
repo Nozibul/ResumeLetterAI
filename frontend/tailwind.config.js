@@ -14,7 +14,7 @@ module.exports = {
         fadeInRight: 'fadeInRight 0.8s ease-out forwards',
         scaleIn: 'scaleIn 0.8s ease-out forwards',
         float: 'float 3s ease-in-out infinite',
-        'pulse-glow': 'pulseGlow 2s infinite',
+        'pulse-glow': 'pulseGlow 5s infinite',
         shimmer: 'shimmer 2s infinite linear',
         blob: 'blob 7s infinite',
       },

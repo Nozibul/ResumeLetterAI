@@ -18,6 +18,7 @@ import {
   Sparkles,
   Play,
   ArrowRight,
+  LayoutTemplate,
 } from 'lucide-react';
 
 const Icon = memo(({ iconName, className = '', size = 'md', ...props }) => {
@@ -26,6 +27,7 @@ const Icon = memo(({ iconName, className = '', size = 'md', ...props }) => {
     md: 'w-5 h-5',
     lg: 'w-6 h-6',
     xl: 'w-8 h-8',
+    xxl: 'w-12 h-12',
   };
 
   const iconMap = {
@@ -39,6 +41,7 @@ const Icon = memo(({ iconName, className = '', size = 'md', ...props }) => {
     play: Play,
     arrow: ArrowRight,
     chevron: ChevronRight,
+    template: LayoutTemplate,
   };
 
   const IconComponent = iconMap[iconName] || Star;
