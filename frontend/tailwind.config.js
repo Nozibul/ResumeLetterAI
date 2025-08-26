@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+const { fontFamily } = require('tailwindcss/defaultTheme');
 module.exports = {
   content: [
     './src/**/*.{js,jsx,ts,tsx}',
@@ -8,6 +9,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [...fontFamily.sans],
+        lora: ['var(--font-lora)', ...fontFamily.serif],
+      },
       animation: {
         fadeInUp: 'fadeInUp 0.8s ease-out forwards',
         fadeInLeft: 'fadeInLeft 0.8s ease-out forwards',

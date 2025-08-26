@@ -9,7 +9,7 @@ const FloatingElement = memo(
 
     return (
       <div
-        className={`space-x-2 px-3 py-1 rounded-full bg-purple-50 text-black-800 border-purple-200 absolute ${animations[animation]} ${className}`}
+        className={`space-x-2 px-3 py-1 rounded-full bg-teal-500 text-white absolute ${animations[animation]} ${className}`}
       >
         {children}
       </div>

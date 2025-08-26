@@ -21,9 +21,9 @@ const RatingDisplay = memo(
               key={index}
               className={`w-4 h-4 ${
                 index < fullStars
-                  ? 'fill-yellow-400 text-yellow-400'
+                  ? 'fill-teal-400 text-teal-400'
                   : index === fullStars && hasHalfStar
-                    ? 'fill-yellow-200 text-yellow-400'
+                    ? 'fill-teal-200 text-teal-400'
                     : 'fill-gray-200 text-gray-200'
               }`}
             />

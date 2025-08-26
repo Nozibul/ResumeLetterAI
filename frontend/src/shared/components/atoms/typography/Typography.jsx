@@ -10,10 +10,10 @@ import { memo } from 'react';
 const Typography = memo(
   ({ variant = 'body', children, className = '', as: Component, ...props }) => {
     const variants = {
-      h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight',
-      h2: 'text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight',
+      h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight',
+      h2: 'text-2xl md:text-4xl lg:text-4xl font-semibold dark:text-gray-200 drop-shadow-md',
       h3: 'text-xl md:text-2xl font-bold font-family-sans text-gray-900 leading-tight',
-      h4: 'text-lg md:text-xl font-semibold text-gray-900',
+      h4: 'font-[Lora] text-lg md:text-xl font-semibold text-gray-900',
       lead: 'text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed',
       body: 'text-base md:text-lg text-gray-800 mt-2 leading-relaxed',
       caption: 'text-md font-semibold text-gray-600',
@@ -58,7 +58,7 @@ const Typography = memo(
             key={i}
             className={
               isHighlight
-                ? 'bg-gradient-to-r from-blue-600 to-purple-300 bg-clip-text text-transparent'
+                ? 'bg-gradient-to-r from-teal-600 to-purple-300 bg-clip-text text-transparent'
                 : ''
             }
           >

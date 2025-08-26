@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-
-import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import {
   NavigationMenu,
@@ -13,6 +13,10 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
+
+import Button from '@/shared/components/atoms/buttons/Button';
+import clsx from 'clsx';
+import Typography from '@/shared/components/atoms/typography/Typography';
 
 const components = [
   {
@@ -30,145 +34,213 @@ const components = [
     href: '#',
     description: 'Show progress of a task with a bar.',
   },
-  {
-    title: 'Scroll-area',
-    href: '#',
-    description: 'Separate and scroll long content.',
-  },
-  {
-    title: 'Tabs',
-    href: '#',
-    description: 'Organize content in tab panels.',
-  },
-  {
-    title: 'Tooltip',
-    href: '#',
-    description: 'Show info when hovering or focusing.',
-  },
 ];
 
 export function Navigation() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <nav className={`sticky top-0 z-100 w-full bg-white shadow-md`}>
-      <div className="container flex items-center justify-between py-6">
-        {/* Logo (Home button) */}
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold">
-          <CircleCheckIcon className="h-6 w-6 text-blue-600" />
-          <span>ResumeAI</span>
-        </Link>
+    <nav className="sticky top-0 z-50 w-full bg-white shadow-md">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-xl font-bold"
+            >
+              ResumeLetterAI
+            </Link>
+          </div>
 
-        {/* Navigation Menu */}
-        <NavigationMenu>
-          <NavigationMenuList>
-            {/* Home */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Home</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid gap-2 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                  <li className="row-span-3">
-                    <NavigationMenuLink asChild>
-                      <Link
-                        href="/"
-                        className="flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b from-slate-50 to-slate-100 p-6 shadow-sm"
-                      >
-                        <div className="mb-2 text-lg font-medium">ResumeAI</div>
-                        <p className="text-sm text-muted-foreground">
-                          Beautifully designed SaaS app to build resumes with
-                          AI.
-                        </p>
-                      </Link>
-                    </NavigationMenuLink>
-                  </li>
-                  <ListItem href="#" title="Introduction">
-                    Re-usable resume components with Tailwind CSS.
-                  </ListItem>
-                  <ListItem href="#" title="Installation">
-                    Install dependencies & set up your workspace.
-                  </ListItem>
-                  <ListItem href="#" title="Typography">
-                    Prebuilt styles for headings, paragraphs, lists...
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+          {/* Desktop Navigation */}
+          <div className="hidden md:block">
+            <NavigationMenu>
+              <NavigationMenuList className="flex items-center gap-2">
+                {/* Home */}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={clsx(navigationMenuTriggerStyle(), 'text-sm')}
+                  >
+                    <Link href="/">Home</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
-            {/* Components */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Components</NavigationMenuTrigger>
-              <NavigationMenuContent className="z-50 bg-white shadow-lg rounded-md p-4">
-                <ul className="grid w-[500px] gap-2 p-4 md:grid-cols-2">
-                  {components.map((component) => (
-                    <ListItem
-                      key={component.title}
-                      title={component.title}
-                      href={component.href}
-                    >
-                      {component.description}
-                    </ListItem>
-                  ))}
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+                {/* Resume Templates */}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={clsx(navigationMenuTriggerStyle(), 'text-sm')}
+                  >
+                    <Link href="/resume-templates">Resume Templates</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
 
-            {/* Docs */}
-            <NavigationMenuItem>
-              <NavigationMenuLink
-                asChild
-                className={navigationMenuTriggerStyle()}
+                {/* Cover Letter */}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={clsx(navigationMenuTriggerStyle(), 'text-sm')}
+                  >
+                    <Link href="/cover-letter-AI">Cover Letter</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                {/* Consultant */}
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={clsx(navigationMenuTriggerStyle(), 'text-sm')}
+                  >
+                    <Link href="/consultant">Consultant</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                {/* Career Craft Dropdown */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-sm">
+                    Career Craft
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent className="z-50 bg-white shadow-lg border-none rounded-md p-2">
+                    <ul className="w-[300px]">
+                      {components.map((component) => (
+                        <ListItem
+                          key={component.title}
+                          title={component.title}
+                          href={component.href}
+                        >
+                          {component.description}
+                        </ListItem>
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
+
+          {/* Desktop Auth Button */}
+          <div className="hidden md:block">
+            <Link href="/dashboard">
+              <Button variant="primary" size="md">
+                My Account
+              </Button>
+            </Link>
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              aria-expanded="false"
+            >
+              <span className="sr-only">Open main menu</span>
+              {/* Hamburger icon */}
+              <svg
+                className={`${isMobileMenuOpen ? 'hidden' : 'block'} h-6 w-6`}
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <Link href="#">Docs</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+              {/* Close icon */}
+              <svg
+                className={`${isMobileMenuOpen ? 'block' : 'hidden'} h-6 w-6`}
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-            {/* List */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>List</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[300px] gap-4 p-4">
-                  <ListItem href="#" title="Components">
-                    Browse all components in the library.
-                  </ListItem>
-                  <ListItem href="#" title="Documentation">
-                    Learn how to use the library.
-                  </ListItem>
-                  <ListItem href="#" title="Blog">
-                    Read our latest blog posts.
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
+              {/* Mobile Menu Items */}
+              <Link
+                href="#"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                href="/resume-templates"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Resume Templates
+              </Link>
+              <Link
+                href="/cover-letter-AI"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Cover Letter
+              </Link>
+              <Link
+                href="/consultant"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Consultant
+              </Link>
 
-            {/* Simple */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Simple</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[200px] gap-4 p-4">
-                  <ListItem href="#" title="Components" />
-                  <ListItem href="#" title="Documentation" />
-                  <ListItem href="#" title="Blocks" />
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+              {/* Mobile Career Craft submenu */}
+              <div className="px-3 py-2">
+                <div className="text-base font-medium text-gray-700 mb-2">
+                  Career Craft
+                </div>
+                <div className="space-y-1 pl-4">
+                  {components.map((component) => (
+                    <Link
+                      key={component.title}
+                      href={component.href}
+                      className="block px-2 py-1 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <div className="font-medium">{component.title}</div>
+                      <div className="text-xs text-gray-500">
+                        {component.description}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-            {/* With Icon */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>With Icon</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[220px] gap-4 p-4">
-                  <ListItem href="#" title="Backlog">
-                    <CircleHelpIcon className="mr-2 inline h-4 w-4" />
-                  </ListItem>
-                  <ListItem href="#" title="To Do">
-                    <CircleIcon className="mr-2 inline h-4 w-4" />
-                  </ListItem>
-                  <ListItem href="#" title="Done">
-                    <CircleCheckIcon className="mr-2 inline h-4 w-4" />
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+              {/* Mobile Auth Button */}
+              <div className="px-3 py-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button variant="primary" size="md" className="w-full">
+                    My Account
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
@@ -181,14 +253,10 @@ function ListItem({ title, children, href }) {
       <NavigationMenuLink asChild>
         <Link
           href={href}
-          className="block select-none rounded-md p-2 leading-snug no-underline outline-none transition-colors hover:bg-slate-100 focus:bg-slate-100"
+          className="rounded-md p-2 no-underline transition-colors hover:bg-slate-100 focus:bg-slate-100"
         >
           {title && <div className="text-sm font-medium">{title}</div>}
-          {children && (
-            <p className="line-clamp-2 text-sm text-muted-foreground">
-              {children}
-            </p>
-          )}
+          {children && <Typography variant="caption">{children}</Typography>}
         </Link>
       </NavigationMenuLink>
     </li>

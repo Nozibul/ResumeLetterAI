@@ -13,7 +13,7 @@ import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/Testi
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-white via-white to-purple-50">
+    <main className="min-h-screen bg-gradient-to-br from-white via-white to-teal-50">
       <HeroSection />
       <CategoryCard />
       <ResumeGuide />

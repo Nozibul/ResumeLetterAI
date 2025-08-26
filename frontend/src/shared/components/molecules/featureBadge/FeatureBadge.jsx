@@ -9,10 +9,10 @@
 import React, { memo } from 'react';
 import Icon from '../../atoms/icons/Icon';
 
-const FeatureBadge = memo(({ icon, text, color = 'blue', className = '' }) => {
+const FeatureBadge = memo(({ icon, text, color = 'teal', className = '' }) => {
   const colors = {
+    teal: 'bg-teal-100 text-teal-800 border-teal-200',
     blue: 'bg-blue-100 text-blue-800 border-blue-200',
-    green: 'bg-green-100 text-green-800 border-green-200',
     purple: 'bg-purple-100 text-purple-800 border-purple-200',
     orange: 'bg-orange-100 text-orange-800 border-orange-200',
   };

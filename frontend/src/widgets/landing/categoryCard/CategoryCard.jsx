@@ -22,7 +22,7 @@ const CategoryCard = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <Typography variant="h2" className="mb-4">
-            Choose Your Perfect Resume Template Category
+            Choose Your Preferred Template Category
           </Typography>
           <Typography variant="body">
             Select from our professionally designed templates to create a resume
@@ -78,7 +78,7 @@ const CategoryCard = () => {
                 ?.features?.map((feature, index) => (
                   <span
                     key={index}
-                    className={`px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full transition-all duration-500 ease-out transform ${
+                    className={`px-2 py-1 bg-teal-300 text-white text-xs rounded-full transition-all duration-500 ease-out transform ${
                       hoveredTemplate
                         ? 'opacity-100 translate-y-0 scale-100'
                         : 'opacity-0 translate-y-4 scale-85'

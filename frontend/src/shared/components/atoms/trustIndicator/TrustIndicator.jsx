@@ -13,9 +13,9 @@ const TrustIndicator = memo(
   ({ value, text, className = '', showIcon = true }) => {
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
-        {showIcon && <User className="text-blue-600" />}
+        {showIcon && <User className="text-teal-600" />}
         <span className="font-semibold text-gray-700">{value}</span>
-        <span className="text-gray-600">{text}</span>
+        <span className=" text-gray-600">{text}</span>
       </div>
     );
   }

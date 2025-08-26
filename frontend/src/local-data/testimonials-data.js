@@ -7,7 +7,7 @@ export const TESTIMONIALS_DATA = [
     name: 'Sarah Johnson',
     title: 'Senior Project Manager',
     company: 'TechCorp Solutions',
-    borderColor: 'border-blue-500',
+    borderColor: 'border-teal-500',
     quoteColor: 'text-blue-400',
   },
   {

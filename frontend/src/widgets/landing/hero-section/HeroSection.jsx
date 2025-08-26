@@ -25,7 +25,7 @@ export const HeroSection = () => {
         {/* <div className="relative z-10"> */}
         <div className="grid grid-cols-1 md:grid-cols-5 w-full min-h-screen p-8 gap-6">
           {/* Left Section */}
-          <div className="md:col-span-3 space-y-12">
+          <div className="md:col-span-3 space-y-10">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full">
               <TrustIndicator text="Users trust us" value="1.1k+" />
               <RatingDisplay rating={4.9} totalReviews="1.1k" />
@@ -35,14 +35,14 @@ export const HeroSection = () => {
               <Typography variant="h2">
                 Build Your Professional Resume in Minutes
               </Typography>
-              <Typography variant="body">
+              <Typography variant="caption">
                 Create a standout resume with our AI-powered builder. Choose
                 from professional templates, customize your content, and
                 download in minutes.
               </Typography>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-6 gap-6 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-20 gap-6 w-full">
               <Button
                 variant="primary"
                 size="md"
@@ -67,12 +67,12 @@ export const HeroSection = () => {
 
             <div className="flex flex-wrap gap-4">
               <FeatureBadge text="30-min build" icon="zap" />
-              <FeatureBadge text="ATS-friendly" icon="edit" color="green" />
               <FeatureBadge
                 text="Free download"
                 icon="download"
                 color="purple"
               />
+              <FeatureBadge text="ATS-friendly" icon="edit" color="blue" />
             </div>
           </div>
 

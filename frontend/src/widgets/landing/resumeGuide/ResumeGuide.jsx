@@ -34,10 +34,10 @@ const ResumeGuide = () => {
                       <Icon
                         iconName={icon}
                         size="xxl"
-                        className="text-blue-600"
+                        className="text-teal-600"
                       />
                     </div>
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-300 text-white absolute top-[35px] right-[-6px] flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-teal-500 to-purple-300 text-white absolute top-[35px] right-[-6px] flex items-center justify-center">
                       0{id}
                     </div>
                   </div>
