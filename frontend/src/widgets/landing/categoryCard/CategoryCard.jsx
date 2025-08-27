@@ -3,6 +3,7 @@
 import { templatesCategory } from '@/local-data/template-category';
 import Typography from '@/shared/components/atoms/typography/Typography';
 import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
+import Link from 'next/link';
 import { useState } from 'react';
 
 /**
@@ -34,18 +35,25 @@ const CategoryCard = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap justify-center gap-8">
             {templatesCategory?.map((template, _) => (
-              <div
+              <Link
                 key={template.id}
-                onMouseEnter={() => setHoveredTemplate(template.id)}
-                onMouseLeave={() => setHoveredTemplate(null)}
+                href={{
+                  pathname: '/resume-templates',
+                  query: { category: template.id },
+                }}
               >
-                <ResumeCategoryCard
-                  template={template}
-                  isActive={hoveredTemplate === template.id}
-                  isHovered={hoveredTemplate === template.id}
-                  onClick={() => setActiveTemplate(template.id)}
-                />
-              </div>
+                <div
+                  key={template.id}
+                  onMouseEnter={() => setHoveredTemplate(template.id)}
+                  onMouseLeave={() => setHoveredTemplate(null)}
+                >
+                  <ResumeCategoryCard
+                    template={template}
+                    isActive={hoveredTemplate === template.id}
+                    isHovered={hoveredTemplate === template.id}
+                  />
+                </div>
+              </Link>
             ))}
           </div>
         </div>
