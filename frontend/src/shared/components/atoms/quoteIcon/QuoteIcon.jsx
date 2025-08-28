@@ -5,7 +5,7 @@
 
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
-import { QUOTE_MARKS_PATH } from '@/shared/constants/icon';
+import { QUOTE_MARKS_PATH } from '@/lib/constants';
 
 export const QuoteIcon = ({ color }) => (
   <svg

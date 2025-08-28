@@ -35,7 +35,7 @@ const Button = memo(
       ghost:
         'text-teal-600 hover:bg-teal-50 focus:ring-teal-300 hover:text-teal-700',
       outline:
-        ' border-2 border-gray-300 text-gray-700 hover:border-teal-500 hover:text-teal-600 focus:ring-teal-300',
+        ' border-2 border-gray-300 text-teal-600 hover:border-teal-500 hover:text-teal-600 focus:ring-teal-300',
     };
 
     const sizes = {

@@ -12,10 +12,10 @@ const Typography = memo(
     const variants = {
       h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight',
       h2: 'text-2xl md:text-4xl lg:text-4xl font-semibold dark:text-gray-200 drop-shadow-md',
-      h3: 'text-xl md:text-2xl font-bold font-family-sans text-gray-900 leading-tight',
+      h3: 'text-xl md:text-3xl font-bold text-gray-900 leading-tight',
       h4: 'font-[Lora] text-lg md:text-xl font-semibold text-gray-900',
       lead: 'text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed',
-      body: 'text-base md:text-lg text-gray-800 mt-2 leading-relaxed',
+      body: 'text-lg font-semibold mt-2',
       caption: 'text-md font-semibold text-gray-600',
       small: 'text-sm text-gray-600',
     };
@@ -70,7 +70,8 @@ const Typography = memo(
 
     return (
       <Tag className={`${variants[variant]} ${className}`} {...props}>
-        {(variant === 'h1' || variant === 'h2') && typeof children === 'string'
+        {(variant === 'h1' || variant === 'h2' || variant === 'h3') &&
+        typeof children === 'string'
           ? renderHero(children)
           : children}
       </Tag>

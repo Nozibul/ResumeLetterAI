@@ -121,7 +121,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${lora.variable} h-full`}>
       <body
-        className={`${lora.className} tracking-wide flex min-h-full flex-col bg-gradient-to-br from-white via-white to-teal-50`}
+        className={`${lora.className} tracking-wide flex min-h-full flex-col`}
       >
         <Navigation />
 

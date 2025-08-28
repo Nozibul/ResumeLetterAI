@@ -19,15 +19,15 @@ export const templatesCategory = [
     features: ['Statement', 'Dynamic', 'Attention-grabbing'],
   },
   {
-    id: 'creative-resume',
-    color: 'green',
-    category: 'Creative Resume',
-    features: ['Formal', 'Traditional', 'Corporate'],
-  },
-  {
     id: 'it-resume',
     color: 'orange',
     category: 'IT Resume',
     features: ['Simple', 'Elegant', 'Focused'],
+  },
+  {
+    id: 'creative-resume',
+    color: 'green',
+    category: 'Creative Resume',
+    features: ['Formal', 'Traditional', 'Corporate'],
   },
 ];

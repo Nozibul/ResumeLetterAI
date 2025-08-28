@@ -19,7 +19,7 @@ const CategoryCard = () => {
 
   return (
     <>
-      <div className="w-full p-4 mt-12">
+      <div id="cardSection" className="w-full p-4 mt-12">
         {/* Header */}
         <div className="text-center mb-12">
           <Typography variant="h2" className="mb-4">
