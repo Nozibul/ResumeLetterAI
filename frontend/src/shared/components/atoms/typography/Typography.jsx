@@ -11,17 +11,16 @@ const Typography = memo(
   ({ variant = 'body', children, className = '', as: Component, ...props }) => {
     const variants = {
       h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight',
-      h2: 'text-2xl md:text-4xl lg:text-4xl font-semibold dark:text-gray-200 drop-shadow-md',
+      h2: 'text-2xl md:text-4xl lg:text-4xl text-black font-semibold drop-shadow-md',
       h3: 'text-xl md:text-3xl font-bold text-gray-900 leading-tight',
       h4: 'font-[Lora] text-lg md:text-xl font-semibold text-gray-900',
-      lead: 'text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed',
+      lead: 'text-xl md:text-3xl font-bold text-gray-900 leading-tight',
       body: 'text-lg font-semibold mt-2',
       caption: 'text-md font-semibold text-gray-600',
       small: 'text-sm text-gray-600',
     };
 
     const defaultTags = {
-      hero: 'h1',
       h1: 'h1',
       h2: 'h2',
       h3: 'h3',

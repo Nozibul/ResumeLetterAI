@@ -73,6 +73,21 @@
    Custom utility classes
 ========================= */
 @layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #fff #14b8a6;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #fff; /* teal-500 */
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #fff; /* teal-600 */
+    scrollbar-color: #fff #14b8a6;
+  }
+
   /* Animations */
   .animate-fadeInUp {
     animation: fadeInUp 0.5s ease-out forwards;

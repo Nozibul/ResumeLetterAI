@@ -1,11 +1,5 @@
 'use client';
 
-import { templatesCategory } from '@/local-data/template-category';
-import Typography from '@/shared/components/atoms/typography/Typography';
-import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
-import Link from 'next/link';
-import { useState } from 'react';
-
 /**
  * @file CategoryCard.jsx
  * @author Nozibul Islam
@@ -14,8 +8,16 @@ import { useState } from 'react';
  * @license MIT
  */
 
+import Typography from '@/shared/components/atoms/typography/Typography';
+import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
+import Link from 'next/link';
+import { useState } from 'react';
+import { resumeTemplate } from '@/local-data/template-data';
+
 const CategoryCard = () => {
   const [hoveredTemplate, setHoveredTemplate] = useState(null);
+  // First 5 templates
+  const first5Templates = resumeTemplate.slice(0, 5);
 
   return (
     <>
@@ -34,23 +36,23 @@ const CategoryCard = () => {
         {/* Template Grid - Uses JSON data */}
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap justify-center gap-8">
-            {templatesCategory?.map((template, _) => (
+            {first5Templates?.map(({ id, color, category }) => (
               <Link
-                key={template.id}
+                key={id}
                 href={{
                   pathname: '/resume-templates',
-                  query: { category: template.id },
+                  query: { category },
                 }}
               >
                 <div
-                  key={template.id}
-                  onMouseEnter={() => setHoveredTemplate(template.id)}
+                  onMouseEnter={() => setHoveredTemplate(id)}
                   onMouseLeave={() => setHoveredTemplate(null)}
                 >
                   <ResumeCategoryCard
-                    template={template}
-                    isActive={hoveredTemplate === template.id}
-                    isHovered={hoveredTemplate === template.id}
+                    color={color}
+                    category={category}
+                    isActive={hoveredTemplate === id}
+                    isHovered={hoveredTemplate === id}
                   />
                 </div>
               </Link>
@@ -75,13 +77,10 @@ const CategoryCard = () => {
                   : 'opacity-0 translate-y-3'
               }`}
             >
-              {
-                templatesCategory.find((t) => t.id === hoveredTemplate)
-                  ?.category
-              }
+              {first5Templates.find((t) => t.id === hoveredTemplate)?.category}
             </Typography>
             <div className="flex flex-wrap justify-center gap-2">
-              {templatesCategory
+              {first5Templates
                 .find((t) => t.id === hoveredTemplate)
                 ?.features?.map((feature, index) => (
                   <span

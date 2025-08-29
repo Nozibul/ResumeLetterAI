@@ -42,7 +42,7 @@ const ResumeGuide = () => {
                     </div>
                   </div>
                   <div className="px-8 mt-6 text-center">
-                    <Typography variant="h3">{title}</Typography>
+                    <Typography variant="lead">{title}</Typography>
                     <Typography variant="caption">{description}</Typography>
                   </div>
                 </div>

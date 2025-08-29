@@ -8,6 +8,7 @@
 
 import CategoryCard from '@/widgets/landing/categoryCard/CategoryCard';
 import { HeroSection } from '@/widgets/landing/hero-section/HeroSection';
+import ResumeFeed from '@/widgets/landing/resumeFeed/ResumeFeed';
 import ResumeGuide from '@/widgets/landing/resumeGuide/ResumeGuide';
 import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
 
@@ -17,6 +18,7 @@ export default function HomePage() {
       <HeroSection />
       <CategoryCard />
       <ResumeGuide />
+      <ResumeFeed />
       <TestimonialsSection />
     </main>
   );

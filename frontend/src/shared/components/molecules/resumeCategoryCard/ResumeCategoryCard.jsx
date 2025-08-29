@@ -23,9 +23,7 @@ const borderColors = {
 };
 
 const ResumeCategoryCard = memo(
-  ({ template, isActive = true, onClick, className = '' }) => {
-    const { category, color = 'blue' } = template;
-
+  ({ color, category, isActive = true, onClick, className = '' }) => {
     return (
       <>
         <div
@@ -121,10 +119,9 @@ const ResumeCategoryCard = memo(
 );
 
 ResumeCategoryCard.propTypes = {
-  template: PropTypes.shape({
-    category: PropTypes.string.isRequired,
-    color: PropTypes.oneOf(['blue', 'green', 'orange', 'purple', 'amber']),
-  }).isRequired,
+  category: PropTypes.string.isRequired,
+  color: PropTypes.oneOf(['blue', 'green', 'orange', 'purple', 'amber'])
+    .isRequired,
   isActive: PropTypes.bool,
   onClick: PropTypes.func,
   className: PropTypes.string,
