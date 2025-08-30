@@ -10,6 +10,9 @@
 
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
+import { useEffect, useState } from 'react';
+
+import { formatCategoryName } from '@/lib/formatCategoryName';
 
 /**
  * ContentFeed component displays a scrollable list of resume items
@@ -18,32 +21,40 @@ import clsx from 'clsx';
  * @param {number} props.active - ID of currently active item
  * @param {Function} props.setActive - Function to set active item
  */
-const ContentFeed = ({ items = [], active, setActive }) => {
+const ContentFeed = ({ resumeFeed = [], active, setActive }) => {
+  const [items, setItems] = useState([]);
   const handleItemClick = (itemId) => {
-    setActive?.(itemId);
+    setActive(itemId);
   };
+
+  useEffect(() => {
+    setItems(
+      resumeFeed.map((allItem) => ({
+        ...allItem,
+        category: formatCategoryName(allItem.category),
+      }))
+    );
+  }, [resumeFeed]);
 
   return (
     <>
       <div className="bg-gradient-to-br from-teal-50 via-white to-teal-100 rounded-2xl p-8 lg:col-span-1">
-        <h1 className="text-xl font-bold mb-4">Resume Feed</h1>
+        <h1 className="text-2xl text-center font-bold mb-4">Resume Feed</h1>
 
-        <div className="lg:h-[450px] custom-scrollbar overflow-y-auto space-y-4">
-          {items.map((item) => (
+        <div className="lg:h-[500px] custom-scrollbar overflow-y-auto space-y-4">
+          {items?.map((item) => (
             <div
               key={item.id}
               onClick={() => handleItemClick(item.id)}
               className={clsx(
                 'p-4 rounded-lg cursor-pointer transition-colors',
                 active === item.id
-                  ? 'bg-teal-100 border-l-4 border-teal-500 text-gray-700'
+                  ? 'bg-teal-100 border-l-4 border-teal-500 text-black'
                   : 'bg-gray-100 hover:bg-gray-200'
               )}
             >
               <h3 className="font-semibold">{item.title}</h3>
-              <p className="text-sm text-gray-600">
-                {item.category} • {item.time}
-              </p>
+              <p className="text-xs text-gray-600">{item.category}</p>
             </div>
           ))}
         </div>

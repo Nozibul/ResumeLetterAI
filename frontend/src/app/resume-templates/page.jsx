@@ -10,7 +10,6 @@
 
 import Image from 'next/image';
 import React, { useState, useEffect, useMemo } from 'react';
-import { resumeTemplates } from '@/local-data/resume-templates';
 import { ResumeSkeleton } from './ResumeSkeleton';
 import Button from '@/shared/components/atoms/buttons/Button';
 import { useSearchParams } from 'next/navigation';
@@ -21,6 +20,8 @@ import {
 } from '@/lib/constants';
 import Link from 'next/link';
 import Typography from '@/shared/components/atoms/typography/Typography';
+import { formatCategoryName } from '@/lib/formatCategoryName';
+import { resumeTemplates } from '@/local-data/template-data';
 
 const TemplatePage = () => {
   const [moreItem, setMoreItem] = useState(INITIAL_ITEMS_ALL);
@@ -54,11 +55,6 @@ const TemplatePage = () => {
     }
   };
 
-  const formatCategoryName = (name) => {
-    if (!name) return '';
-    return name.replace(/-resume$/i, '').replace(/^\w/, (c) => c.toUpperCase());
-  };
-
   // Empty State Rendering
   if (!displayedTemplates || displayedTemplates.length === 0) {
     return (
@@ -71,6 +67,7 @@ const TemplatePage = () => {
 
   // Final Preparation for Rendering
   const templatesToShow = displayedTemplates.slice(0, moreItem);
+
   return (
     <>
       <div>
@@ -155,9 +152,9 @@ const FilterHeader = ({ categoryName, categoryItemLength }) => {
         <Typography variant="body">
           {categoryItemLength} Expertly Crafted{' '}
           <strong className="text-xl bg-gradient-to-r from-teal-600 to-purple-300 bg-clip-text text-transparent">
-            {categoryName} Resume{' '}
+            {categoryName}
           </strong>{' '}
-          Templates
+          Resume Templates
         </Typography>
       </div>
 

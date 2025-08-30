@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Typography from '../../atoms/typography/Typography';
 import Icon from '../../atoms/icons/Icon';
+import { formatCategoryName } from '@/lib/formatCategoryName';
 
 // Predefined Tailwind classes
 const colorGradients = {
@@ -23,7 +24,11 @@ const borderColors = {
 };
 
 const ResumeCategoryCard = memo(
-  ({ color, category, isActive = true, onClick, className = '' }) => {
+  ({ templates, isActive = true, onClick, className = '' }) => {
+    const { category, color = 'blue' } = templates;
+
+    const categoryFormatted = formatCategoryName(category);
+
     return (
       <>
         <div
@@ -32,7 +37,7 @@ const ResumeCategoryCard = memo(
           onClick={onClick}
           onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
           className={clsx(
-            'w-48 h-66 bg-white rounded-xl shadow-lg border-2 p-4 transition-transform duration-300 cursor-pointer relative transform',
+            'w-52 h-72 bg-white rounded-xl shadow-lg border-2 p-4 transition-transform duration-300 cursor-pointer relative transform',
             isActive
               ? clsx(borderColors[color], 'shadow-2xl scale-110 z-10')
               : 'border-gray-200 hover:border-blue-200 hover:shadow-xl hover:scale-102',
@@ -88,7 +93,7 @@ const ResumeCategoryCard = memo(
               variant="caption"
               className="font-semibold text-gray-700"
             >
-              {category}
+              {categoryFormatted} Resume
             </Typography>
           </div>
 
@@ -119,9 +124,7 @@ const ResumeCategoryCard = memo(
 );
 
 ResumeCategoryCard.propTypes = {
-  category: PropTypes.string.isRequired,
-  color: PropTypes.oneOf(['blue', 'green', 'orange', 'purple', 'amber'])
-    .isRequired,
+  templates: PropTypes.object.isRequired,
   isActive: PropTypes.bool,
   onClick: PropTypes.func,
   className: PropTypes.string,

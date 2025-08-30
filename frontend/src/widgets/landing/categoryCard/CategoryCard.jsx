@@ -12,12 +12,16 @@ import Typography from '@/shared/components/atoms/typography/Typography';
 import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
 import Link from 'next/link';
 import { useState } from 'react';
-import { resumeTemplate } from '@/local-data/template-data';
+import { formatCategoryName } from '@/lib/formatCategoryName';
+import { resumeCards } from '@/local-data/cardCategory';
 
 const CategoryCard = () => {
   const [hoveredTemplate, setHoveredTemplate] = useState(null);
-  // First 5 templates
-  const first5Templates = resumeTemplate.slice(0, 5);
+
+  // Category name
+  const categoryName = formatCategoryName(
+    resumeCards.find((t) => t.id === hoveredTemplate)?.category
+  );
 
   return (
     <>
@@ -34,25 +38,24 @@ const CategoryCard = () => {
         </div>
 
         {/* Template Grid - Uses JSON data */}
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap justify-center gap-8">
-            {first5Templates?.map(({ id, color, category }) => (
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-6">
+            {resumeCards?.map((resumeCard) => (
               <Link
-                key={id}
+                key={resumeCard.id}
                 href={{
                   pathname: '/resume-templates',
-                  query: { category },
+                  query: { category: resumeCard.category },
                 }}
               >
                 <div
-                  onMouseEnter={() => setHoveredTemplate(id)}
+                  onMouseEnter={() => setHoveredTemplate(resumeCard.id)}
                   onMouseLeave={() => setHoveredTemplate(null)}
                 >
                   <ResumeCategoryCard
-                    color={color}
-                    category={category}
-                    isActive={hoveredTemplate === id}
-                    isHovered={hoveredTemplate === id}
+                    templates={resumeCard}
+                    isActive={hoveredTemplate === resumeCard.id}
+                    isHovered={hoveredTemplate === resumeCard.id}
                   />
                 </div>
               </Link>
@@ -61,39 +64,41 @@ const CategoryCard = () => {
         </div>
 
         {/* Selected Template Info */}
-        <div className="h-[110px] mt-2 text-center">
-          <div
-            className={` rounded-xl p-6 max-w-md mx-auto transition-all duration-400 ease-out transform ${
-              hoveredTemplate
-                ? 'opacity-100 translate-y-0 scale-100'
-                : 'opacity-0 translate-y-6 scale-95'
-            }`}
-          >
-            <Typography
-              variant="body"
-              className={`mb-2 transition-all duration-100 ease-out ${
+        <div className="flex items-center justify-center h-[110px] w-full mt-2">
+          <div className="w-[700px] flex items-center justify-center">
+            <div
+              className={`rounded-xl p-6 w-full transition-all duration-400 ease-out transform ${
                 hoveredTemplate
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 translate-y-3'
+                  ? 'opacity-100 translate-y-0 scale-100'
+                  : 'opacity-0 translate-y-6 scale-95'
               }`}
             >
-              {first5Templates.find((t) => t.id === hoveredTemplate)?.category}
-            </Typography>
-            <div className="flex flex-wrap justify-center gap-2">
-              {first5Templates
-                .find((t) => t.id === hoveredTemplate)
-                ?.features?.map((feature, index) => (
-                  <span
-                    key={index}
-                    className={`px-2 py-1 bg-teal-300 text-white text-xs rounded-full transition-all duration-500 ease-out transform ${
-                      hoveredTemplate
-                        ? 'opacity-100 translate-y-0 scale-100'
-                        : 'opacity-0 translate-y-4 scale-85'
-                    }`}
-                  >
-                    {feature}
-                  </span>
-                ))}
+              <Typography
+                variant="body"
+                className={`mb-2 text-center transition-all duration-100 ease-out ${
+                  hoveredTemplate
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 translate-y-3'
+                }`}
+              >
+                {categoryName}
+              </Typography>
+              <div className="flex flex-wrap items-center justify-center gap-2 min-w-[500px] max-w-[600px] mx-auto">
+                {resumeCards
+                  .find((t) => t.id === hoveredTemplate)
+                  ?.features?.map((feature, index) => (
+                    <span
+                      key={index}
+                      className={`px-3 py-1 bg-teal-400 text-white text-xs rounded-full whitespace-nowrap transition-all duration-500 ease-out transform ${
+                        hoveredTemplate
+                          ? 'opacity-100 translate-y-0 scale-100'
+                          : 'opacity-0 translate-y-4 scale-85'
+                      }`}
+                    >
+                      {feature}
+                    </span>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
