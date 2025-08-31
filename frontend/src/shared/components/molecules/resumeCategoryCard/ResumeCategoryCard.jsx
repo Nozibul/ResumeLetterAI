@@ -1,36 +1,32 @@
 'use client';
+
+/**
+ * @file ResumeCategoryCard.jsx
+ * @author Nozibul Islam
+ *
+ * @copyright (c) 2025 ResumeLetterAI. All rights reserved.
+ * @license MIT
+ */
+
 import { memo } from 'react';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Typography from '../../atoms/typography/Typography';
 import Icon from '../../atoms/icons/Icon';
 import { formatCategoryName } from '@/lib/formatCategoryName';
-
-// Predefined Tailwind classes
-const colorGradients = {
-  blue: 'from-blue-400 to-blue-600',
-  green: 'from-green-400 to-green-600',
-  orange: 'from-orange-400 to-orange-700',
-  purple: 'from-purple-400 to-purple-600',
-  amber: 'from-amber-300 to-amber-500',
-};
-
-const borderColors = {
-  blue: 'border-blue-400',
-  green: 'border-green-400',
-  orange: 'border-orange-400',
-  purple: 'border-purple-400',
-  amber: 'border-amber-400',
-};
+import { getColorGradient, getBorderColor } from '@/lib/colorsUtils';
 
 const ResumeCategoryCard = memo(
-  ({ templates, isActive = true, onClick, className = '' }) => {
-    const { category, color = 'blue' } = templates;
-
+  ({ templates, isActive = true, onClick, className = '', index = 0 }) => {
+    const { category } = templates;
     const categoryFormatted = formatCategoryName(category);
 
+    // Get colors from utility functions
+    const gradientClass = getColorGradient(index);
+    const borderClass = getBorderColor(index);
+
     return (
-      <>
+      <section>
         <div
           role="button"
           tabIndex={0}
@@ -39,7 +35,7 @@ const ResumeCategoryCard = memo(
           className={clsx(
             'w-52 h-72 bg-white rounded-xl shadow-lg border-2 p-4 transition-transform duration-300 cursor-pointer relative transform',
             isActive
-              ? clsx(borderColors[color], 'shadow-2xl scale-110 z-10')
+              ? clsx(borderClass, 'shadow-2xl scale-110 z-10')
               : 'border-gray-200 hover:border-blue-200 hover:shadow-xl hover:scale-102',
             'hover:rotate-1',
             className
@@ -49,7 +45,7 @@ const ResumeCategoryCard = memo(
           <div
             className={clsx(
               'h-8 bg-gradient-to-r rounded-lg mb-3 flex items-center px-3 transition-all duration-300',
-              colorGradients[color]
+              gradientClass
             )}
           >
             <div className="w-6 h-6 bg-white rounded-full opacity-90 flex items-center justify-center">
@@ -100,25 +96,17 @@ const ResumeCategoryCard = memo(
           {/* Cycling Border Icons - Only show when cycling */}
           {isActive && (
             <>
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center animate-spin 100s liniar infinite">
-                <Icon
-                  iconName="sparkles"
-                  size="sm"
-                  className={`text-${color}-500`}
-                />
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center animate-spin">
+                <Icon iconName="sparkles" size="sm" className="text-teal-500" />
               </div>
 
-              <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center animate-spin 100s liniar infinite">
-                <Icon
-                  iconName="sparkles"
-                  size="sm"
-                  className={`text-${color}-500`}
-                />
+              <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white rounded-full shadow-xl flex items-center justify-center animate-spin">
+                <Icon iconName="sparkles" size="sm" className="text-teal-500" />
               </div>
             </>
           )}
         </div>
-      </>
+      </section>
     );
   }
 );
@@ -128,6 +116,7 @@ ResumeCategoryCard.propTypes = {
   isActive: PropTypes.bool,
   onClick: PropTypes.func,
   className: PropTypes.string,
+  index: PropTypes.number,
 };
 
 export default ResumeCategoryCard;

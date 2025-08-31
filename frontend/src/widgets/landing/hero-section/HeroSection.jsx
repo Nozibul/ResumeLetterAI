@@ -15,7 +15,7 @@ import Icon from '@/shared/components/atoms/icons/Icon';
 import RatingDisplay from '@/shared/components/atoms/ratingDisplay/RatingDisplay';
 import TrustIndicator from '@/shared/components/atoms/trustIndicator/TrustIndicator';
 import Typography from '@/shared/components/atoms/typography/Typography';
-import FloatingElement from '@/shared/components/atoms/foatingElement/FloatingElement';
+import FloatingElement from '@/shared/components/atoms/floatingElement/FloatingElement';
 import BannerSlide from './bannerSlide/BannerSlide';
 
 export const HeroSection = () => {
@@ -42,7 +42,7 @@ export const HeroSection = () => {
               </Typography>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-20 gap-6 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-16 gap-6 w-full">
               <Button
                 variant="primary"
                 size="md"

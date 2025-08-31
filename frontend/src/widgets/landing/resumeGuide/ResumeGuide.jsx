@@ -15,8 +15,10 @@ import Icon from '@/shared/components/atoms/icons/Icon';
 const ResumeGuide = () => {
   return (
     <>
-      <div className="w-full p-4 mb-4 text-center">
-        <Typography variant="h2">How Create Resume</Typography>
+      <section className="w-full p-4 text-center">
+        <Typography className="mb-2" variant="h2">
+          How Create Resume
+        </Typography>
 
         <Typography variant="caption">
           Create Resume Following 3 Simple Steps
@@ -42,7 +44,9 @@ const ResumeGuide = () => {
                     </div>
                   </div>
                   <div className="px-8 mt-6 text-center">
-                    <Typography variant="lead">{title}</Typography>
+                    <Typography className="mb-2" variant="h4">
+                      {title}
+                    </Typography>
                     <Typography variant="caption">{description}</Typography>
                   </div>
                 </div>
@@ -52,7 +56,7 @@ const ResumeGuide = () => {
             <p>Loading...</p>
           )}
         </div>
-      </div>
+      </section>
     </>
   );
 };

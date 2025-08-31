@@ -11,7 +11,6 @@
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-
 import { formatCategoryName } from '@/lib/formatCategoryName';
 
 /**
@@ -65,7 +64,7 @@ const ContentFeed = ({ resumeFeed = [], active, setActive }) => {
 
 // PropTypes validation
 ContentFeed.propsTypes = {
-  items: PropTypes.arrayOf(
+  resumeFeed: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       title: PropTypes.string.isRequired,
@@ -80,7 +79,7 @@ ContentFeed.propsTypes = {
 // Default props
 ContentFeed.defaultProps = {
   item: [],
-  active: 1,
+  active: '1',
 };
 
 export default ContentFeed;

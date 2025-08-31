@@ -11,6 +11,7 @@ import { HeroSection } from '@/widgets/landing/hero-section/HeroSection';
 import ResumeFeed from '@/widgets/landing/resumeFeed/ResumeFeed';
 import ResumeGuide from '@/widgets/landing/resumeGuide/ResumeGuide';
 import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
+import { WhyUseOurResume } from '@/widgets/landing/whyUseOurResume/WhyUseOurResume';
 
 export default function HomePage() {
   return (
@@ -19,6 +20,7 @@ export default function HomePage() {
       <CategoryCard />
       <ResumeGuide />
       <ResumeFeed />
+      <WhyUseOurResume />
       <TestimonialsSection />
     </main>
   );

@@ -40,7 +40,7 @@ const CategoryCard = () => {
         {/* Template Grid - Uses JSON data */}
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-wrap justify-center gap-6">
-            {resumeCards?.map((resumeCard) => (
+            {resumeCards?.map((resumeCard, index) => (
               <Link
                 key={resumeCard.id}
                 href={{
@@ -56,6 +56,7 @@ const CategoryCard = () => {
                     templates={resumeCard}
                     isActive={hoveredTemplate === resumeCard.id}
                     isHovered={hoveredTemplate === resumeCard.id}
+                    index={index}
                   />
                 </div>
               </Link>

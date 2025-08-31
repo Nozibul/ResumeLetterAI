@@ -42,8 +42,4 @@ TemplateFeed.propTypes = {
   feedImage: PropTypes.string.isRequired,
 };
 
-TemplateFeed.defaultProps = {
-  feedImage: '/default-template.png',
-};
-
 export default TemplateFeed;
