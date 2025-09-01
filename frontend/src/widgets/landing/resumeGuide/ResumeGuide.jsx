@@ -15,12 +15,12 @@ import Icon from '@/shared/components/atoms/icons/Icon';
 const ResumeGuide = () => {
   return (
     <>
-      <section className="w-full p-4 text-center">
+      <section className="w-full p-4 text-center -mt-14">
         <Typography className="mb-2" variant="h2">
           How Create Resume
         </Typography>
 
-        <Typography variant="caption">
+        <Typography variant="body" className="text-gray-500">
           Create Resume Following 3 Simple Steps
         </Typography>
 

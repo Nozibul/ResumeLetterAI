@@ -12,16 +12,24 @@ import ResumeFeed from '@/widgets/landing/resumeFeed/ResumeFeed';
 import ResumeGuide from '@/widgets/landing/resumeGuide/ResumeGuide';
 import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
 import { WhyUseOurResume } from '@/widgets/landing/whyUseOurResume/WhyUseOurResume';
+import BackgroundMeteors from '@/components/ui/backgroundmeteors';
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-white to-teal-50">
       <HeroSection />
-      <CategoryCard />
-      <ResumeGuide />
+      <BackgroundMeteors gridSizes={120}>
+        <CategoryCard />
+      </BackgroundMeteors>
+      <BackgroundMeteors>
+        <ResumeGuide />
+      </BackgroundMeteors>
       <ResumeFeed />
       <WhyUseOurResume />
       <TestimonialsSection />
     </main>
   );
 }
+
+//rgba(75, 85, 99, 0.3) 75, 85, 99, 0.3
+// rgba(20, 184, 166, 0.3) rgba(20, 184, 166, 0.3)

@@ -25,13 +25,13 @@ const CategoryCard = () => {
 
   return (
     <>
-      <div id="cardSection" className="w-full p-4 mt-12">
+      <div id="cardSection" className=" w-full p-4 mt-2">
         {/* Header */}
         <div className="text-center mb-12">
           <Typography variant="h2" className="mb-4">
             Choose Your Preferred Template Category
           </Typography>
-          <Typography variant="body">
+          <Typography variant="body" className="text-gray-500">
             Select from our professionally designed templates to create a resume
             that stands out
           </Typography>

@@ -73,6 +73,7 @@
    Custom utility classes
 ========================= */
 @layer utilities {
+  /* Custom Scrollbar */
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: #fff #14b8a6;

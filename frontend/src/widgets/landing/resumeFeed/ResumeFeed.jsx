@@ -19,10 +19,10 @@ const ResumeFeed = () => {
           <Typography variant="h3">
             Expertly Crafted Resume Templates
           </Typography>
-          <p className="text-gray-700 text-lg mt-2">
+          <Typography variant="body" className="text-gray-500 mt-2">
             Access professionally crafted, free resume examples to create a
             resume that gets results.
-          </p>
+          </Typography>
         </div>
 
         {/* Grid Content */}
@@ -41,7 +41,7 @@ const ResumeFeed = () => {
 
           {/* Button */}
           <div className="lg:col-span-3 flex justify-center mt-4">
-            <Link href="/resume-templates">
+            <Link href="/resume-templates" className="mb-16">
               <Button className="cursor-pointer" variant="primary" size="md">
                 See All Resume Templates
               </Button>
