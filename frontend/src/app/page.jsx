@@ -13,6 +13,7 @@ import ResumeGuide from '@/widgets/landing/resumeGuide/ResumeGuide';
 import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
 import { WhyUseOurResume } from '@/widgets/landing/whyUseOurResume/WhyUseOurResume';
 import BackgroundMeteors from '@/components/ui/backgroundmeteors';
+import Footer from '@/widgets/footer/Footer';
 
 export default function HomePage() {
   return (
@@ -27,6 +28,7 @@ export default function HomePage() {
       <ResumeFeed />
       <WhyUseOurResume />
       <TestimonialsSection />
+      <Footer />
     </main>
   );
 }

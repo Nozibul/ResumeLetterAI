@@ -36,7 +36,7 @@ export default function MotionCards({ children, interval = 3000 }) {
   }, [nextId, interval]);
 
   return (
-    <div className="flex items-center justify-center relative h-[520px] w-[500px] overflow-hidden ">
+    <div className="flex items-center justify-center relative lg:h-[520px] lg:w-[500px] md:h-[400px] md:w-[400px] sm:h-[300px] sm:w-[300px] overflow-hidden">
       <div className="flex flex-col space-y-2 relative z-10 items-center w-full justify-center h-full max-w-lg mx-auto">
         <AnimatePresence initial={false} mode="popLayout">
           {cards.map((cardId, i) => {
@@ -69,7 +69,9 @@ export default function MotionCards({ children, interval = 3000 }) {
                     ease: 'easeInOut',
                   }}
                 />
-                <div className={`w-full relative ${isMiddle ?? 'text-white'}`}>
+                <div
+                  className={`w-full relative ${isMiddle ? 'text-white' : 'text-gray-600'}`}
+                >
                   {currentItem}
                 </div>
               </motion.div>

@@ -16,7 +16,7 @@ export const WhyUseOurResume = () => {
         <div>
           <ChooseUsRightSection />
         </div>
-        <div>
+        <div className="mb-10">
           <ChooseUsLeftSection />
         </div>
       </div>

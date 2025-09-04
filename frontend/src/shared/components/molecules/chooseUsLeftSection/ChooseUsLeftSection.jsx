@@ -9,7 +9,7 @@ const ChooseUsLeftSection = () => {
   console.log('Features data:', features);
 
   return (
-    <div className=" w-full mx-auto flex flex-col items-center justify-center">
+    <div className=" mx-auto flex flex-col items-center justify-center">
       <MotionCards interval={3000}>
         {features?.length > 0 ? (
           features.map((feature, index) => {

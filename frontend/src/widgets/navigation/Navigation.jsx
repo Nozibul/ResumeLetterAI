@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import {
@@ -17,6 +16,8 @@ import {
 import Button from '@/shared/components/atoms/buttons/Button';
 import clsx from 'clsx';
 import Typography from '@/shared/components/atoms/typography/Typography';
+import Image from 'next/image';
+import { COMPANY_INFO } from '@/local-data/footer-data';
 
 const components = [
   {
@@ -47,9 +48,15 @@ export function Navigation() {
           <div className="flex-shrink-0">
             <Link
               href="/"
-              className="flex items-center gap-2 text-xl font-bold"
+              className="flex items-center gap-2 text-md font-bold"
             >
-              ResumeLetterAI
+              <Image
+                src={COMPANY_INFO.logo}
+                alt="Logo"
+                width={50}
+                height={50}
+              />
+              {/* ResumeLetterAI */}
             </Link>
           </div>
 

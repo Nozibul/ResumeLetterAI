@@ -10,7 +10,7 @@
 
 import Typography from '@/shared/components/atoms/typography/Typography.jsx';
 import { worksInfo } from '@/local-data/works-info';
-import Icon from '@/shared/components/atoms/icons/Icon';
+import Icon from '@/shared/components/atoms/icons/Icons';
 
 const ResumeGuide = () => {
   return (

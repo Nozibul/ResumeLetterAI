@@ -12,7 +12,7 @@ import { memo } from 'react';
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Typography from '../../atoms/typography/Typography';
-import Icon from '../../atoms/icons/Icon';
+import Icon from '../../atoms/icons/Icons';
 import { formatCategoryName } from '@/lib/formatCategoryName';
 import { getColorGradient, getBorderColor } from '@/lib/colorsUtils';
 

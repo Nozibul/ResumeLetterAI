@@ -19,9 +19,15 @@ import {
   Play,
   ArrowRight,
   LayoutTemplate,
+  Twitter,
+  Facebook,
+  Linkedin,
+  Github,
+  Phone,
+  Mail,
 } from 'lucide-react';
 
-const Icon = memo(({ iconName, className = '', size = 'md', ...props }) => {
+const Icons = memo(({ iconName, className = '', size = 'md', ...props }) => {
   const sizes = {
     sm: 'w-4 h-4',
     md: 'w-5 h-5',
@@ -42,6 +48,12 @@ const Icon = memo(({ iconName, className = '', size = 'md', ...props }) => {
     arrow: ArrowRight,
     chevron: ChevronRight,
     template: LayoutTemplate,
+    twitter: Twitter,
+    facebook: Facebook,
+    linkedin: Linkedin,
+    github: Github,
+    phone: Phone,
+    mail: Mail,
   };
 
   const IconComponent = iconMap[iconName] || Star;
@@ -49,4 +61,4 @@ const Icon = memo(({ iconName, className = '', size = 'md', ...props }) => {
   return <IconComponent className={`${sizes[size]} ${className}`} {...props} />;
 });
 
-export default Icon;
+export default Icons;
