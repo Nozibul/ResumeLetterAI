@@ -122,7 +122,7 @@ SocialLinksSection.displayName = 'SocialLinksSection';
 
 // Brand Section component
 export const BrandSection = React.memo(() => (
-  <div className="lg:col-span-2 space-y-10">
+  <div className="lg:col-span-2 space-y-6">
     <BrandLogo />
 
     {/* Description */}

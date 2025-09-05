@@ -32,8 +32,6 @@ const Button = memo(
         'cursor-pointer bg-gradient-to-r from-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-400 text-white shadow-lg hover:shadow-xl focus:ring-teal-400 transform hover:scale-103',
       secondary:
         'bg-white cursor-pointer border-1 border-teal-600 text-teal-600 hover:bg-teal-50 focus:ring-teal-300 hover:border-teal-700 ',
-      ghost:
-        'cursor-pointer text-teal-600 hover:bg-teal-50 focus:ring-teal-300 hover:text-teal-700',
       outline:
         'cursor-pointer border-2 border-gray-300 text-teal-600 hover:border-teal-500 hover:text-teal-600 focus:ring-teal-300',
     };

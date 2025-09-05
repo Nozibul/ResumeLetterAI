@@ -13,7 +13,7 @@ const Footer = React.memo(() => {
   const { showScrollTop, scrollToTop } = useScrollToTop();
 
   return (
-    <footer className=" relative bg-gradient-to-br from-[#060d43] to-[#3c9180] text-white">
+    <footer className=" relative bg-gradient-to-br from-[#070f4c] to-[#3c9180] text-white">
       {/* Professional Curved Top Design */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none">
         <svg

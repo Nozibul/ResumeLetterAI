@@ -5,17 +5,11 @@ import MotionCards, { MotionCardContent } from '@/components/ui/motioncards';
 import Image from 'next/image';
 
 const ChooseUsLeftSection = () => {
-  // Debug: Check if data is loading properly
-  console.log('Features data:', features);
-
   return (
     <div className=" mx-auto flex flex-col items-center justify-center">
       <MotionCards interval={3000}>
         {features?.length > 0 ? (
           features.map((feature, index) => {
-            // Debug: Log each feature
-            console.log(`Feature ${index}:`, feature);
-
             return (
               <MotionCardContent key={`feature-${feature.id}-${index}`}>
                 <div className="flex items-center gap-4 p-6 w-full">

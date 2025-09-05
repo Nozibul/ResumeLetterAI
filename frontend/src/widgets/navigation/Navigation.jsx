@@ -42,8 +42,8 @@ export function Navigation() {
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white shadow-md">
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between h-20">
+      <div className=" mx-auto">
+        <div className="flex items-center justify-between mx-10 h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link

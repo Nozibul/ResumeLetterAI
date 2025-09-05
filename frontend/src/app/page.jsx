@@ -1,5 +1,5 @@
 /**
- * @file page.jsx -
+ * @file page.jsx
  * @author Nozibul Islam
  *
  * @copyright (c) 2025 ResumeLetterAI. All rights reserved.
@@ -14,6 +14,8 @@ import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/Testi
 import { WhyUseOurResume } from '@/widgets/landing/whyUseOurResume/WhyUseOurResume';
 import BackgroundMeteors from '@/components/ui/backgroundmeteors';
 import Footer from '@/widgets/footer/Footer';
+import FAQ from '@/widgets/landing/faq/FAQ';
+import ResumeBuilderCTA from '@/widgets/landing/resumeBuilderCTA/ResumeBuilderCTA';
 
 export default function HomePage() {
   return (
@@ -28,10 +30,9 @@ export default function HomePage() {
       <ResumeFeed />
       <WhyUseOurResume />
       <TestimonialsSection />
+      <ResumeBuilderCTA />
+      <FAQ />
       <Footer />
     </main>
   );
 }
-
-//rgba(75, 85, 99, 0.3) 75, 85, 99, 0.3
-// rgba(20, 184, 166, 0.3) rgba(20, 184, 166, 0.3)
