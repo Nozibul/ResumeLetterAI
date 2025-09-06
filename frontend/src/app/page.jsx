@@ -16,6 +16,7 @@ import BackgroundMeteors from '@/components/ui/backgroundmeteors';
 import Footer from '@/widgets/footer/Footer';
 import FAQ from '@/widgets/landing/faq/FAQ';
 import ResumeBuilderCTA from '@/widgets/landing/resumeBuilderCTA/ResumeBuilderCTA';
+import ReviewSection from '@/widgets/landing/reviewSection/ReviewSection';
 
 export default function HomePage() {
   return (
@@ -30,6 +31,7 @@ export default function HomePage() {
       <ResumeFeed />
       <WhyUseOurResume />
       <TestimonialsSection />
+      <ReviewSection />
       <ResumeBuilderCTA />
       <FAQ />
       <Footer />

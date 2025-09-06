@@ -25,13 +25,13 @@ export const HeroSection = () => {
         {/* <div className="relative z-10"> */}
         <div className="grid grid-cols-1 md:grid-cols-5 w-full min-h-screen p-8 gap-6">
           {/* Left Section */}
-          <div className="md:col-span-3 space-y-10">
+          <div className="md:col-span-3 space-y-10 my-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full">
               <TrustIndicator text="Users trust us" value="1.1k+" />
               <RatingDisplay rating={4.9} totalReviews="1.1k" />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <Typography variant="h2">
                 Build Your Professional Resume in Minutes
               </Typography>

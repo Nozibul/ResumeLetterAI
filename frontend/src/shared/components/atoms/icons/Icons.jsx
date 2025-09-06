@@ -25,6 +25,7 @@ import {
   Github,
   Phone,
   Mail,
+  Heart,
 } from 'lucide-react';
 
 const Icons = memo(({ iconName, className = '', size = 'md', ...props }) => {
@@ -54,9 +55,10 @@ const Icons = memo(({ iconName, className = '', size = 'md', ...props }) => {
     github: Github,
     phone: Phone,
     mail: Mail,
+    heart: Heart,
   };
 
-  const IconComponent = iconMap[iconName] || Star;
+  const IconComponent = iconMap[iconName];
 
   return <IconComponent className={`${sizes[size]} ${className}`} {...props} />;
 });
