@@ -69,6 +69,23 @@
   }
 }
 
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 /* =========================
    Custom utility classes
 ========================= */
@@ -90,6 +107,17 @@
   }
 
   /* Animations */
+  .scroll-animation-left {
+    animation: scroll-left 25s linear infinite;
+  }
+  .scroll-animation-right {
+    animation: scroll-right 25s linear infinite;
+  }
+  .scroll-animation-left:hover,
+  .scroll-animation-right:hover {
+    animation-play-state: paused;
+  }
+
   .animate-fadeInUp {
     animation: fadeInUp 0.5s ease-out forwards;
   }

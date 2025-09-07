@@ -8,6 +8,7 @@
 import { Lora } from 'next/font/google';
 import '@/styles/globals.css';
 import { Navigation } from '@/widgets/navigation/Navigation';
+import Footer from '@/widgets/footer/Footer';
 
 // 1. Font Configuration:
 // Optimized for performance using CSS variables.
@@ -124,11 +125,9 @@ export default function RootLayout({ children }) {
         className={`${lora.className} tracking-wide flex min-h-full flex-col`}
       >
         <Navigation />
-
         {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
         <main className="flex-1">{children}</main>
-
-        {/* <Footer /> */}
+        <Footer />
       </body>
     </html>
   );

@@ -12,7 +12,7 @@ import { ReviewCarousel } from '@/shared/components/organisms/reviewCarousel/Rev
 export default function ReviewSection(props) {
   try {
     return (
-      <section className="py-20">
+      <section className="py-10">
         <ReviewCarousel {...props} />
       </section>
     );

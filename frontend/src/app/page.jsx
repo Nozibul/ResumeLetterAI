@@ -10,13 +10,13 @@ import CategoryCard from '@/widgets/landing/categoryCard/CategoryCard';
 import { HeroSection } from '@/widgets/landing/hero-section/HeroSection';
 import ResumeFeed from '@/widgets/landing/resumeFeed/ResumeFeed';
 import ResumeGuide from '@/widgets/landing/resumeGuide/ResumeGuide';
-import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
+// import { TestimonialsSection } from '@/widgets/landing/testimonialsSection/TestimonialsSection';
 import { WhyUseOurResume } from '@/widgets/landing/whyUseOurResume/WhyUseOurResume';
 import BackgroundMeteors from '@/components/ui/backgroundmeteors';
-import Footer from '@/widgets/footer/Footer';
 import FAQ from '@/widgets/landing/faq/FAQ';
 import ResumeBuilderCTA from '@/widgets/landing/resumeBuilderCTA/ResumeBuilderCTA';
 import ReviewSection from '@/widgets/landing/reviewSection/ReviewSection';
+import UserSuccessSection from '@/widgets/landing/userSuccessSection/UserSuccessSection';
 
 export default function HomePage() {
   return (
@@ -30,11 +30,11 @@ export default function HomePage() {
       </BackgroundMeteors>
       <ResumeFeed />
       <WhyUseOurResume />
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> */}
+      <UserSuccessSection />
       <ReviewSection />
       <ResumeBuilderCTA />
       <FAQ />
-      <Footer />
     </main>
   );
 }
