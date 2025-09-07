@@ -23,7 +23,7 @@ const BackgroundAnimation = ({ children }) => {
 
       {/* Animated Blob Elements - Using inline styles for guaranteed animation */}
       <div
-        className="absolute top-20 right-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70"
+        className="absolute top-20 right-10 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-xl opacity-70"
         style={{
           animation: 'blob 7s infinite ease-in-out',
         }}

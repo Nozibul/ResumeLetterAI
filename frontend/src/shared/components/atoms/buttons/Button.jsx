@@ -25,20 +25,19 @@ const Button = memo(
     );
 
     const baseClasses =
-      'inline-flex items-center justify-center font-semibold transition-all duration-300 rounded-lg focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden';
+      'inline-flex items-center justify-center font-semibold transition-all duration-300 cursor rounded-lg focus:outline-none focus:ring-4 disabled:opacity-50 relative overflow-hidden';
 
     const variants = {
       primary:
-        'bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-600 hover:to-blue-400 text-white shadow-lg hover:shadow-xl focus:ring-blue-300 transform hover:scale-103',
+        'cursor-pointer bg-gradient-to-r from-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-400 text-white shadow-lg hover:shadow-xl focus:ring-teal-400 transform hover:scale-103',
       secondary:
-        'bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-300 hover:border-blue-700',
-      ghost:
-        'text-blue-600 hover:bg-blue-50 focus:ring-blue-300 hover:text-blue-700',
+        'bg-white cursor-pointer border-1 border-teal-600 text-teal-600 hover:bg-teal-50 focus:ring-teal-300 hover:border-teal-700 ',
       outline:
-        'border-2 border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600 focus:ring-blue-300',
+        'cursor-pointer border-2 border-gray-300 text-teal-600 hover:border-teal-500 hover:text-teal-600 focus:ring-teal-300',
     };
 
     const sizes = {
+      xs: 'px-2 py-1 text-xs gap-2',
       sm: 'px-4 py-2 text-sm gap-2',
       md: 'px-6 py-3 text-base gap-2',
       lg: 'px-8 py-4 text-lg gap-3',

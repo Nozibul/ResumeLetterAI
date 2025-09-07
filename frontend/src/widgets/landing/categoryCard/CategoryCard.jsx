@@ -1,10 +1,5 @@
 'use client';
 
-import Icon from '@/shared/components/atoms/icons/Icon';
-import Typography from '@/shared/components/atoms/typography/Typography';
-import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
-import { useState } from 'react';
-
 /**
  * @file CategoryCard.jsx
  * @author Nozibul Islam
@@ -13,114 +8,103 @@ import { useState } from 'react';
  * @license MIT
  */
 
+import Typography from '@/shared/components/atoms/typography/Typography';
+import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
+import Link from 'next/link';
+import { useState } from 'react';
+import { formatCategoryName } from '@/lib/formatCategoryName';
+import { resumeCards } from '@/local-data/cardCategory';
+
 const CategoryCard = () => {
   const [hoveredTemplate, setHoveredTemplate] = useState(null);
 
-  // JSON Data - Easy to modify/extend
-  const templatesData = [
-    {
-      id: 'ats-friendly',
-      color: 'blue',
-      category: 'ATS Friendly',
-      features: ['ATS Friendly', 'Clean Design', 'Professional'],
-    },
-    {
-      id: 'corporate',
-      color: 'purple',
-      category: 'Corporate Resume',
-      features: ['Colorful', 'Unique Layout', 'Eye-catching'],
-    },
-    {
-      id: 'executive',
-      color: 'amber',
-      category: 'Executive Resume',
-      features: ['Statement', 'Dynamic', 'Attention-grabbing'],
-    },
-    {
-      id: 'creative',
-      color: 'green',
-      category: 'Creative Resume',
-      features: ['Formal', 'Traditional', 'Corporate'],
-    },
-    {
-      id: 'it',
-      color: 'orange',
-      category: 'IT Resume',
-      features: ['Simple', 'Elegant', 'Focused'],
-    },
-  ];
+  // Category name
+  const categoryName = formatCategoryName(
+    resumeCards.find((t) => t.id === hoveredTemplate)?.category
+  );
 
   return (
-    <div className="min-h-screen p-8">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <Typography variant="h2" className="mb-4">
-          Choose Your Perfect Resume Template Category
-        </Typography>
-        <Typography variant="body">
-          Select from our professionally designed templates to create a resume
-          that stands out
-        </Typography>
-      </div>
-
-      {/* Template Grid - Uses JSON data */}
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-wrap justify-center gap-8">
-          {templatesData.map((template, index) => (
-            <div
-              key={template.id}
-              onMouseEnter={() => setHoveredTemplate(template.id)}
-              onMouseLeave={() => setHoveredTemplate(null)}
-            >
-              <ResumeCategoryCard
-                template={template}
-                isActive={hoveredTemplate === template.id}
-                isHovered={hoveredTemplate === template.id}
-                onClick={() => setActiveTemplate(template.id)}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Selected Template Info */}
-      <div className="mt-4 text-center">
-        <div
-          className={`bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-6 max-w-md mx-auto transition-all duration-400 ease-out transform ${
-            hoveredTemplate
-              ? 'opacity-100 translate-y-0 scale-100'
-              : 'opacity-0 translate-y-6 scale-95'
-          }`}
-        >
-          <Typography
-            variant="body"
-            className={`mb-2 transition-all duration-100 ease-out ${
-              hoveredTemplate
-                ? 'opacity-100 translate-y-0'
-                : 'opacity-0 translate-y-3'
-            }`}
-          >
-            {templatesData.find((t) => t.id === hoveredTemplate)?.category}
+    <>
+      <div id="cardSection" className=" w-full p-4 mt-2">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <Typography variant="h2" className="mb-4">
+            Choose Your Preferred Template Category
           </Typography>
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
-            {templatesData
-              .find((t) => t.id === hoveredTemplate)
-              ?.features?.map((feature, index) => (
-                <span
-                  key={index}
-                  className={`px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full transition-all duration-500 ease-out transform ${
-                    hoveredTemplate
-                      ? 'opacity-100 translate-y-0 scale-100'
-                      : 'opacity-0 translate-y-4 scale-85'
-                  }`}
+          <Typography variant="body" className="text-gray-500">
+            Select from our professionally designed templates to create a resume
+            that stands out
+          </Typography>
+        </div>
+
+        {/* Template Grid - Uses JSON data */}
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-wrap justify-center gap-6">
+            {resumeCards?.map((resumeCard, index) => (
+              <Link
+                key={resumeCard.id}
+                href={{
+                  pathname: '/resume-templates',
+                  query: { category: resumeCard.category },
+                }}
+              >
+                <div
+                  onMouseEnter={() => setHoveredTemplate(resumeCard.id)}
+                  onMouseLeave={() => setHoveredTemplate(null)}
                 >
-                  {feature}
-                </span>
-              ))}
+                  <ResumeCategoryCard
+                    templates={resumeCard}
+                    isActive={hoveredTemplate === resumeCard.id}
+                    isHovered={hoveredTemplate === resumeCard.id}
+                    index={index}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Selected Template Info */}
+        <div className="flex items-center justify-center h-[110px] w-full mt-2">
+          <div className="w-[700px] flex items-center justify-center">
+            <div
+              className={`rounded-xl p-6 w-full transition-all duration-400 ease-out transform ${
+                hoveredTemplate
+                  ? 'opacity-100 translate-y-0 scale-100'
+                  : 'opacity-0 translate-y-6 scale-95'
+              }`}
+            >
+              <Typography
+                variant="body"
+                className={`mb-2 text-center transition-all duration-100 ease-out ${
+                  hoveredTemplate
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 translate-y-3'
+                }`}
+              >
+                {categoryName}
+              </Typography>
+              <div className="flex flex-wrap items-center justify-center gap-2 min-w-[500px] max-w-[600px] mx-auto">
+                {resumeCards
+                  .find((t) => t.id === hoveredTemplate)
+                  ?.features?.map((feature, index) => (
+                    <span
+                      key={index}
+                      className={`px-3 py-1 bg-teal-400 text-white text-xs rounded-full whitespace-nowrap transition-all duration-500 ease-out transform ${
+                        hoveredTemplate
+                          ? 'opacity-100 translate-y-0 scale-100'
+                          : 'opacity-0 translate-y-4 scale-85'
+                      }`}
+                    >
+                      {feature}
+                    </span>
+                  ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

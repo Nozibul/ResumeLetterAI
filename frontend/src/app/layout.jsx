@@ -5,17 +5,18 @@
  * @license MIT
  */
 
-import { Inter } from 'next/font/google';
-// import Header from '@/components/layouts/Header';
-// import Footer from '@/components/layouts/Footer';
+import { Lora } from 'next/font/google';
 import '@/styles/globals.css';
+import { Navigation } from '@/widgets/navigation/Navigation';
+import Footer from '@/widgets/footer/Footer';
 
 // 1. Font Configuration:
 // Optimized for performance using CSS variables.
-const inter = Inter({
+const lora = Lora({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
+  variable: '--font-lora',
 });
 
 // 2. Metadata Configuration:
@@ -119,14 +120,14 @@ export const viewport = {
 // The main shell wrapping every page in the application.
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
-      <body className="flex min-h-full flex-col font-sans antialiased">
-        {/* <Header /> */}
-
+    <html lang="en" className={`${lora.variable} h-full`}>
+      <body
+        className={`${lora.className} tracking-wide flex min-h-full flex-col`}
+      >
+        <Navigation />
         {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
         <main className="flex-1">{children}</main>
-
-        {/* <Footer /> */}
+        <Footer />
       </body>
     </html>
   );

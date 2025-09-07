@@ -1,6 +1,5 @@
 /* src/app/globals.css */
 @import 'tailwindcss';
-
 /* =========================
    Custom animations
 ========================= */
@@ -70,11 +69,55 @@
   }
 }
 
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 /* =========================
    Custom utility classes
 ========================= */
 @layer utilities {
+  /* Custom Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #fff #14b8a6;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #fff; /* teal-500 */
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #fff; /* teal-600 */
+    scrollbar-color: #fff #14b8a6;
+  }
+
   /* Animations */
+  .scroll-animation-left {
+    animation: scroll-left 25s linear infinite;
+  }
+  .scroll-animation-right {
+    animation: scroll-right 25s linear infinite;
+  }
+  .scroll-animation-left:hover,
+  .scroll-animation-right:hover {
+    animation-play-state: paused;
+  }
+
   .animate-fadeInUp {
     animation: fadeInUp 0.5s ease-out forwards;
   }

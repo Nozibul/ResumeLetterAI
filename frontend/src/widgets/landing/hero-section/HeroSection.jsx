@@ -11,11 +11,12 @@
 import BackgroundAnimation from '@/shared/components/atoms/backgroundAnimation/BackgroundAnimation';
 import Button from '@/shared/components/atoms/buttons/Button';
 import FeatureBadge from '@/shared/components/molecules/featureBadge/FeatureBadge';
-import Icon from '@/shared/components/atoms/icons/Icon';
+import Icon from '@/shared/components/atoms/icons/Icons';
 import RatingDisplay from '@/shared/components/atoms/ratingDisplay/RatingDisplay';
 import TrustIndicator from '@/shared/components/atoms/trustIndicator/TrustIndicator';
 import Typography from '@/shared/components/atoms/typography/Typography';
-import FloatingElement from '@/shared/components/atoms/foatingElement/FloatingElement';
+import FloatingElement from '@/shared/components/atoms/floatingElement/FloatingElement';
+import BannerSlide from './bannerSlide/BannerSlide';
 
 export const HeroSection = () => {
   return (
@@ -24,24 +25,24 @@ export const HeroSection = () => {
         {/* <div className="relative z-10"> */}
         <div className="grid grid-cols-1 md:grid-cols-5 w-full min-h-screen p-8 gap-6">
           {/* Left Section */}
-          <div className="md:col-span-3 space-y-12">
+          <div className="md:col-span-3 space-y-10 my-2">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full">
               <TrustIndicator text="Users trust us" value="1.1k+" />
               <RatingDisplay rating={4.9} totalReviews="1.1k" />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <Typography variant="h2">
                 Build Your Professional Resume in Minutes
               </Typography>
-              <Typography variant="body">
+              <Typography variant="caption">
                 Create a standout resume with our AI-powered builder. Choose
                 from professional templates, customize your content, and
                 download in minutes.
               </Typography>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-6 gap-6 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-16 gap-6 w-full">
               <Button
                 variant="primary"
                 size="md"
@@ -60,23 +61,24 @@ export const HeroSection = () => {
                 size="md"
                 icon={<Icon iconName="play" />}
               >
-                Watch Demo
+                Cover Letter
               </Button>
             </div>
 
             <div className="flex flex-wrap gap-4">
               <FeatureBadge text="30-min build" icon="zap" />
-              <FeatureBadge text="ATS-friendly" icon="edit" color="green" />
               <FeatureBadge
                 text="Free download"
                 icon="download"
                 color="purple"
               />
+              <FeatureBadge text="ATS-friendly" icon="edit" color="blue" />
             </div>
           </div>
 
           {/* Right Section */}
-          <div className="md:col-span-2 border-2 p-4 flex justify-center md:justify-end items-center">
+          <div className="md:col-span-2 flex justify-center md:justify-end items-center">
+            <BannerSlide />
             <FloatingElement>AI-Powered</FloatingElement>
           </div>
         </div>

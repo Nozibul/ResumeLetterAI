@@ -10,18 +10,17 @@ import { memo } from 'react';
 const Typography = memo(
   ({ variant = 'body', children, className = '', as: Component, ...props }) => {
     const variants = {
-      h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight',
-      h2: 'text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight',
-      h3: 'text-xl md:text-2xl font-semibold text-gray-900',
-      h4: 'text-lg md:text-xl font-semibold text-gray-900',
-      lead: 'text-lg md:text-xl lg:text-2xl text-gray-600 leading-relaxed',
-      body: 'text-base md:text-lg text-gray-600 leading-relaxed',
-      caption: 'text-md text-gray-500',
-      small: 'text-sm text-gray-500',
+      h1: 'text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight',
+      h2: 'text-2xl md:text-4xl lg:text-4xl text-black font-semibold drop-shadow-md',
+      h3: 'text-xl md:text-3xl font-bold text-gray-900 leading-tight',
+      h4: 'font-[Lora] text-lg md:text-xl font-semibold text-gray-900',
+      lead: 'text-xl md:text-3xl font-bold text-gray-900 leading-tight',
+      body: 'text-lg font-semibold mt-2',
+      caption: 'text-md font-semibold text-gray-600',
+      small: 'text-sm text-gray-600',
     };
 
     const defaultTags = {
-      hero: 'h1',
       h1: 'h1',
       h2: 'h2',
       h3: 'h3',
@@ -50,7 +49,7 @@ const Typography = memo(
         } else {
           // odd → single middle word
           const mid = Math.floor(len / 2);
-          isHighlight = i === mid || i === mid + 1;
+          isHighlight = i === mid;
         }
 
         return (
@@ -58,7 +57,7 @@ const Typography = memo(
             key={i}
             className={
               isHighlight
-                ? 'bg-gradient-to-r from-blue-500 to-purple-400 bg-clip-text text-transparent'
+                ? 'bg-gradient-to-r from-teal-600 to-purple-300 bg-clip-text text-transparent'
                 : ''
             }
           >
@@ -70,7 +69,8 @@ const Typography = memo(
 
     return (
       <Tag className={`${variants[variant]} ${className}`} {...props}>
-        {(variant === 'h1' || variant === 'h2') && typeof children === 'string'
+        {(variant === 'h1' || variant === 'h2' || variant === 'h3') &&
+        typeof children === 'string'
           ? renderHero(children)
           : children}
       </Tag>

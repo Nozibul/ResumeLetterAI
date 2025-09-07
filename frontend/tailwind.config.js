@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+const { fontFamily } = require('tailwindcss/defaultTheme');
 module.exports = {
   content: [
     './src/**/*.{js,jsx,ts,tsx}',
@@ -8,13 +9,17 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [...fontFamily.sans],
+        lora: ['var(--font-lora)', ...fontFamily.serif],
+      },
       animation: {
         fadeInUp: 'fadeInUp 0.8s ease-out forwards',
         fadeInLeft: 'fadeInLeft 0.8s ease-out forwards',
         fadeInRight: 'fadeInRight 0.8s ease-out forwards',
         scaleIn: 'scaleIn 0.8s ease-out forwards',
         float: 'float 3s ease-in-out infinite',
-        'pulse-glow': 'pulseGlow 2s infinite',
+        'pulse-glow': 'pulseGlow 5s infinite',
         shimmer: 'shimmer 2s infinite linear',
         blob: 'blob 7s infinite',
       },
@@ -58,5 +63,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography'), require('tailwind-scrollbar')],
 };
