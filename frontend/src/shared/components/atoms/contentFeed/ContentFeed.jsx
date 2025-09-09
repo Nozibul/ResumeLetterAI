@@ -13,13 +13,6 @@ import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { formatCategoryName } from '@/lib/formatCategoryName';
 
-/**
- * ContentFeed component displays a scrollable list of resume items
- * @param {Object} props - Component props
- * @param {Array} props.items - Array of resume items to display
- * @param {number} props.active - ID of currently active item
- * @param {Function} props.setActive - Function to set active item
- */
 const ContentFeed = ({ resumeFeed = [], active, setActive }) => {
   const [items, setItems] = useState([]);
   const handleItemClick = (itemId) => {

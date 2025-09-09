@@ -1,3 +1,11 @@
+/**
+ * @file Button.jsx
+ * @author Nozibul Islam
+ *
+ * @copyright (c) 2025 ResumeLetterAI. All rights reserved.
+ * @license MIT
+ */
+
 import { memo, useCallback } from 'react';
 const Button = memo(
   ({
