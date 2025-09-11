@@ -1,5 +1,4 @@
 'use client';
-
 /**
  * @file page.jsx
  * @author Nozibul Islam
@@ -16,10 +15,10 @@ import {
   INITIAL_ITEMS_ALL,
   INITIAL_ITEMS_FILTERED,
   ITEMS_PER_LOAD,
-} from '@/lib/constants';
+} from '@/shared/lib/constants';
 import Link from 'next/link';
 import Typography from '@/shared/components/atoms/typography/Typography';
-import { formatCategoryName } from '@/lib/formatCategoryName';
+import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 import { resumeTemplates } from '@/local-data/template-data';
 import { CardSkeleton } from '@/shared/components/atoms/cardSkeleton/CardSkeleton';
 

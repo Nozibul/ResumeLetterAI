@@ -11,7 +11,7 @@
 import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { formatCategoryName } from '@/lib/formatCategoryName';
+import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 
 const ContentFeed = ({ resumeFeed = [], active, setActive }) => {
   const [items, setItems] = useState([]);

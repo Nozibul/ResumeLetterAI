@@ -7,11 +7,12 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import ResumeCategoryCard from './ResumeCategoryCard';
+
 import '@testing-library/jest-dom';
+import ResumeCategoryCard from './ResumeCategoryCard';
 
 // Mock formatCategoryName for consistent output
-jest.mock('@/lib/formatCategoryName', () => ({
+jest.mock('@/shared/lib/formatCategoryName', () => ({
   formatCategoryName: jest.fn((cat) => cat.replace('_', ' ')),
 }));
 
