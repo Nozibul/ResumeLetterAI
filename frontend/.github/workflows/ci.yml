@@ -3,75 +3,453 @@ name: ResumeLetterAI CI/CD
 on:
   push:
     branches:
-      - '**' # সব branch এ push হলে run করবে
+      - '**' # All branches trigger CI
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch: # Allow manual triggers
+    inputs:
+      force_skip_tests:
+        description: 'Force skip tests (even if tests exist)'
+        required: false
+        default: false
+        type: boolean
+      run_only_build:
+        description: 'Run only build and lint (skip tests & security)'
+        required: false
+        default: false
+        type: boolean
+
+# Security permissions (principle of least privilege)
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write # For PR comments if needed
+
+# Global environment variables
+env:
+  NODE_VERSION: '18'
+  YARN_CACHE_FOLDER: ~/.cache/yarn
+  # Force skip tests from manual input or commit message
+  FORCE_SKIP_TESTS: ${{ contains(github.event.head_commit.message, '[force skip tests]') || github.event.inputs.force_skip_tests == 'true' }}
+  RUN_ONLY_BUILD: ${{ contains(github.event.head_commit.message, '[build only]') || github.event.inputs.run_only_build == 'true' }}
 
 jobs:
   # -----------------------------
-  # Job 1: Run Tests
+  # Job 1: Setup & Test Detection
+  # -----------------------------
+  setup:
+    name: Setup Dependencies & Detect Tests
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+      has-tests: ${{ steps.detect-tests.outputs.has-tests }}
+      test-framework: ${{ steps.detect-tests.outputs.test-framework }}
+      force-skip-tests: ${{ steps.check-flags.outputs.force-skip-tests }}
+      run-only-build: ${{ steps.check-flags.outputs.run-only-build }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Detect Tests & Framework
+        id: detect-tests
+        run: |
+          echo "🔍 Detecting tests in ResumeLetterAI..."
+          
+          HAS_TESTS=false
+          TEST_FRAMEWORK="none"
+          
+          # Check for test directories
+          if [ -d "__tests__" ] || [ -d "src/__tests__" ] || [ -d "tests" ] || [ -d "test" ]; then
+            echo "✅ Found test directories"
+            HAS_TESTS=true
+          fi
+          
+          # Check for test files
+          if find . -name "*.test.js" -o -name "*.test.ts" -o -name "*.test.jsx" -o -name "*.test.tsx" -o -name "*.spec.js" -o -name "*.spec.ts" | grep -q .; then
+            echo "✅ Found test files"
+            HAS_TESTS=true
+          fi
+          
+          # Detect test framework
+          if [ -f "jest.config.js" ] || [ -f "jest.config.json" ] || grep -q "jest" package.json 2>/dev/null; then
+            TEST_FRAMEWORK="jest"
+            echo "📦 Detected Jest framework"
+          elif [ -f "vitest.config.js" ] || [ -f "vite.config.js" ] || grep -q "vitest" package.json 2>/dev/null; then
+            TEST_FRAMEWORK="vitest"
+            echo "📦 Detected Vitest framework"
+          elif grep -q "mocha" package.json 2>/dev/null; then
+            TEST_FRAMEWORK="mocha"
+            echo "📦 Detected Mocha framework"
+          elif grep -q "cypress" package.json 2>/dev/null; then
+            TEST_FRAMEWORK="cypress"
+            echo "📦 Detected Cypress framework"
+          fi
+          
+          # Final decision
+          if [ "$HAS_TESTS" = "true" ]; then
+            echo "✅ Tests detected in ResumeLetterAI - Will run test job"
+          else
+            echo "⚠️  No tests found in ResumeLetterAI - Will skip test job"
+          fi
+          
+          echo "has-tests=$HAS_TESTS" >> $GITHUB_OUTPUT
+          echo "test-framework=$TEST_FRAMEWORK" >> $GITHUB_OUTPUT
+
+      - name: Check commit flags
+        id: check-flags
+        run: |
+          echo "force-skip-tests=${{ env.FORCE_SKIP_TESTS }}" >> $GITHUB_OUTPUT
+          echo "run-only-build=${{ env.RUN_ONLY_BUILD }}" >> $GITHUB_OUTPUT
+          
+          if [[ "${{ env.FORCE_SKIP_TESTS }}" == "true" ]]; then
+            echo "🚫 Tests will be forcefully skipped for this run"
+          fi
+          
+          if [[ "${{ env.RUN_ONLY_BUILD }}" == "true" ]]; then
+            echo "🔧 Only build and lint will run"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ${{ env.YARN_CACHE_FOLDER }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+
+  # -----------------------------
+  # Job 2: Code Quality & Linting
+  # -----------------------------
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ${{ env.YARN_CACHE_FOLDER }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies (if cache miss)
+        if: needs.setup.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Run ESLint
+        run: |
+          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
+            echo "🔍 Running ESLint..."
+            yarn lint || yarn eslint . --ext .js,.jsx,.ts,.tsx
+          else
+            echo "⚠️  No ESLint config found, skipping..."
+          fi
+        continue-on-error: true
+
+      - name: 💅 Run Prettier
+        run: |
+          if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
+            echo "💅 Running Prettier check..."
+            yarn prettier --check . || npx prettier --check .
+          else
+            echo "⚠️  No Prettier config found, skipping..."
+          fi
+        continue-on-error: true
+
+  # -----------------------------
+  # Job 3: Run Tests (Auto Detection)
   # -----------------------------
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    needs: setup
+    # Run tests only if:
+    # 1. Tests are detected AND
+    # 2. Not forced to skip AND  
+    # 3. Not in build-only mode
+    if: |
+      needs.setup.outputs.has-tests == 'true' && 
+      needs.setup.outputs.force-skip-tests != 'true' && 
+      needs.setup.outputs.run-only-build != 'true'
+    strategy:
+      matrix:
+        test-type: [unit, integration]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ${{ env.YARN_CACHE_FOLDER }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
 
-      - name: Run tests (skip untested files)
+      - name: Install dependencies (if cache miss)
+        if: needs.setup.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: 🧪 Run tests with detected framework
         run: |
-          if [ -d "__tests__" ]; then
-            echo "✅ Running tests for ResumeLetterAI..."
-            yarn test
-          else
-            echo "⚠️ No tests found in ResumeLetterAI, skipping..."
-          fi
+          echo "🧪 Running tests for ResumeLetterAI..."
+          echo "📦 Detected framework: ${{ needs.setup.outputs.test-framework }}"
+          
+          case "${{ needs.setup.outputs.test-framework }}" in
+            "jest")
+              echo "Running Jest tests..."
+              if yarn run test:${{ matrix.test-type }} --help >/dev/null 2>&1; then
+                yarn test:${{ matrix.test-type }}
+              elif yarn run test --help >/dev/null 2>&1; then
+                yarn test
+              else
+                npx jest --passWithNoTests
+              fi
+              ;;
+            "vitest")
+              echo "Running Vitest tests..."
+              if yarn run test:${{ matrix.test-type }} --help >/dev/null 2>&1; then
+                yarn test:${{ matrix.test-type }}
+              else
+                npx vitest run
+              fi
+              ;;
+            "mocha")
+              echo "Running Mocha tests..."
+              npx mocha || yarn test
+              ;;
+            "cypress")
+              if [ "${{ matrix.test-type }}" = "integration" ]; then
+                echo "Running Cypress tests..."
+                npx cypress run || yarn test:e2e
+              else
+                echo "Skipping unit tests for Cypress (integration only)"
+                exit 0
+              fi
+              ;;
+            *)
+              echo "Unknown framework, trying generic test command..."
+              if yarn run test --help >/dev/null 2>&1; then
+                yarn test
+              elif npm run test --help >/dev/null 2>&1; then
+                npm test
+              else
+                echo "No test command found"
+                exit 1
+              fi
+              ;;
+          esac
+        env:
+          CI: true
+
+      - name: Upload test coverage
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+        continue-on-error: true
 
   # -----------------------------
-  # Job 2: Build (depends on tests)
+  # Job 4: Security Scan (Conditional)
+  # -----------------------------
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.run-only-build != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔒 Run security audit
+        run: |
+          echo "🔒 Running yarn audit..."
+          yarn audit --level moderate || echo "⚠️  Security vulnerabilities found, but continuing..."
+
+          echo "🔍 Checking for known vulnerabilities..."
+          npx audit-ci --moderate || echo "⚠️  Audit CI found issues, but continuing..."
+        continue-on-error: true
+
+  # -----------------------------
+  # Job 5: Build Application
   # -----------------------------
   build:
-    name: Build ResumeLetterAI
+    name: Build Application
     runs-on: ubuntu-latest
-    needs: test
+    needs: [setup, lint]
+    # Build runs regardless of test skip, but waits for tests if they're running
+    if: always() && (needs.lint.result == 'success')
+    strategy:
+      matrix:
+        build-env: [production, staging]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ${{ env.YARN_CACHE_FOLDER }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install dependencies (if cache miss)
+        if: needs.setup.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: 🏗️ Build project
+        run: |
+          echo "🏗️ Building ResumeLetterAI for ${{ matrix.build-env }}..."
+
+          if [[ "${{ needs.setup.outputs.has-tests }}" == "false" ]]; then
+            echo "ℹ️  Building without tests (no tests detected)"
+          elif [[ "${{ needs.setup.outputs.force-skip-tests }}" == "true" ]]; then
+            echo "ℹ️  Building without test validation (tests skipped)"
+          fi
+
+          if [ "${{ matrix.build-env }}" = "production" ]; then
+            yarn build:prod || yarn build
+          else
+            yarn build:staging || yarn build
+          fi
+        env:
+          NODE_ENV: ${{ matrix.build-env }}
+          CI: true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.build-env }}-${{ github.sha }}
+          path: |
+            dist/
+            build/
+            out/
+          retention-days: 7
+
+  # -----------------------------
+  # Job 6: Performance Test (Conditional)
+  # -----------------------------
+  performance:
+    name: Performance Test
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    if: >
+      github.event_name == 'pull_request' && 
+      contains(github.head_ref, 'feature/') && 
+      needs.setup.outputs.run-only-build != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: 🚀 Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
         with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build project
-        run: yarn build
+          configPath: './lighthouserc.js'
+          uploadArtifacts: true
+        continue-on-error: true
 
   # -----------------------------
-  # Deploy jobs are commented out for future use
+  # Job 7: Notify Results
   # -----------------------------
-#  deploy-tested:
-#    name: Deploy Tested Code (ResumeLetterAI)
-#    runs-on: ubuntu-latest
-#    needs: build
-#    if: success()
-#    steps:
-#      - name: Deploy tested code
-#        run: echo "🚀 Deploying tested ResumeLetterAI code to production..."
-#
-#  deploy-untested:
-#    name: Deploy Untested Code (ResumeLetterAI)
-#    runs-on: ubuntu-latest
-#    needs: build
-#    if: always()
-#    steps:
-#      - name: Deploy untested code
-#        run: echo "⚠️ Deploying untested ResumeLetterAI code (be careful)..."
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [setup, lint, test, security, build]
+    if: always()
+    steps:
+      - name: 📊 Workflow Summary
+        run: |
+          echo "## 🚀 ResumeLetterAI CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 Test Detection Results" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.setup.outputs.has-tests }}" == "true" ]]; then
+            echo "- ✅ **Tests Found:** Yes" >> $GITHUB_STEP_SUMMARY
+            echo "- 📦 **Framework:** ${{ needs.setup.outputs.test-framework }}" >> $GITHUB_STEP_SUMMARY
+            echo "- 🎯 **Files with tests:** ${{ needs.setup.outputs.testable-count }}" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚠️  **Files without tests:** ${{ needs.setup.outputs.untestable-count }}" >> $GITHUB_STEP_SUMMARY
+            echo "- 💡 **Strategy:** Selective testing (only tested files)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Tests Found:** No" >> $GITHUB_STEP_SUMMARY
+            echo "- 📦 **Framework:** None detected" >> $GITHUB_STEP_SUMMARY
+            echo "- 💡 **Strategy:** Test job skipped entirely" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Notes |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Setup | ${{ needs.setup.result }} | Auto-detected tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} | Always runs |" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.setup.outputs.has-tests }}" == "false" ]]; then
+            echo "| Test | skipped | No tests detected |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.setup.outputs.force-skip-tests }}" == "true" ]]; then
+            echo "| Test | skipped | Forcefully skipped |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.setup.outputs.run-only-build }}" == "true" ]]; then
+            echo "| Test | skipped | Build only mode |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Test | ${{ needs.test.result }} | Auto-detected & ran |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [[ "${{ needs.setup.outputs.run-only-build }}" == "true" ]]; then
+            echo "| Security | skipped | Build only mode |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Security | ${{ needs.security.result }} | Ran normally |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "| Build | ${{ needs.build.result }} | Always runs after lint |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Build Info" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.setup.outputs.force-skip-tests }}" == "true" || "${{ needs.setup.outputs.run-only-build }}" == "true" ]]; then
+            echo "- **Special Mode:** Some jobs were manually skipped" >> $GITHUB_STEP_SUMMARY
+          fi

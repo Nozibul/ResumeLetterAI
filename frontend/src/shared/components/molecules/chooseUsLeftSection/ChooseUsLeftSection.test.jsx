@@ -11,9 +11,12 @@ import '@testing-library/jest-dom';
 import ChooseUsLeftSection from './ChooseUsLeftSection';
 import { features as mockFeatures } from '@/local-data/chooseUS';
 
-jest.mock('next/image', () => ({ src, alt, ...props }) => (
-  <img src={src} alt={alt} {...props} />
-));
+jest.mock('next/image', () => ({ src, alt, priority, ...props }) => {
+  // Convert boolean priority to string for DOM attribute
+  const priorityAttr = priority ? { 'data-priority': 'true' } : {};
+
+  return <img src={src} alt={alt} {...priorityAttr} {...props} />;
+});
 
 describe('ChooseUsLeftSection Component', () => {
   beforeEach(() => {
