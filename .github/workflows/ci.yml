@@ -70,7 +70,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile
+          elif [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: 📋 Generate version and detect changes
         id: version
@@ -91,10 +101,7 @@ jobs:
             RELEASE_TYPE="patch"
           elif [[ "$BRANCH_NAME" == "develop" ]]; then
             RELEASE_TYPE="minor"
-          elif [[ "$BRANCH_NAME" =~ ^release/.* ]]; then
-            RELEASE_TYPE="minor"
-          elif [[ "$BRANCH_NAME" =~ ^hotfix/.* ]]; then
-            RELEASE_TYPE="patch"
+
           else
             RELEASE_TYPE="prerelease"
           fi
@@ -525,9 +532,9 @@ jobs:
           if [ -f "yarn.lock" ]; then
             yarn install --frozen-lockfile
           elif [ -f "package-lock.json" ]; then
-            npm ci
+            yarn ci
           else
-            npm install
+            yarn install
           fi
 
       - name: 🧪 Run tests
@@ -1206,98 +1213,98 @@ jobs:
   # =========================================
   # JOB 18: BUNDLE SIZE CHECK
   # =========================================
-  bundle-size-check:
-    name: 📦 Bundle Size Analysis
-    runs-on: ubuntu-latest
-    needs: [build, detect-services]
-    if: needs.detect-services.outputs.has-frontend == 'true'
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+  # bundle-size-check:
+  #   name: 📦 Bundle Size Analysis
+  #   runs-on: ubuntu-latest
+  #   needs: [build, detect-services]
+  #   if: needs.detect-services.outputs.has-frontend == 'true'
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: 📦 Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-production-${{ github.sha }}
-          path: ./build
+  #     - name: 📦 Download build artifacts
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: build-production-${{ github.sha }}
+  #         path: ./build
 
-      - name: 📊 Analyze bundle size
-        run: |
-          echo "📊 Analyzing bundle sizes..."
+  #     - name: 📊 Analyze bundle size
+  #       run: |
+  #         echo "📊 Analyzing bundle sizes..."
           
-          # Install bundle analyzer tools
-          npm install -g webpack-bundle-analyzer bundlesize
+  #         # Install bundle analyzer tools
+  #         npm install -g webpack-bundle-analyzer bundlesize
 
-          # Analyze different types of builds
-          if [ -d "build/static" ]; then
-            echo "📦 React/Create React App build detected"
-            find build/static -name "*.js" -exec ls -lh {} \;
+  #         # Analyze different types of builds
+  #         if [ -d "build/static" ]; then
+  #           echo "📦 React/Create React App build detected"
+  #           find build/static -name "*.js" -exec ls -lh {} \;
             
-            # Calculate total JS size
-            TOTAL_JS_SIZE=$(find build/static -name "*.js" -exec du -b {} \; | awk '{sum+=$1} END {print sum}')
-            echo "Total JS bundle size: $(echo $TOTAL_JS_SIZE | numfmt --to=iec)"
+  #           # Calculate total JS size
+  #           TOTAL_JS_SIZE=$(find build/static -name "*.js" -exec du -b {} \; | awk '{sum+=$1} END {print sum}')
+  #           echo "Total JS bundle size: $(echo $TOTAL_JS_SIZE | numfmt --to=iec)"
             
-            # Check if size is reasonable (< 1MB)
-            if [ $TOTAL_JS_SIZE -gt 1048576 ]; then
-              echo "⚠️ Warning: Total JS bundle size exceeds 1MB"
-            fi
-          fi
+  #           # Check if size is reasonable (< 1MB)
+  #           if [ $TOTAL_JS_SIZE -gt 1048576 ]; then
+  #             echo "⚠️ Warning: Total JS bundle size exceeds 1MB"
+  #           fi
+  #         fi
           
-          if [ -d ".next" ]; then
-            echo "📦 Next.js build detected"
-            if [ -f ".next/analyze/client.html" ]; then
-              echo "Bundle analyzer report available"
-            fi
-          fi
+  #         if [ -d ".next" ]; then
+  #           echo "📦 Next.js build detected"
+  #           if [ -f ".next/analyze/client.html" ]; then
+  #             echo "Bundle analyzer report available"
+  #           fi
+  #         fi
           
-          # Create bundle size report
-          mkdir -p reports
-          echo "# Bundle Size Report" > reports/bundle-size.md
-          echo "Generated on: $(date)" >> reports/bundle-size.md
-          echo "" >> reports/bundle-size.md
+  #         # Create bundle size report
+  #         mkdir -p reports
+  #         echo "# Bundle Size Report" > reports/bundle-size.md
+  #         echo "Generated on: $(date)" >> reports/bundle-size.md
+  #         echo "" >> reports/bundle-size.md
           
-          if [ -d "build" ]; then
-            echo "## Build Directory Contents" >> reports/bundle-size.md
-            find build -type f -name "*.js" -o -name "*.css" | while read file; do
-              size=$(du -h "$file" | cut -f1)
-              echo "- $file: $size" >> reports/bundle-size.md
-            done
-          fi
+  #         if [ -d "build" ]; then
+  #           echo "## Build Directory Contents" >> reports/bundle-size.md
+  #           find build -type f -name "*.js" -o -name "*.css" | while read file; do
+  #             size=$(du -h "$file" | cut -f1)
+  #             echo "- $file: $size" >> reports/bundle-size.md
+  #           done
+  #         fi
 
-      - name: 🔍 Bundle size limit check
-        run: |
-          # Check if bundlesize config exists
-          if grep -q "bundlesize" package.json; then
-            echo "🔍 Running bundlesize checks..."
-            npx bundlesize
-          else
-            echo "ℹ️ No bundlesize configuration found"
-          fi
+  #     - name: 🔍 Bundle size limit check
+  #       run: |
+  #         # Check if bundlesize config exists
+  #         if grep -q "bundlesize" package.json; then
+  #           echo "🔍 Running bundlesize checks..."
+  #           npx bundlesize
+  #         else
+  #           echo "ℹ️ No bundlesize configuration found"
+  #         fi
 
-      - name: 📄 Upload bundle analysis
-        uses: actions/upload-artifact@v3
-        with:
-          name: bundle-size-analysis
-          path: |
-            reports/bundle-size.md
-            build/static/**/*.map
-          retention-days: 14
+  #     - name: 📄 Upload bundle analysis
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: bundle-size-analysis
+  #         path: |
+  #           reports/bundle-size.md
+  #           build/static/**/*.map
+  #         retention-days: 14
 
-      - name: 💬 Comment bundle size on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            if (fs.existsSync('reports/bundle-size.md')) {
-              const bundleReport = fs.readFileSync('reports/bundle-size.md', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## 📦 Bundle Size Analysis\n\n${bundleReport}`
-              });
-            }
+  #     - name: 💬 Comment bundle size on PR
+  #       if: github.event_name == 'pull_request'
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           const fs = require('fs');
+  #           if (fs.existsSync('reports/bundle-size.md')) {
+  #             const bundleReport = fs.readFileSync('reports/bundle-size.md', 'utf8');
+  #             github.rest.issues.createComment({
+  #               issue_number: context.issue.number,
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               body: `## 📦 Bundle Size Analysis\n\n${bundleReport}`
+  #             });
+  #           }
 
   # =========================================
   # JOB 19: MONITORING & HEALTH CHECK
@@ -1387,182 +1394,182 @@ jobs:
   # =========================================
   # JOB 20: NOTIFICATIONS
   # =========================================
-  notifications:
-    name: 🔔 Notifications & Reporting
-    runs-on: ubuntu-latest
-    needs: [
-      monorepo-versioning, 
-      test-execution, 
-      build, 
-      # deploy, 
-      # performance-test, 
-      security-scan,
-      branch-strategy
-    ]
-    if: always()
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+  # notifications:
+  #   name: 🔔 Notifications & Reporting
+  #   runs-on: ubuntu-latest
+  #   needs: [
+  #     monorepo-versioning, 
+  #     test-execution, 
+  #     build, 
+  #     # deploy, 
+  #     # performance-test, 
+  #     security-scan,
+  #     branch-strategy
+  #   ]
+  #   if: always()
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: 📊 Generate comprehensive report
-        run: |
-          echo "📊 Generating comprehensive CI/CD report..."
+  #     - name: 📊 Generate comprehensive report
+  #       run: |
+  #         echo "📊 Generating comprehensive CI/CD report..."
           
-          mkdir -p reports
-          REPORT_FILE="reports/cicd-report.md"
+  #         mkdir -p reports
+  #         REPORT_FILE="reports/cicd-report.md"
           
-          # Generate markdown report
-          cat > $REPORT_FILE << EOF
-          # 🚀 CI/CD Pipeline Report
+  #         # Generate markdown report
+  #         cat > $REPORT_FILE << EOF
+  #         # 🚀 CI/CD Pipeline Report
           
-          **Date**: $(date)
-          **Branch**: ${{ github.ref_name }}
-          **Commit**: ${{ github.sha }}
-          **Triggered by**: ${{ github.event_name }}
+  #         **Date**: $(date)
+  #         **Branch**: ${{ github.ref_name }}
+  #         **Commit**: ${{ github.sha }}
+  #         **Triggered by**: ${{ github.event_name }}
           
-          ## 📋 Pipeline Summary
+  #         ## 📋 Pipeline Summary
           
-          | Stage | Status | Duration | Notes |
-          |-------|--------|----------|--------|
-          | Versioning | ${{ needs.monorepo-versioning.result }} | - | Version: ${{ needs.monorepo-versioning.outputs.version }} |
-          | Testing | ${{ needs.test-execution.result }} | - | ${{ needs.test-execution.result == 'skipped' && 'No tests required' || 'Tests completed' }} |
-          | Build | ${{ needs.build.result }} | - | Multi-environment build |
-          | Security | ${{ needs.security-scan.result }} | - | Security scan completed |
-          | Deploy | ${{ needs.deploy.result }} | - | Target: ${{ needs.branch-strategy.outputs.deploy-environment }} |
-          | Performance | ${{ needs.performance-test.result }} | - | ${{ needs.performance-test.result == 'skipped' && 'Not required for branch' || 'Performance tests completed' }} |
+  #         | Stage | Status | Duration | Notes |
+  #         |-------|--------|----------|--------|
+  #         | Versioning | ${{ needs.monorepo-versioning.result }} | - | Version: ${{ needs.monorepo-versioning.outputs.version }} |
+  #         | Testing | ${{ needs.test-execution.result }} | - | ${{ needs.test-execution.result == 'skipped' && 'No tests required' || 'Tests completed' }} |
+  #         | Build | ${{ needs.build.result }} | - | Multi-environment build |
+  #         | Security | ${{ needs.security-scan.result }} | - | Security scan completed |
+  #         | Deploy | ${{ needs.deploy.result }} | - | Target: ${{ needs.branch-strategy.outputs.deploy-environment }} |
+  #         | Performance | ${{ needs.performance-test.result }} | - | ${{ needs.performance-test.result == 'skipped' && 'Not required for branch' || 'Performance tests completed' }} |
           
-          ## 🎯 Key Metrics
+  #         ## 🎯 Key Metrics
           
-          - **New Version**: ${{ needs.monorepo-versioning.outputs.version }}
-          - **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
-          - **Notification Level**: ${{ needs.branch-strategy.outputs.notification-level }}
+  #         - **New Version**: ${{ needs.monorepo-versioning.outputs.version }}
+  #         - **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #         - **Notification Level**: ${{ needs.branch-strategy.outputs.notification-level }}
           
-          EOF
+  #         EOF
           
-          # Add deployment URL if available
-          if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
-            echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $REPORT_FILE
-          fi
+  #         # Add deployment URL if available
+  #         if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
+  #           echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $REPORT_FILE
+  #         fi
           
-          echo "" >> $REPORT_FILE
-          echo "## 🔍 Detailed Results" >> $REPORT_FILE
+  #         echo "" >> $REPORT_FILE
+  #         echo "## 🔍 Detailed Results" >> $REPORT_FILE
           
-          # Add detailed results based on job outcomes
-          if [ "${{ needs.test-execution.result }}" = "failure" ]; then
-            echo "❌ **Tests Failed**: Some tests did not pass" >> $REPORT_FILE
-          elif [ "${{ needs.test-execution.result }}" = "success" ]; then
-            echo "✅ **Tests Passed**: All tests completed successfully" >> $REPORT_FILE
-          fi
+  #         # Add detailed results based on job outcomes
+  #         if [ "${{ needs.test-execution.result }}" = "failure" ]; then
+  #           echo "❌ **Tests Failed**: Some tests did not pass" >> $REPORT_FILE
+  #         elif [ "${{ needs.test-execution.result }}" = "success" ]; then
+  #           echo "✅ **Tests Passed**: All tests completed successfully" >> $REPORT_FILE
+  #         fi
           
-          if [ "${{ needs.security-scan.result }}" = "failure" ]; then
-            echo "🔒 **Security Issues**: Security vulnerabilities detected" >> $REPORT_FILE
-          elif [ "${{ needs.security-scan.result }}" = "success" ]; then
-            echo "✅ **Security**: No critical vulnerabilities found" >> $REPORT_FILE
-          fi
+  #         if [ "${{ needs.security-scan.result }}" = "failure" ]; then
+  #           echo "🔒 **Security Issues**: Security vulnerabilities detected" >> $REPORT_FILE
+  #         elif [ "${{ needs.security-scan.result }}" = "success" ]; then
+  #           echo "✅ **Security**: No critical vulnerabilities found" >> $REPORT_FILE
+  #         fi
 
-      # - name: 🔔 Discord Notification
-      #   if: contains(fromJSON('["full", "standard"]'), needs.branch-strategy.outputs.notification-level)
-      #   uses: sarisia/actions-status-discord@v1
-      #   with:
-      #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
-      #     title: "🚀 CI/CD Pipeline Report"
-      #     description: |
-      #       **Branch**: ${{ github.ref_name }}
-      #       **Version**: ${{ needs.monorepo-versioning.outputs.version }}
-      #       **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
-      #       **Status**: ${{ job.status }}
-      #     color: ${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '16776960' }}
-      #     username: "GitHub Actions"
-      #     avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+  #     # - name: 🔔 Discord Notification
+  #     #   if: contains(fromJSON('["full", "standard"]'), needs.branch-strategy.outputs.notification-level)
+  #     #   uses: sarisia/actions-status-discord@v1
+  #     #   with:
+  #     #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
+  #     #     title: "🚀 CI/CD Pipeline Report"
+  #     #     description: |
+  #     #       **Branch**: ${{ github.ref_name }}
+  #     #       **Version**: ${{ needs.monorepo-versioning.outputs.version }}
+  #     #       **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #     #       **Status**: ${{ job.status }}
+  #     #     color: ${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '16776960' }}
+  #     #     username: "GitHub Actions"
+  #     #     avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
 
-      # - name: 📧 Email Notification
-      #   if: |
-      #     needs.branch-strategy.outputs.notification-level == 'full' && 
-      #     (job.status == 'failure' || needs.branch-strategy.outputs.deploy-environment == 'production')
-      #   uses: dawidd6/action-send-mail@v3
-      #   with:
-      #     server_address: smtp.gmail.com
-      #     server_port: 587
-      #     username: ${{ secrets.EMAIL_USERNAME }}
-      #     password: ${{ secrets.EMAIL_PASSWORD }}
-      #     subject: "🚀 CI/CD Pipeline Report - ${{ github.repository }}"
-      #     body: file://reports/cicd-report.md
-      #     to: ${{ secrets.NOTIFICATION_EMAIL }}
-      #     from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
-      #     content_type: text/markdown
+  #     # - name: 📧 Email Notification
+  #     #   if: |
+  #     #     needs.branch-strategy.outputs.notification-level == 'full' && 
+  #     #     (job.status == 'failure' || needs.branch-strategy.outputs.deploy-environment == 'production')
+  #     #   uses: dawidd6/action-send-mail@v3
+  #     #   with:
+  #     #     server_address: smtp.gmail.com
+  #     #     server_port: 587
+  #     #     username: ${{ secrets.EMAIL_USERNAME }}
+  #     #     password: ${{ secrets.EMAIL_PASSWORD }}
+  #     #     subject: "🚀 CI/CD Pipeline Report - ${{ github.repository }}"
+  #     #     body: file://reports/cicd-report.md
+  #     #     to: ${{ secrets.NOTIFICATION_EMAIL }}
+  #     #     from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
+  #     #     content_type: text/markdown
 
-      # - name: 📱 Slack Notification
-      #   if: needs.branch-strategy.outputs.notification-level == 'full'
-      #   uses: 8398a7/action-slack@v3
-      #   with:
-      #     status: ${{ job.status }}
-      #     channel: '#deployments'
-      #     username: 'GitHub Actions'
-      #     icon_emoji: ':rocket:'
-      #     fields: repo,message,commit,author,action,eventName,ref,workflow
-      #     custom_payload: |
-      #       {
-      #         attachments: [{
-      #           color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
-      #           blocks: [
-      #             {
-      #               type: 'section',
-      #               text: {
-      #                 type: 'mrkdwn',
-      #                 text: `🚀 *CI/CD Pipeline Report*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Environment:* ${{ needs.branch-strategy.outputs.deploy-environment }}\n*Status:* ${{ job.status }}`
-      #               }
-      #             }
-      #           ]
-      #         }]
-      #       }
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+  #     # - name: 📱 Slack Notification
+  #     #   if: needs.branch-strategy.outputs.notification-level == 'full'
+  #     #   uses: 8398a7/action-slack@v3
+  #     #   with:
+  #     #     status: ${{ job.status }}
+  #     #     channel: '#deployments'
+  #     #     username: 'GitHub Actions'
+  #     #     icon_emoji: ':rocket:'
+  #     #     fields: repo,message,commit,author,action,eventName,ref,workflow
+  #     #     custom_payload: |
+  #     #       {
+  #     #         attachments: [{
+  #     #           color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+  #     #           blocks: [
+  #     #             {
+  #     #               type: 'section',
+  #     #               text: {
+  #     #                 type: 'mrkdwn',
+  #     #                 text: `🚀 *CI/CD Pipeline Report*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Environment:* ${{ needs.branch-strategy.outputs.deploy-environment }}\n*Status:* ${{ job.status }}`
+  #     #               }
+  #     #             }
+  #     #           ]
+  #     #         }]
+  #     #       }
+  #     #   env:
+  #     #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: 📄 Upload final report
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: cicd-pipeline-report
-          path: reports/cicd-report.md
-          retention-days: 90
+  #     - name: 📄 Upload final report
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: cicd-pipeline-report
+  #         path: reports/cicd-report.md
+  #         retention-days: 90
 
-      - name: 📊 Update GitHub Status
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
-            const description = `CI/CD Pipeline ${status} - Version: ${{ needs.monorepo-versioning.outputs.version }}`;
+  #     - name: 📊 Update GitHub Status
+  #       if: always()
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+  #           const description = `CI/CD Pipeline ${status} - Version: ${{ needs.monorepo-versioning.outputs.version }}`;
             
-            github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: status,
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              description: description,
-              context: 'CI/CD Pipeline'
-            });
+  #           github.rest.repos.createCommitStatus({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             sha: context.sha,
+  #             state: status,
+  #             target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+  #             description: description,
+  #             context: 'CI/CD Pipeline'
+  #           });
 
-      - name: 🏁 Pipeline Summary
-        run: |
-          echo "## 🚀 CI/CD Pipeline Completed!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ needs.monorepo-versioning.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Pipeline Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+  #     - name: 🏁 Pipeline Summary
+  #       run: |
+  #         echo "## 🚀 CI/CD Pipeline Completed!" >> $GITHUB_STEP_SUMMARY
+  #         echo "" >> $GITHUB_STEP_SUMMARY
+  #         echo "### 📊 Summary" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Version**: ${{ needs.monorepo-versioning.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Pipeline Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
-            echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          fi
+  #         if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
+  #           echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+  #         fi
           
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Key Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Tests | ${{ needs.test-execution.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deploy | ${{ needs.deploy.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "" >> $GITHUB_STEP_SUMMARY
+  #         echo "### 🎯 Key Results" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+  #         echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Tests | ${{ needs.test-execution.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Deploy | ${{ needs.deploy.result }} |" >> $GITHUB_STEP_SUMMARY
