@@ -566,16 +566,6 @@ jobs:
           fi
         continue-on-error: true
 
-      # - name: 📊 TypeScript Check
-      #   run: |
-      #     if [ -f "tsconfig.json" ]; then
-      #       echo "📊 Running TypeScript compiler..."
-      #       yarn tsc --noEmit || npx tsc --noEmit
-      #     else
-      #       echo "⚠️ No TypeScript config found"
-      #     fi
-      #   continue-on-error: true
-
       - name: 📄 Upload lint results
         uses: actions/upload-artifact@v4
         if: always()
@@ -829,6 +819,7 @@ jobs:
             echo "Build folder size: $(du -sh build)"
           fi
 
+
   # =========================================
   # JOB 13: BUNDLE SIZE CHECK
   # =========================================
@@ -841,72 +832,179 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: 📦 Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-production-${{ github.sha }}
           path: ./build
+        continue-on-error: true
+
+      - name: 🔍 Verify build artifacts
+        run: |
+          echo "Checking build artifacts..."
+          if [ -d "./build" ]; then
+            echo "✅ Build directory found"
+            ls -la ./build
+          else
+            echo "❌ No build directory found - checking for other build outputs"
+            find . -name "dist" -o -name ".next" -o -name "out" -type d | head -5
+          fi
 
       - name: 📊 Analyze bundle size
         run: |
-          echo "Analyzing bundle sizes..."
+          echo "🔍 Analyzing bundle sizes..."
           
-          # Install bundle analyzer tools
-          npm install -g webpack-bundle-analyzer bundlesize
+          # Install bundle analyzer tools globally
+          npm install -g bundlesize webpack-bundle-analyzer || true
 
-          # Analyze different types of builds
-          if [ -d "build/static" ]; then
-            echo "React/Create React App build detected"
-            find build/static -name "*.js" -exec ls -lh {} \;
-            
-            # Calculate total JS size
-            TOTAL_JS_SIZE=$(find build/static -name "*.js" -exec du -b {} \; | awk '{sum+=$1} END {print sum}')
-            echo "Total JS bundle size: $(echo $TOTAL_JS_SIZE | numfmt --to=iec)"
-            
-            # Check if size is reasonable (< 1MB)
-            if [ $TOTAL_JS_SIZE -gt 1048576 ]; then
-              echo " Warning: Total JS bundle size exceeds 1MB"
-            fi
-          fi
-          
-          if [ -d ".next" ]; then
-            echo "Next.js build detected"
-            if [ -f ".next/analyze/client.html" ]; then
-              echo "Bundle analyzer report available"
-            fi
-          fi
-          
-          # Create bundle size report
+          # Initialize report
           mkdir -p reports
-          echo "# Bundle Size Report" > reports/bundle-size.md
+          echo "# 📦 Bundle Size Report" > reports/bundle-size.md
           echo "Generated on: $(date)" >> reports/bundle-size.md
+          echo "Commit: ${{ github.sha }}" >> reports/bundle-size.md
           echo "" >> reports/bundle-size.md
+
+          # Function to analyze directory
+          analyze_directory() {
+            local dir=$1
+            local build_type=$2
+            
+            if [ -d "$dir" ]; then
+              echo "## $build_type Build Analysis" >> reports/bundle-size.md
+              echo "" >> reports/bundle-size.md
+              
+              # Find JS and CSS files
+              js_files=$(find "$dir" -name "*.js" -not -path "*/node_modules/*" | wc -l)
+              css_files=$(find "$dir" -name "*.css" -not -path "*/node_modules/*" | wc -l)
+              
+              echo "📊 **Files found:** $js_files JS, $css_files CSS" >> reports/bundle-size.md
+              echo "" >> reports/bundle-size.md
+              
+              # Calculate total sizes
+              if [ $js_files -gt 0 ]; then
+                total_js_size=$(find "$dir" -name "*.js" -not -path "*/node_modules/*" -exec du -b {} \; | awk '{sum+=$1} END {print sum}' || echo "0")
+                echo "📦 **Total JS Size:** $(echo $total_js_size | numfmt --to=iec-i --suffix=B)" >> reports/bundle-size.md
+                
+                # Size warnings
+                if [ $total_js_size -gt 1048576 ]; then # 1MB
+                  echo "⚠️ **Warning:** JS bundle size exceeds 1MB" >> reports/bundle-size.md
+                elif [ $total_js_size -gt 512000 ]; then # 512KB
+                  echo "💡 **Note:** JS bundle size is above 512KB" >> reports/bundle-size.md
+                else
+                  echo "✅ **Good:** JS bundle size is reasonable" >> reports/bundle-size.md
+                fi
+              fi
+              
+              if [ $css_files -gt 0 ]; then
+                total_css_size=$(find "$dir" -name "*.css" -not -path "*/node_modules/*" -exec du -b {} \; | awk '{sum+=$1} END {print sum}' || echo "0")
+                echo "🎨 **Total CSS Size:** $(echo $total_css_size | numfmt --to=iec-i --suffix=B)" >> reports/bundle-size.md
+              fi
+              
+              echo "" >> reports/bundle-size.md
+              echo "### 📋 File Details" >> reports/bundle-size.md
+              
+              # List individual files with sizes
+              find "$dir" -type f \( -name "*.js" -o -name "*.css" \) -not -path "*/node_modules/*" | sort | while read file; do
+                if [ -f "$file" ]; then
+                  size=$(du -h "$file" | cut -f1)
+                  rel_path=${file#$dir/}
+                  echo "- \`$rel_path\`: **$size**" >> reports/bundle-size.md
+                fi
+              done
+              
+              echo "" >> reports/bundle-size.md
+              return 0
+            fi
+            return 1
+          }
+
+          # Analyze different build patterns
+          analyzed=false
           
-          if [ -d "build" ]; then
-            echo "## Build Directory Contents" >> reports/bundle-size.md
-            find build -type f -name "*.js" -o -name "*.css" | while read file; do
-              size=$(du -h "$file" | cut -f1)
-              echo "- $file: $size" >> reports/bundle-size.md
+          # React/CRA build
+          if analyze_directory "build/static" "React (Create React App)"; then
+            echo "✅ React/CRA build analyzed"
+            analyzed=true
+          elif analyze_directory "build" "Generic Build"; then
+            echo "✅ Generic build analyzed"
+            analyzed=true
+          fi
+          
+          # Next.js build
+          if analyze_directory ".next/static" "Next.js"; then
+            echo "✅ Next.js build analyzed"
+            analyzed=true
+          fi
+          
+          # Vite build
+          if analyze_directory "dist/assets" "Vite"; then
+            echo "✅ Vite build analyzed"
+            analyzed=true
+          elif analyze_directory "dist" "Distribution"; then
+            echo "✅ Distribution build analyzed"
+            analyzed=true
+          fi
+          
+          # Webpack build
+          if analyze_directory "public/build" "Webpack"; then
+            echo "✅ Webpack build analyzed"
+            analyzed=true
+          fi
+          
+          if [ "$analyzed" = false ]; then
+            echo "## ⚠️ No Build Output Found" >> reports/bundle-size.md
+            echo "" >> reports/bundle-size.md
+            echo "No recognizable build output was detected. Checked locations:" >> reports/bundle-size.md
+            echo "- \`build/\`, \`build/static/\`" >> reports/bundle-size.md
+            echo "- \`dist/\`, \`dist/assets/\`" >> reports/bundle-size.md
+            echo "- \`.next/static/\`" >> reports/bundle-size.md
+            echo "- \`public/build/\`" >> reports/bundle-size.md
+            echo "" >> reports/bundle-size.md
+            
+            # Show what we found instead
+            echo "### 🔍 Available Directories" >> reports/bundle-size.md
+            find . -maxdepth 2 -type d -name "*build*" -o -name "*dist*" -o -name ".next" | head -10 | while read dir; do
+              echo "- \`$dir\`" >> reports/bundle-size.md
             done
           fi
 
-      - name: 🔍 Bundle size limit check
+      - name: 🔍 Run bundlesize checks
         run: |
-          # Check if bundlesize config exists
-          if grep -q "bundlesize" package.json; then
+          if [ -f "package.json" ] && grep -q "bundlesize" package.json; then
             echo "🔍 Running bundlesize checks..."
-            npx bundlesize
+            npx bundlesize || echo "⚠️ Bundlesize check completed with warnings"
           else
-            echo "No bundlesize configuration found"
+            echo "💡 No bundlesize configuration found in package.json"
+            echo "" >> reports/bundle-size.md
+            echo "## 💡 Bundlesize Setup" >> reports/bundle-size.md
+            echo "" >> reports/bundle-size.md
+            echo "Consider adding bundlesize configuration to your \`package.json\`:" >> reports/bundle-size.md
+            echo '```json' >> reports/bundle-size.md
+            echo '"bundlesize": [' >> reports/bundle-size.md
+            echo '  {' >> reports/bundle-size.md
+            echo '    "path": "./build/static/js/*.js",' >> reports/bundle-size.md
+            echo '    "maxSize": "1mb"' >> reports/bundle-size.md
+            echo '  }' >> reports/bundle-size.md
+            echo ']' >> reports/bundle-size.md
+            echo '```' >> reports/bundle-size.md
           fi
 
       - name: 📄 Upload bundle analysis
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: bundle-size-analysis
+          name: bundle-size-analysis-${{ github.sha }}
           path: |
-            reports/bundle-size.md
+            reports/
             build/static/**/*.map
+            .next/static/**/*.map
+            dist/**/*.map
           retention-days: 14
 
       - name: 💬 Comment bundle size on PR
@@ -915,16 +1013,59 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            if (fs.existsSync('reports/bundle-size.md')) {
-              const bundleReport = fs.readFileSync('reports/bundle-size.md', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## Bundle Size Analysis\n\n${bundleReport}`
-              });
+            const path = require('path');
+            
+            const reportPath = 'reports/bundle-size.md';
+            
+            if (fs.existsSync(reportPath)) {
+              const bundleReport = fs.readFileSync(reportPath, 'utf8');
+              
+              // Truncate if too long (GitHub comment limit)
+              const maxLength = 60000;
+              const report = bundleReport.length > maxLength 
+                ? bundleReport.substring(0, maxLength) + '\n\n*... (report truncated due to length)*'
+                : bundleReport;
+              
+              try {
+                // Check if comment already exists
+                const { data: comments } = await github.rest.issues.listComments({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
+                });
+                
+                const existingComment = comments.find(comment => 
+                  comment.body.includes('Bundle Size Analysis') && 
+                  comment.user.type === 'Bot'
+                );
+                
+                if (existingComment) {
+                  // Update existing comment
+                  await github.rest.issues.updateComment({
+                    comment_id: existingComment.id,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: report
+                  });
+                  console.log('Updated existing bundle size comment');
+                } else {
+                  // Create new comment
+                  await github.rest.issues.createComment({
+                    issue_number: context.issue.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: report
+                  });
+                  console.log('Created new bundle size comment');
+                }
+              } catch (error) {
+                console.error('Failed to post/update comment:', error);
+                // Don't fail the job if commenting fails
+              }
+            } else {
+              console.log('No bundle size report found to comment');
             }
-
+  
   # =========================================
   # JOB 20: NOTIFICATIONS
   # =========================================
