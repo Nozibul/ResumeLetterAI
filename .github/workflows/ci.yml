@@ -170,59 +170,7 @@ jobs:
           echo "Backend: $HAS_BACKEND ($BACKEND_FRAMEWORK)"
 
   # =========================================
-  # JOB 3: PACKAGE MATRIX STRATEGY
-  # =========================================
-  package-matrix:
-    name: 📋 Package Matrix Strategy
-    runs-on: ubuntu-latest
-    needs: [monorepo-versioning, detect-services]
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-      environments: ${{ steps.matrix.outputs.environments }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Generate Package Matrix
-        id: matrix
-        run: |
-          # Generate package matrix for multi-package testing
-          PACKAGES=[]
-          ENVIRONMENTS='["development", "staging", "production"]'
-          
-          # Check for monorepo structure
-          if [ -d "packages" ]; then
-            PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
-          elif [ -d "apps" ]; then
-            PACKAGES=$(find apps -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
-          else
-            PACKAGES='["."]'
-          fi
-          
-          # Generate matrix combining packages and environments
-          MATRIX=$(jq -n \
-            --argjson packages "$PACKAGES" \
-            --argjson environments "$ENVIRONMENTS" \
-            '{
-              include: [
-                $packages[] as $pkg | 
-                $environments[] as $env | 
-                {
-                  package: $pkg,
-                  environment: $env,
-                  node_version: "18"
-                }
-              ]
-            }')
-          
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          echo "environments=$ENVIRONMENTS" >> $GITHUB_OUTPUT
-          
-          echo "Package Matrix Generated:"
-          echo "$MATRIX" | jq .
-
-  # =========================================
-  # JOB 4: CHANGE DETECTION
+  # JOB 3: CHANGE DETECTION
   # =========================================
   change-detection:
     name: 🔄 Change Detection
@@ -285,7 +233,7 @@ jobs:
           echo "🚀 Should Deploy: $SHOULD_DEPLOY"
 
   # =========================================
-  # JOB 5: FILE-LEVEL SELECTIVE TESTING
+  # JOB 4: FILE-LEVEL SELECTIVE TESTING
   # =========================================
   selective-testing:
     name: 🎯 File-level Selective Testing
@@ -341,7 +289,7 @@ jobs:
           echo "$TEST_FILES" | jq .
 
   # =========================================
-  # JOB 6: FILE/FOLDER PUSH TEST TRIGGER
+  # JOB 5: FILE/FOLDER PUSH TEST TRIGGER
   # =========================================
   test-trigger:
     name: 🚦 Test Trigger Detection
@@ -390,7 +338,7 @@ jobs:
           echo "📋 Test Types: $TEST_TYPES"
 
   # =========================================
-  # JOB 7: BRANCH BASED TRIGGERING
+  # JOB 6: BRANCH BASED TRIGGERING
   # =========================================
   branch-strategy:
     name: 🌿 Branch-based Strategy
@@ -454,7 +402,7 @@ jobs:
           echo "⚡ Run Performance: $RUN_PERFORMANCE"
 
   # =========================================
-  # JOB 8: TEST CODE DETECTION & EXECUTION
+  # JOB 7: TEST CODE DETECTION & EXECUTION
   # =========================================
   test-execution:
     name: 🧪 Test Execution
@@ -524,7 +472,7 @@ jobs:
           retention-days: 7
 
   # =========================================
-  # JOB 9: UNTESTED CODE HANDLING
+  # JOB 8: UNTESTED CODE HANDLING
   # =========================================
   untested-code-analysis:
     name: 📊 Untested Code Analysis
@@ -580,7 +528,7 @@ jobs:
           retention-days: 30
 
   # =========================================
-  # JOB 10: LINTING (ESLint/Prettier)
+  # JOB 9: LINTING (ESLint/Prettier)
   # =========================================
   linting:
     name: 💅 Code Quality & Linting
@@ -639,7 +587,7 @@ jobs:
           retention-days: 7
 
   # =========================================
-  # JOB 11: SECURITY SCAN
+  # JOB 10: SECURITY SCAN
   # =========================================
   security-scan:
     name: 🔒 Security Scan
@@ -693,53 +641,7 @@ jobs:
           retention-days: 30
 
   # =========================================
-  # JOB 12: SECRETS DETECTION
-  # =========================================
-  # secrets-detection:
-  #   name: 🔐 Secrets Detection
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-
-  #     - name: 🔐 Install detect-secrets
-  #       run: |
-  #         pip install detect-secrets
-
-  #     - name: 🔍 Run secrets detection
-  #       run: |
-  #         echo "🔍 Scanning for secrets..."
-  #         detect-secrets scan --all-files --force-use-all-plugins > .secrets.baseline
-          
-  #         # Check if secrets are found
-  #         if [ -s .secrets.baseline ]; then
-  #           echo "⚠️ Potential secrets detected!"
-  #           detect-secrets audit .secrets.baseline
-  #         else
-  #           echo "✅ No secrets detected"
-  #         fi
-
-  #     - name: 🔐 GitLeaks Scan
-  #       uses: gitleaks/gitleaks-action@v2
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       with:
-  #         config-path: .gitleaks.toml
-
-  #     - name: 📄 Upload secrets scan results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: secrets-detection-results
-  #         path: |
-  #           .secrets.baseline
-  #           gitleaks-report.json
-  #         retention-days: 30
-
-  # =========================================
-  # JOB 13: CACHE & DEPENDENCIES
+  # JOB 11: CACHE & DEPENDENCIES
   # =========================================
   cache-dependencies:
     name: 🗄️ Cache & Dependencies Management
@@ -804,7 +706,7 @@ jobs:
           echo "Node Modules Size: $(du -sh node_modules 2>/dev/null || echo 'Not found')"
 
   # =========================================
-  # JOB 14: BUILD APPLICATION
+  # JOB 12: BUILD APPLICATION
   # =========================================
   build:
     name: 🏗️ Build Application
@@ -928,239 +830,7 @@ jobs:
           fi
 
   # =========================================
-  # JOB 15: DEPLOYMENT
-  # =========================================
-  # deploy:
-  #   name: 🚀 Deploy Application
-  #   runs-on: ubuntu-latest
-  #   needs: [build, branch-strategy, security-scan]
-  #   if: needs.branch-strategy.outputs.deploy-environment != 'none'
-  #   environment:
-  #     name: ${{ needs.branch-strategy.outputs.deploy-environment }}
-  #     url: ${{ steps.deploy.outputs.url }}
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: 📦 Download build artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: build-${{ needs.branch-strategy.outputs.deploy-environment }}-${{ github.sha }}
-  #         path: ./build
-
-  #     - name: 🚀 Deploy to ${{ needs.branch-strategy.outputs.deploy-environment }}
-  #       id: deploy
-  #       run: |
-  #         ENVIRONMENT="${{ needs.branch-strategy.outputs.deploy-environment }}"
-          
-  #         echo "🚀 Deploying to $ENVIRONMENT..."
-          
-  #         case "$ENVIRONMENT" in
-  #           "staging")
-  #             echo "📤 Deploying to staging environment..."
-  #             # Add your staging deployment commands here
-  #             # Example: aws s3 sync build/ s3://staging-bucket/
-  #             # Example: kubectl apply -f k8s/staging/
-  #             DEPLOY_URL="https://staging.yourapp.com"
-  #             ;;
-  #           "production")
-  #             echo "📤 Deploying to production environment..."
-  #             # Add your production deployment commands here
-  #             # Example: aws s3 sync build/ s3://production-bucket/
-  #             # Example: kubectl apply -f k8s/production/
-  #             DEPLOY_URL="https://yourapp.com"
-  #             ;;
-  #         esac
-          
-  #         echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-  #         echo "✅ Deployment completed successfully!"
-  #         echo "🌐 Application URL: $DEPLOY_URL"
-
-  #     - name: 🏥 Health Check
-  #       run: |
-  #         DEPLOY_URL="${{ steps.deploy.outputs.url }}"
-  #         echo "🏥 Performing health check on $DEPLOY_URL..."
-          
-  #         # Wait for deployment to be ready
-  #         sleep 30
-          
-  #         # Perform health check
-  #         if curl -f -s "$DEPLOY_URL/health" || curl -f -s "$DEPLOY_URL"; then
-  #           echo "✅ Health check passed!"
-  #         else
-  #           echo "❌ Health check failed!"
-  #           exit 1
-  #         fi
-
-  # =========================================
-  # JOB 16: ROLLBACK
-  # =========================================
-  # rollback:
-  #   name: 🔄 Rollback Deployment
-  #   runs-on: ubuntu-latest
-  #   needs: [deploy]
-  #   if: failure() && needs.deploy.result == 'failure'
-  #   environment:
-  #     name: ${{ needs.branch-strategy.outputs.deploy-environment }}
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: 🔄 Perform Rollback
-  #       run: |
-  #         ENVIRONMENT="${{ needs.branch-strategy.outputs.deploy-environment }}"
-          
-  #         echo "🔄 Rolling back $ENVIRONMENT deployment..."
-          
-  #         # Get previous successful deployment
-  #         PREVIOUS_SHA=$(git log --format="%H" -n 2 | tail -1)
-          
-  #         echo "📥 Rolling back to commit: $PREVIOUS_SHA"
-          
-  #         case "$ENVIRONMENT" in
-  #           "staging")
-  #             echo "🔄 Rolling back staging deployment..."
-  #             # Add your staging rollback commands here
-  #             # Example: kubectl rollout undo deployment/staging-app
-  #             ;;
-  #           "production")
-  #             echo "🔄 Rolling back production deployment..."
-  #             # Add your production rollback commands here
-  #             # Example: kubectl rollout undo deployment/production-app
-  #             ;;
-  #         esac
-          
-  #         echo "✅ Rollback completed!"
-
-  #     - name: 🏥 Post-Rollback Health Check
-  #       run: |
-  #         case "${{ needs.branch-strategy.outputs.deploy-environment }}" in
-  #           "staging")
-  #             HEALTH_URL="https://staging.yourapp.com"
-  #             ;;
-  #           "production")
-  #             HEALTH_URL="https://yourapp.com"
-  #             ;;
-  #         esac
-          
-  #         echo "🏥 Checking health after rollback..."
-  #         sleep 30
-          
-  #         if curl -f -s "$HEALTH_URL/health" || curl -f -s "$HEALTH_URL"; then
-  #           echo "✅ Rollback health check passed!"
-  #         else
-  #           echo "❌ Rollback health check failed!"
-  #           exit 1
-  #         fi
-
-  # =========================================
-  # JOB 17: PERFORMANCE TESTING
-  # =========================================
-  # performance-test:
-  #   name: ⚡ Performance Testing
-  #   runs-on: ubuntu-latest
-  #   needs: [deploy, branch-strategy]
-  #   if: |
-  #     needs.branch-strategy.outputs.run-performance == 'true' || 
-  #     github.event.inputs.run_performance_tests == 'true'
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
-
-  #     - name: 📦 Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
-
-  #     - name: ⚡ Install performance testing tools
-  #       run: |
-  #         npm install -g lighthouse artillery @playwright/test
-  #         playwright install chromium
-
-  #     - name: 🚀 Lighthouse Performance Audit
-  #       run: |
-  #         DEPLOY_URL="${{ needs.deploy.outputs.url || 'http://localhost:3000' }}"
-          
-  #         echo "🚀 Running Lighthouse audit on $DEPLOY_URL..."
-          
-  #         lighthouse $DEPLOY_URL \
-  #           --output=json \
-  #           --output=html \
-  #           --output-path=./lighthouse-report \
-  #           --chrome-flags="--headless --no-sandbox" \
-  #           --quiet
-
-  #     - name: ⚡ Load Testing with Artillery
-  #       run: |
-  #         echo "⚡ Running load tests..."
-          
-  #         # Create artillery config
-  #         cat > artillery-config.yml << EOF
-  #         config:
-  #           target: '${{ needs.deploy.outputs.url || 'http://localhost:3000' }}'
-  #           phases:
-  #             - duration: 60
-  #               arrivalRate: 10
-  #             - duration: 120
-  #               arrivalRate: 50
-  #         scenarios:
-  #           - name: "Load test"
-  #             requests:
-  #               - get:
-  #                   url: "/"
-  #               - get:
-  #                   url: "/api/health"
-  #         EOF
-          
-  #         artillery run artillery-config.yml --output performance-results.json
-
-  #     - name: 🎭 Playwright Performance Tests
-  #       run: |
-  #         cat > playwright-perf.js << 'EOF'
-  #         const { test, expect } = require('@playwright/test');
-          
-  #         test('Performance test', async ({ page }) => {
-  #           const response = await page.goto(process.env.DEPLOY_URL || 'http://localhost:3000');
-            
-  #           // Measure page load time
-  #           const loadTime = await page.evaluate(() => performance.timing.loadEventEnd - performance.timing.navigationStart);
-            
-  #           console.log(`Page load time: ${loadTime}ms`);
-  #           expect(loadTime).toBeLessThan(3000); // Should load within 3 seconds
-            
-  #           // Measure largest contentful paint
-  #           const lcp = await page.evaluate(() => {
-  #             return new Promise((resolve) => {
-  #               new PerformanceObserver((list) => {
-  #                 const entries = list.getEntries();
-  #                 const lastEntry = entries[entries.length - 1];
-  #                 resolve(lastEntry.startTime);
-  #               }).observe({entryTypes: ['largest-contentful-paint']});
-  #             });
-  #           });
-            
-  #           console.log(`LCP: ${lcp}ms`);
-  #           expect(lcp).toBeLessThan(2500); // LCP should be under 2.5s
-  #         });
-  #         EOF
-          
-  #         npx playwright test playwright-perf.js
-  #       env:
-  #         DEPLOY_URL: ${{ needs.deploy.outputs.url }}
-
-  #     - name: 📊 Upload performance results
-  #       uses: actions/upload-artifact@v4
-  #       if: always()
-  #       with:
-  #         name: performance-test-results
-  #         path: |
-  #           lighthouse-report.*
-  #           performance-results.json
-  #           test-results/
-  #         retention-days: 14
-
-  # =========================================
-  # JOB 18: BUNDLE SIZE CHECK
+  # JOB 13: BUNDLE SIZE CHECK
   # =========================================
   # bundle-size-check:
   #   name: 📦 Bundle Size Analysis
@@ -1255,10 +925,6 @@ jobs:
   #             });
   #           }
 
-  # =========================================
-  # JOB 19: MONITORING & HEALTH CHECK
-  # =========================================
-  # monitoring-health-check:
   #   name: 🏥 Monitoring & Health Check
   #   runs-on: ubuntu-latest
   #   needs: [deploy]
