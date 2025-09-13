@@ -1,0 +1,21 @@
+{
+  "name": "resumeletterai-monorepo",
+  "version": "1.0.0",
+  "description": "An intelligent, AI-powered Resume and Cover letter builder",
+  "private": true,
+
+  "scripts": {
+    "install:all": "yarn install && yarn workspace frontend install && yarn workspace backend install",
+    "dev:frontend": "yarn workspace frontend dev",
+    "dev:backend": "yarn workspace backend dev",
+    "build:frontend": "yarn workspace frontend build",
+    "build:backend": "yarn workspace backend build",
+    "start:frontend": "yarn workspace frontend start",
+    "start:backend": "yarn workspace backend start"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  }
+}
