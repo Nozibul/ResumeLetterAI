@@ -819,16 +819,51 @@ jobs:
             echo "Build folder size: $(du -sh build)"
           fi
 
+  # =========================================
+  # DEBUG JOB: DETECT SERVICES OUTPUTS
+  # =========================================
+  debug-detect-services:
+    name: 🔍 Debug Detect Services
+    runs-on: ubuntu-latest
+    needs: [detect-services]
+    if: always()
+    steps:
+      - name: Debug outputs
+        run: |
+          echo "=== DEBUG: detect-services outputs ==="
+          echo "has-frontend: '${{ needs.detect-services.outputs.has-frontend }}'"
+          echo "result: '${{ needs.detect-services.result }}'"
+          echo "conclusion: '${{ needs.detect-services.conclusion }}'"
+          echo ""
+          echo "=== Available outputs ==="
+          echo "${{ toJSON(needs.detect-services.outputs) }}"
 
   # =========================================
-  # JOB 13: BUNDLE SIZE CHECK
+  # JOB 13: BUNDLE SIZE CHECK (IMPROVED)
   # =========================================
   bundle-size-check:
     name: 📦 Bundle Size Analysis
     runs-on: ubuntu-latest
     needs: [build, detect-services]
-    if: needs.detect-services.outputs.has-frontend == 'true'
+    # Multiple conditions to debug why it's skipping
+    if: |
+      always() && 
+      (needs.detect-services.result == 'success' || needs.detect-services.result == 'skipped') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (needs.detect-services.outputs.has-frontend == 'true' || needs.detect-services.outputs.has-frontend == true)
     steps:
+      - name: 🔍 Debug Job Conditions
+        run: |
+          echo "=== JOB CONDITION DEBUG ==="
+          echo "detect-services.result: '${{ needs.detect-services.result }}'"
+          echo "detect-services.conclusion: '${{ needs.detect-services.conclusion }}'"
+          echo "build.result: '${{ needs.build.result }}'"
+          echo "build.conclusion: '${{ needs.build.conclusion }}'"
+          echo "has-frontend output: '${{ needs.detect-services.outputs.has-frontend }}'"
+          echo ""
+          echo "=== All detect-services outputs ==="
+          echo '${{ toJSON(needs.detect-services.outputs) }}'
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
@@ -1065,7 +1100,6 @@ jobs:
             } else {
               console.log('No bundle size report found to comment');
             }
-  
   # =========================================
   # JOB 20: NOTIFICATIONS
   # =========================================
