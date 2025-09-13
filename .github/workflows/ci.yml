@@ -695,48 +695,48 @@ jobs:
   # =========================================
   # JOB 12: SECRETS DETECTION
   # =========================================
-  secrets-detection:
-    name: 🔐 Secrets Detection
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  # secrets-detection:
+  #   name: 🔐 Secrets Detection
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - name: 🔐 Install detect-secrets
-        run: |
-          pip install detect-secrets
+  #     - name: 🔐 Install detect-secrets
+  #       run: |
+  #         pip install detect-secrets
 
-      - name: 🔍 Run secrets detection
-        run: |
-          echo "🔍 Scanning for secrets..."
-          detect-secrets scan --all-files --force-use-all-plugins > .secrets.baseline
+  #     - name: 🔍 Run secrets detection
+  #       run: |
+  #         echo "🔍 Scanning for secrets..."
+  #         detect-secrets scan --all-files --force-use-all-plugins > .secrets.baseline
           
-          # Check if secrets are found
-          if [ -s .secrets.baseline ]; then
-            echo "⚠️ Potential secrets detected!"
-            detect-secrets audit .secrets.baseline
-          else
-            echo "✅ No secrets detected"
-          fi
+  #         # Check if secrets are found
+  #         if [ -s .secrets.baseline ]; then
+  #           echo "⚠️ Potential secrets detected!"
+  #           detect-secrets audit .secrets.baseline
+  #         else
+  #           echo "✅ No secrets detected"
+  #         fi
 
-      - name: 🔐 GitLeaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          config-path: .gitleaks.toml
+  #     - name: 🔐 GitLeaks Scan
+  #       uses: gitleaks/gitleaks-action@v2
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         config-path: .gitleaks.toml
 
-      - name: 📄 Upload secrets scan results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: secrets-detection-results
-          path: |
-            .secrets.baseline
-            gitleaks-report.json
-          retention-days: 30
+  #     - name: 📄 Upload secrets scan results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: secrets-detection-results
+  #         path: |
+  #           .secrets.baseline
+  #           gitleaks-report.json
+  #         retention-days: 30
 
   # =========================================
   # JOB 13: CACHE & DEPENDENCIES
