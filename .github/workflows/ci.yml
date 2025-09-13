@@ -180,10 +180,10 @@ jobs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       environments: ${{ steps.matrix.outputs.environments }}
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📋 Generate Package Matrix
+      - name: Generate Package Matrix
         id: matrix
         run: |
           # Generate package matrix for multi-package testing
@@ -218,7 +218,7 @@ jobs:
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           echo "environments=$ENVIRONMENTS" >> $GITHUB_OUTPUT
           
-          echo "📦 Package Matrix Generated:"
+          echo "Package Matrix Generated:"
           echo "$MATRIX" | jq .
 
   # =========================================
@@ -513,7 +513,7 @@ jobs:
           NODE_ENV: test
 
       - name: 📊 Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-${{ matrix.test-type }}-node-${{ matrix.node-version }}
@@ -573,7 +573,7 @@ jobs:
           done
 
       - name: 📄 Upload untested code report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: untested-code-report
           path: reports/untested-files.txt
@@ -598,23 +598,23 @@ jobs:
       - name: 🔧 Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: 🔍 ESLint Check
+      - name: ESLint Check
         run: |
           if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-            echo "🔍 Running ESLint..."
+            echo " Running ESLint..."
             yarn lint || npx eslint . --ext .js,.jsx,.ts,.tsx --format=json --output-file=eslint-results.json
           else
-            echo "⚠️ No ESLint config found"
+            echo " No ESLint config found"
           fi
         continue-on-error: true
 
-      - name: 💅 Prettier Check
+      - name: Prettier Check
         run: |
           if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
-            echo "💅 Running Prettier..."
+            echo " Running Prettier..."
             yarn prettier --check . --write || npx prettier --check .
           else
-            echo "⚠️ No Prettier config found"
+            echo " No Prettier config found"
           fi
         continue-on-error: true
 
@@ -629,7 +629,7 @@ jobs:
       #   continue-on-error: true
 
       - name: 📄 Upload lint results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: lint-results
@@ -683,7 +683,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
 
       - name: 📄 Upload security results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: security-scan-results
@@ -729,7 +729,7 @@ jobs:
           config-path: .gitleaks.toml
 
       - name: 📄 Upload secrets scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: secrets-detection-results
@@ -904,7 +904,7 @@ jobs:
           NODE_ENV: ${{ matrix.build_mode }}
 
       - name: 📦 Archive build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.environment }}-${{ github.sha }}
           path: |
@@ -1149,7 +1149,7 @@ jobs:
   #         DEPLOY_URL: ${{ needs.deploy.outputs.url }}
 
   #     - name: 📊 Upload performance results
-  #       uses: actions/upload-artifact@v3
+  #       uses: actions/upload-artifact@v4
   #       if: always()
   #       with:
   #         name: performance-test-results
@@ -1231,7 +1231,7 @@ jobs:
   #         fi
 
   #     - name: 📄 Upload bundle analysis
-  #       uses: actions/upload-artifact@v3
+  #       uses: actions/upload-artifact@v4
   #       with:
   #         name: bundle-size-analysis
   #         path: |
