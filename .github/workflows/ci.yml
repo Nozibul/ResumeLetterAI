@@ -832,179 +832,179 @@ jobs:
   # =========================================
   # JOB 13: BUNDLE SIZE CHECK
   # =========================================
-  # bundle-size-check:
-  #   name: 📦 Bundle Size Analysis
-  #   runs-on: ubuntu-latest
-  #   needs: [build, detect-services]
-  #   if: needs.detect-services.outputs.has-frontend == 'true'
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
+  bundle-size-check:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+    needs: [build, detect-services]
+    if: needs.detect-services.outputs.has-frontend == 'true'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: 📦 Download build artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: build-production-${{ github.sha }}
-  #         path: ./build
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-production-${{ github.sha }}
+          path: ./build
 
-  #     - name: 📊 Analyze bundle size
-  #       run: |
-  #         echo "📊 Analyzing bundle sizes..."
+      - name: 📊 Analyze bundle size
+        run: |
+          echo "Analyzing bundle sizes..."
           
-  #         # Install bundle analyzer tools
-  #         npm install -g webpack-bundle-analyzer bundlesize
+          # Install bundle analyzer tools
+          npm install -g webpack-bundle-analyzer bundlesize
 
-  #         # Analyze different types of builds
-  #         if [ -d "build/static" ]; then
-  #           echo "📦 React/Create React App build detected"
-  #           find build/static -name "*.js" -exec ls -lh {} \;
+          # Analyze different types of builds
+          if [ -d "build/static" ]; then
+            echo "React/Create React App build detected"
+            find build/static -name "*.js" -exec ls -lh {} \;
             
-  #           # Calculate total JS size
-  #           TOTAL_JS_SIZE=$(find build/static -name "*.js" -exec du -b {} \; | awk '{sum+=$1} END {print sum}')
-  #           echo "Total JS bundle size: $(echo $TOTAL_JS_SIZE | numfmt --to=iec)"
+            # Calculate total JS size
+            TOTAL_JS_SIZE=$(find build/static -name "*.js" -exec du -b {} \; | awk '{sum+=$1} END {print sum}')
+            echo "Total JS bundle size: $(echo $TOTAL_JS_SIZE | numfmt --to=iec)"
             
-  #           # Check if size is reasonable (< 1MB)
-  #           if [ $TOTAL_JS_SIZE -gt 1048576 ]; then
-  #             echo "⚠️ Warning: Total JS bundle size exceeds 1MB"
-  #           fi
-  #         fi
+            # Check if size is reasonable (< 1MB)
+            if [ $TOTAL_JS_SIZE -gt 1048576 ]; then
+              echo " Warning: Total JS bundle size exceeds 1MB"
+            fi
+          fi
           
-  #         if [ -d ".next" ]; then
-  #           echo "📦 Next.js build detected"
-  #           if [ -f ".next/analyze/client.html" ]; then
-  #             echo "Bundle analyzer report available"
-  #           fi
-  #         fi
+          if [ -d ".next" ]; then
+            echo "Next.js build detected"
+            if [ -f ".next/analyze/client.html" ]; then
+              echo "Bundle analyzer report available"
+            fi
+          fi
           
-  #         # Create bundle size report
-  #         mkdir -p reports
-  #         echo "# Bundle Size Report" > reports/bundle-size.md
-  #         echo "Generated on: $(date)" >> reports/bundle-size.md
-  #         echo "" >> reports/bundle-size.md
+          # Create bundle size report
+          mkdir -p reports
+          echo "# Bundle Size Report" > reports/bundle-size.md
+          echo "Generated on: $(date)" >> reports/bundle-size.md
+          echo "" >> reports/bundle-size.md
           
-  #         if [ -d "build" ]; then
-  #           echo "## Build Directory Contents" >> reports/bundle-size.md
-  #           find build -type f -name "*.js" -o -name "*.css" | while read file; do
-  #             size=$(du -h "$file" | cut -f1)
-  #             echo "- $file: $size" >> reports/bundle-size.md
-  #           done
-  #         fi
+          if [ -d "build" ]; then
+            echo "## Build Directory Contents" >> reports/bundle-size.md
+            find build -type f -name "*.js" -o -name "*.css" | while read file; do
+              size=$(du -h "$file" | cut -f1)
+              echo "- $file: $size" >> reports/bundle-size.md
+            done
+          fi
 
-  #     - name: 🔍 Bundle size limit check
-  #       run: |
-  #         # Check if bundlesize config exists
-  #         if grep -q "bundlesize" package.json; then
-  #           echo "🔍 Running bundlesize checks..."
-  #           npx bundlesize
-  #         else
-  #           echo "ℹ️ No bundlesize configuration found"
-  #         fi
+      - name: 🔍 Bundle size limit check
+        run: |
+          # Check if bundlesize config exists
+          if grep -q "bundlesize" package.json; then
+            echo "🔍 Running bundlesize checks..."
+            npx bundlesize
+          else
+            echo "No bundlesize configuration found"
+          fi
 
-  #     - name: 📄 Upload bundle analysis
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: bundle-size-analysis
-  #         path: |
-  #           reports/bundle-size.md
-  #           build/static/**/*.map
-  #         retention-days: 14
+      - name: 📄 Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-size-analysis
+          path: |
+            reports/bundle-size.md
+            build/static/**/*.map
+          retention-days: 14
 
-  #     - name: 💬 Comment bundle size on PR
-  #       if: github.event_name == 'pull_request'
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           const fs = require('fs');
-  #           if (fs.existsSync('reports/bundle-size.md')) {
-  #             const bundleReport = fs.readFileSync('reports/bundle-size.md', 'utf8');
-  #             github.rest.issues.createComment({
-  #               issue_number: context.issue.number,
-  #               owner: context.repo.owner,
-  #               repo: context.repo.repo,
-  #               body: `## 📦 Bundle Size Analysis\n\n${bundleReport}`
-  #             });
-  #           }
+      - name: 💬 Comment bundle size on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('reports/bundle-size.md')) {
+              const bundleReport = fs.readFileSync('reports/bundle-size.md', 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## Bundle Size Analysis\n\n${bundleReport}`
+              });
+            }
 
-  #   name: 🏥 Monitoring & Health Check
-  #   runs-on: ubuntu-latest
-  #   needs: [deploy]
-  #   if: needs.deploy.result == 'success'
-  #   steps:
-  #     - name: 📥 Checkout code
-  #       uses: actions/checkout@v4
+    name: 🏥 Monitoring & Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: needs.deploy.result == 'success'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: 🏥 Comprehensive Health Check
-  #       run: |
-  #         DEPLOY_URL="${{ needs.deploy.outputs.url }}"
-  #         echo "🏥 Running comprehensive health checks on $DEPLOY_URL..."
+      - name: 🏥 Comprehensive Health Check
+        run: |
+          DEPLOY_URL="${{ needs.deploy.outputs.url }}"
+          echo "🏥 Running comprehensive health checks on $DEPLOY_URL..."
           
-  #         # Basic health check
-  #         echo "1. 🔍 Basic connectivity check..."
-  #         if curl -f -s "$DEPLOY_URL" > /dev/null; then
-  #           echo "✅ Basic connectivity: PASSED"
-  #         else
-  #           echo "❌ Basic connectivity: FAILED"
-  #           exit 1
-  #         fi
+          # Basic health check
+          echo "1. 🔍 Basic connectivity check..."
+          if curl -f -s "$DEPLOY_URL" > /dev/null; then
+            echo "✅ Basic connectivity: PASSED"
+          else
+            echo "❌ Basic connectivity: FAILED"
+            exit 1
+          fi
           
-  #         # API health check
-  #         echo "2. 🔍 API health check..."
-  #         if curl -f -s "$DEPLOY_URL/api/health" > /dev/null; then
-  #           echo "✅ API health check: PASSED"
-  #         else
-  #           echo "⚠️ API health check: FAILED (may not exist)"
-  #         fi
+          # API health check
+          echo "2. 🔍 API health check..."
+          if curl -f -s "$DEPLOY_URL/api/health" > /dev/null; then
+            echo "✅ API health check: PASSED"
+          else
+            echo "⚠️ API health check: FAILED (may not exist)"
+          fi
           
-  #         # Response time check
-  #         echo "3. ⏱️ Response time check..."
-  #         RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" "$DEPLOY_URL")
-  #         echo "Response time: ${RESPONSE_TIME}s"
+          # Response time check
+          echo "3. ⏱️ Response time check..."
+          RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" "$DEPLOY_URL")
+          echo "Response time: ${RESPONSE_TIME}s"
           
-  #         if (( $(echo "$RESPONSE_TIME < 2.0" | bc -l) )); then
-  #           echo "✅ Response time: PASSED"
-  #         else
-  #           echo "⚠️ Response time: SLOW (${RESPONSE_TIME}s)"
-  #         fi
+          if (( $(echo "$RESPONSE_TIME < 2.0" | bc -l) )); then
+            echo "✅ Response time: PASSED"
+          else
+            echo "⚠️ Response time: SLOW (${RESPONSE_TIME}s)"
+          fi
           
-  #         # Status code check
-  #         echo "4. 📊 HTTP status check..."
-  #         STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL")
-  #         echo "HTTP Status: $STATUS_CODE"
+          # Status code check
+          echo "4. 📊 HTTP status check..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL")
+          echo "HTTP Status: $STATUS_CODE"
           
-  #         if [ "$STATUS_CODE" -eq 200 ]; then
-  #           echo "✅ HTTP Status: PASSED"
-  #         else
-  #           echo "❌ HTTP Status: FAILED ($STATUS_CODE)"
-  #         fi
+          if [ "$STATUS_CODE" -eq 200 ]; then
+            echo "✅ HTTP Status: PASSED"
+          else
+            echo "❌ HTTP Status: FAILED ($STATUS_CODE)"
+          fi
 
-  #     - name: 📊 Setup monitoring alerts
-  #       run: |
-  #         echo "📊 Setting up monitoring alerts..."
+      - name: 📊 Setup monitoring alerts
+        run: |
+          echo "📊 Setting up monitoring alerts..."
           
-  #         # Create monitoring configuration
-  #         cat > monitoring-config.json << EOF
-  #         {
-  #           "url": "${{ needs.deploy.outputs.url }}",
-  #           "environment": "${{ needs.branch-strategy.outputs.deploy-environment }}",
-  #           "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  #           "checks": {
-  #             "health": true,
-  #             "performance": true,
-  #             "security": true
-  #           }
-  #         }
-  #         EOF
+          # Create monitoring configuration
+          cat > monitoring-config.json << EOF
+          {
+            "url": "${{ needs.deploy.outputs.url }}",
+            "environment": "${{ needs.branch-strategy.outputs.deploy-environment }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "checks": {
+              "health": true,
+              "performance": true,
+              "security": true
+            }
+          }
+          EOF
           
-  #         # Here you would typically send this to your monitoring service
-  #         # Example: curl -X POST -H "Content-Type: application/json" -d @monitoring-config.json https://your-monitoring-service.com/api/alerts
+          # Here you would typically send this to your monitoring service
+          # Example: curl -X POST -H "Content-Type: application/json" -d @monitoring-config.json https://your-monitoring-service.com/api/alerts
 
-  #     - name: 🔔 Setup uptime monitoring
-  #       run: |
-  #         echo "🔔 Configuring uptime monitoring..."
+      - name: 🔔 Setup uptime monitoring
+        run: |
+          echo "🔔 Configuring uptime monitoring..."
           
-  #         # Example: Setup pingdom/uptime monitoring
-  #         # This would typically call your monitoring service API
-  #         echo "Uptime monitoring configured for ${{ needs.deploy.outputs.url }}"
+          # Example: Setup pingdom/uptime monitoring
+          # This would typically call your monitoring service API
+          echo "Uptime monitoring configured for ${{ needs.deploy.outputs.url }}"
 
   # =========================================
   # JOB 20: NOTIFICATIONS
