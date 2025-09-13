@@ -1492,31 +1492,31 @@ jobs:
       #     content_type: text/markdown
 
       # - name: 📱 Slack Notification
-        if: needs.branch-strategy.outputs.notification-level == 'full'
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          channel: '#deployments'
-          username: 'GitHub Actions'
-          icon_emoji: ':rocket:'
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-          custom_payload: |
-            {
-              attachments: [{
-                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
-                blocks: [
-                  {
-                    type: 'section',
-                    text: {
-                      type: 'mrkdwn',
-                      text: `🚀 *CI/CD Pipeline Report*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Environment:* ${{ needs.branch-strategy.outputs.deploy-environment }}\n*Status:* ${{ job.status }}`
-                    }
-                  }
-                ]
-              }]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      #   if: needs.branch-strategy.outputs.notification-level == 'full'
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: '#deployments'
+      #     username: 'GitHub Actions'
+      #     icon_emoji: ':rocket:'
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow
+      #     custom_payload: |
+      #       {
+      #         attachments: [{
+      #           color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+      #           blocks: [
+      #             {
+      #               type: 'section',
+      #               text: {
+      #                 type: 'mrkdwn',
+      #                 text: `🚀 *CI/CD Pipeline Report*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Environment:* ${{ needs.branch-strategy.outputs.deploy-environment }}\n*Status:* ${{ job.status }}`
+      #               }
+      #             }
+      #           ]
+      #         }]
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: 📄 Upload final report
         uses: actions/upload-artifact@v3
