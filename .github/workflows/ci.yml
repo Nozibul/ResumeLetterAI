@@ -1,455 +1,1568 @@
-name: ResumeLetterAI CI/CD
+name: 🚀 Complete CI/CD Pipeline
 
 on:
   push:
     branches:
-      - '**' # All branches trigger CI
+      - main
+      - develop
+      - '**' 
+      # - 'feature/**'
   pull_request:
     branches:
       - main
       - develop
-  workflow_dispatch: # Allow manual triggers
+  workflow_dispatch:
     inputs:
       force_skip_tests:
-        description: 'Force skip tests (even if tests exist)'
+        description: 'Force skip all tests'
         required: false
         default: false
         type: boolean
-      run_only_build:
-        description: 'Run only build and lint (skip tests & security)'
-        required: false
-        default: false
-        type: boolean
+      # deploy_environment:
+      #   description: 'Deploy to environment'
+      #   required: false
+      #   default: 'none'
+      #   type: choice
+      #   options:
+      #     - none
+      #     - staging
+      #     - production
+      # run_performance_tests:
+      #   description: 'Run performance tests'
+      #   required: false
+      #   default: false
+      #   type: boolean
 
 # Security permissions (principle of least privilege)
 permissions:
   contents: read
   actions: read
   checks: write
-  pull-requests: write # For PR comments if needed
+  pull-requests: write
+  security-events: write
+  issues: write
 
 # Global environment variables
 env:
   NODE_VERSION: '18'
   YARN_CACHE_FOLDER: ~/.cache/yarn
-  # Force skip tests from manual input or commit message
-  FORCE_SKIP_TESTS: ${{ contains(github.event.head_commit.message, '[force skip tests]') || github.event.inputs.force_skip_tests == 'true' }}
-  RUN_ONLY_BUILD: ${{ contains(github.event.head_commit.message, '[build only]') || github.event.inputs.run_only_build == 'true' }}
+  FORCE_SKIP_TESTS: ${{ github.event.inputs.force_skip_tests == 'true' || contains(github.event.head_commit.message, '[skip tests]') }}
 
 jobs:
-  # -----------------------------
-  # Job 1: Setup & Test Detection
-  # -----------------------------
-  setup:
-    name: Setup Dependencies & Detect Tests
+  # =========================================
+  # JOB 1: MONOREPO VERSIONING
+  # =========================================
+  monorepo-versioning:
+    name: 📦 Monorepo Versioning
     runs-on: ubuntu-latest
     outputs:
-      cache-hit: ${{ steps.cache.outputs.cache-hit }}
-      has-tests: ${{ steps.detect-tests.outputs.has-tests }}
-      test-framework: ${{ steps.detect-tests.outputs.test-framework }}
-      force-skip-tests: ${{ steps.check-flags.outputs.force-skip-tests }}
-      run-only-build: ${{ steps.check-flags.outputs.run-only-build }}
+      version: ${{ steps.version.outputs.version }}
+      changed-packages: ${{ steps.version.outputs.changed-packages }}
+      release-type: ${{ steps.version.outputs.release-type }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔍 Detect Tests & Framework
-        id: detect-tests
-        run: |
-          echo "🔍 Detecting tests in ResumeLetterAI..."
-          
-          HAS_TESTS=false
-          TEST_FRAMEWORK="none"
-          
-          # Check for test directories
-          if [ -d "__tests__" ] || [ -d "src/__tests__" ] || [ -d "tests" ] || [ -d "test" ]; then
-            echo "✅ Found test directories"
-            HAS_TESTS=true
-          fi
-          
-          # Check for test files
-          if find . -name "*.test.js" -o -name "*.test.ts" -o -name "*.test.jsx" -o -name "*.test.tsx" -o -name "*.spec.js" -o -name "*.spec.ts" | grep -q .; then
-            echo "✅ Found test files"
-            HAS_TESTS=true
-          fi
-          
-          # Detect test framework
-          if [ -f "jest.config.js" ] || [ -f "jest.config.json" ] || grep -q "jest" package.json 2>/dev/null; then
-            TEST_FRAMEWORK="jest"
-            echo "📦 Detected Jest framework"
-          elif [ -f "vitest.config.js" ] || [ -f "vite.config.js" ] || grep -q "vitest" package.json 2>/dev/null; then
-            TEST_FRAMEWORK="vitest"
-            echo "📦 Detected Vitest framework"
-          elif grep -q "mocha" package.json 2>/dev/null; then
-            TEST_FRAMEWORK="mocha"
-            echo "📦 Detected Mocha framework"
-          elif grep -q "cypress" package.json 2>/dev/null; then
-            TEST_FRAMEWORK="cypress"
-            echo "📦 Detected Cypress framework"
-          fi
-          
-          # Final decision
-          if [ "$HAS_TESTS" = "true" ]; then
-            echo "✅ Tests detected in ResumeLetterAI - Will run test job"
-          else
-            echo "⚠️  No tests found in ResumeLetterAI - Will skip test job"
-          fi
-          
-          echo "has-tests=$HAS_TESTS" >> $GITHUB_OUTPUT
-          echo "test-framework=$TEST_FRAMEWORK" >> $GITHUB_OUTPUT
-
-      - name: Check commit flags
-        id: check-flags
-        run: |
-          echo "force-skip-tests=${{ env.FORCE_SKIP_TESTS }}" >> $GITHUB_OUTPUT
-          echo "run-only-build=${{ env.RUN_ONLY_BUILD }}" >> $GITHUB_OUTPUT
-          
-          if [[ "${{ env.FORCE_SKIP_TESTS }}" == "true" ]]; then
-            echo "🚫 Tests will be forcefully skipped for this run"
-          fi
-          
-          if [[ "${{ env.RUN_ONLY_BUILD }}" == "true" ]]; then
-            echo "🔧 Only build and lint will run"
-          fi
-
-      - name: Setup Node.js
+      - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
-      - name: Cache dependencies
+      - name: 📋 Generate version and detect changes
+        id: version
+        run: |
+          # Install semver tool
+          npm install -g semver
+          
+          # Get current version from package.json
+          if [ -f "package.json" ]; then
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+          else
+            CURRENT_VERSION="0.0.0"
+          fi
+          
+          # Determine release type based on branch
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            RELEASE_TYPE="patch"
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            RELEASE_TYPE="minor"
+          elif [[ "$BRANCH_NAME" =~ ^release/.* ]]; then
+            RELEASE_TYPE="minor"
+          elif [[ "$BRANCH_NAME" =~ ^hotfix/.* ]]; then
+            RELEASE_TYPE="patch"
+          else
+            RELEASE_TYPE="prerelease"
+          fi
+          
+          # Generate new version
+          NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION)
+          
+          # Detect changed packages in monorepo
+          CHANGED_PACKAGES="[]"
+          if [ -d "packages" ]; then
+            CHANGED_PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1]')
+          elif [ -d "apps" ]; then
+            CHANGED_PACKAGES=$(find apps -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1]')
+          fi
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
+          echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          
+          echo "📦 Current Version: $CURRENT_VERSION"
+          echo "🆕 New Version: $NEW_VERSION"
+          echo "🔄 Release Type: $RELEASE_TYPE"
+          echo "📂 Changed Packages: $CHANGED_PACKAGES"
+
+  # =========================================
+  # JOB 2: FRONTEND & BACKEND DETECTION
+  # =========================================
+  detect-services:
+    name: 🔍 Frontend & Backend Detection
+    runs-on: ubuntu-latest
+    outputs:
+      has-frontend: ${{ steps.detect.outputs.has-frontend }}
+      has-backend: ${{ steps.detect.outputs.has-backend }}
+      frontend-framework: ${{ steps.detect.outputs.frontend-framework }}
+      backend-framework: ${{ steps.detect.outputs.backend-framework }}
+      services: ${{ steps.detect.outputs.services }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Detect Frontend & Backend
+        id: detect
+        run: |
+          HAS_FRONTEND=false
+          HAS_BACKEND=false
+          FRONTEND_FRAMEWORK="none"
+          BACKEND_FRAMEWORK="none"
+          SERVICES="{}"
+          
+          # Detect Frontend
+          if [ -f "package.json" ]; then
+            if grep -q "react" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="react"
+            elif grep -q "vue" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="vue"
+            elif grep -q "angular" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="angular"
+            elif grep -q "next" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="nextjs"
+            elif grep -q "svelte" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="svelte"
+            fi
+          fi
+          
+          # Detect Backend
+          if [ -f "package.json" ]; then
+            if grep -q "express" package.json || grep -q "fastify" package.json || grep -q "koa" package.json; then
+              HAS_BACKEND=true
+              BACKEND_FRAMEWORK="nodejs"
+            fi
+          fi
+          
+          if [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+            HAS_BACKEND=true
+            BACKEND_FRAMEWORK="python"
+          fi
+          
+          if [ -f "go.mod" ]; then
+            HAS_BACKEND=true
+            BACKEND_FRAMEWORK="golang"
+          fi
+          
+          if [ -f "Cargo.toml" ]; then
+            HAS_BACKEND=true
+            BACKEND_FRAMEWORK="rust"
+          fi
+          
+          # Generate services JSON
+          SERVICES=$(jq -n \
+            --argjson hasFrontend "$HAS_FRONTEND" \
+            --argjson hasBackend "$HAS_BACKEND" \
+            --arg frontendFramework "$FRONTEND_FRAMEWORK" \
+            --arg backendFramework "$BACKEND_FRAMEWORK" \
+            '{
+              frontend: {
+                exists: $hasFrontend,
+                framework: $frontendFramework
+              },
+              backend: {
+                exists: $hasBackend,
+                framework: $backendFramework
+              }
+            }')
+          
+          echo "has-frontend=$HAS_FRONTEND" >> $GITHUB_OUTPUT
+          echo "has-backend=$HAS_BACKEND" >> $GITHUB_OUTPUT
+          echo "frontend-framework=$FRONTEND_FRAMEWORK" >> $GITHUB_OUTPUT
+          echo "backend-framework=$BACKEND_FRAMEWORK" >> $GITHUB_OUTPUT
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          
+          echo "🎨 Frontend: $HAS_FRONTEND ($FRONTEND_FRAMEWORK)"
+          echo "⚙️ Backend: $HAS_BACKEND ($BACKEND_FRAMEWORK)"
+
+  # =========================================
+  # JOB 3: PACKAGE MATRIX STRATEGY
+  # =========================================
+  package-matrix:
+    name: 📋 Package Matrix Strategy
+    runs-on: ubuntu-latest
+    needs: [monorepo-versioning, detect-services]
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      environments: ${{ steps.matrix.outputs.environments }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📋 Generate Package Matrix
+        id: matrix
+        run: |
+          # Generate package matrix for multi-package testing
+          PACKAGES=[]
+          ENVIRONMENTS='["development", "staging", "production"]'
+          
+          # Check for monorepo structure
+          if [ -d "packages" ]; then
+            PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          elif [ -d "apps" ]; then
+            PACKAGES=$(find apps -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          else
+            PACKAGES='["."]'
+          fi
+          
+          # Generate matrix combining packages and environments
+          MATRIX=$(jq -n \
+            --argjson packages "$PACKAGES" \
+            --argjson environments "$ENVIRONMENTS" \
+            '{
+              include: [
+                $packages[] as $pkg | 
+                $environments[] as $env | 
+                {
+                  package: $pkg,
+                  environment: $env,
+                  node_version: "18"
+                }
+              ]
+            }')
+          
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "environments=$ENVIRONMENTS" >> $GITHUB_OUTPUT
+          
+          echo "📦 Package Matrix Generated:"
+          echo "$MATRIX" | jq .
+
+  # =========================================
+  # JOB 4: CHANGE DETECTION
+  # =========================================
+  change-detection:
+    name: 🔄 Change Detection
+    runs-on: ubuntu-latest
+    outputs:
+      changed-files: ${{ steps.changes.outputs.changed-files }}
+      changed-packages: ${{ steps.changes.outputs.changed-packages }}
+      should-test-frontend: ${{ steps.changes.outputs.should-test-frontend }}
+      should-test-backend: ${{ steps.changes.outputs.should-test-backend }}
+      should-deploy: ${{ steps.changes.outputs.should-deploy }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔄 Detect changed files
+        id: changes
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
+          fi
+          
+          # Convert to JSON array
+          CHANGED_FILES_JSON=$(echo "$CHANGED_FILES" | jq -R -s -c 'split("\n")[:-1]')
+          
+          # Detect changed packages
+          CHANGED_PACKAGES=[]
+          if echo "$CHANGED_FILES" | grep -E "^(frontend/|src/|components/|pages/)" > /dev/null; then
+            SHOULD_TEST_FRONTEND=true
+          else
+            SHOULD_TEST_FRONTEND=false
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -E "^(backend/|server/|api/)" > /dev/null; then
+            SHOULD_TEST_BACKEND=true
+          else
+            SHOULD_TEST_BACKEND=false
+          fi
+          
+          # Check if deployment files changed
+          if echo "$CHANGED_FILES" | grep -E "(package\.json|yarn\.lock|Dockerfile|docker-compose)" > /dev/null; then
+            SHOULD_DEPLOY=true
+          else
+            SHOULD_DEPLOY=false
+          fi
+          
+          echo "changed-files=$CHANGED_FILES_JSON" >> $GITHUB_OUTPUT
+          echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
+          echo "should-test-frontend=$SHOULD_TEST_FRONTEND" >> $GITHUB_OUTPUT
+          echo "should-test-backend=$SHOULD_TEST_BACKEND" >> $GITHUB_OUTPUT
+          echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          
+          echo "📁 Changed Files: $(echo "$CHANGED_FILES" | wc -l) files"
+          echo "🎨 Test Frontend: $SHOULD_TEST_FRONTEND"
+          echo "⚙️ Test Backend: $SHOULD_TEST_BACKEND"
+          echo "🚀 Should Deploy: $SHOULD_DEPLOY"
+
+  # =========================================
+  # JOB 5: FILE-LEVEL SELECTIVE TESTING
+  # =========================================
+  selective-testing:
+    name: 🎯 File-level Selective Testing
+    runs-on: ubuntu-latest
+    needs: [change-detection]
+    outputs:
+      test-files: ${{ steps.selective.outputs.test-files }}
+      test-suites: ${{ steps.selective.outputs.test-suites }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🎯 Generate selective test list
+        id: selective
+        run: |
+          CHANGED_FILES='${{ needs.change-detection.outputs.changed-files }}'
+          TEST_FILES=[]
+          TEST_SUITES=[]
+          
+          # Find corresponding test files for changed files
+          echo "$CHANGED_FILES" | jq -r '.[]' | while read file; do
+            # Remove extension and find test files
+            BASE_NAME=$(echo "$file" | sed 's/\.[^.]*$//')
+            
+            # Look for test files
+            if [ -f "${BASE_NAME}.test.js" ]; then
+              TEST_FILES=$(echo "$TEST_FILES" | jq ". + [\"${BASE_NAME}.test.js\"]")
+            fi
+            
+            if [ -f "${BASE_NAME}.test.ts" ]; then
+              TEST_FILES=$(echo "$TEST_FILES" | jq ". + [\"${BASE_NAME}.test.ts\"]")
+            fi
+            
+            if [ -f "${BASE_NAME}.spec.js" ]; then
+              TEST_FILES=$(echo "$TEST_FILES" | jq ". + [\"${BASE_NAME}.spec.js\"]")
+            fi
+            
+            # Check test directories
+            if [ -d "__tests__" ] && find __tests__ -name "*$(basename $BASE_NAME)*" | head -1 | grep -q .; then
+              TEST_SUITES=$(echo "$TEST_SUITES" | jq ". + [\"$(basename $BASE_NAME)\"]")
+            fi
+          done
+          
+          # If no specific tests found, include all tests
+          if [ "$TEST_FILES" = "[]" ]; then
+            TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" | jq -R -s -c 'split("\n")[:-1]')
+          fi
+          
+          echo "test-files=$TEST_FILES" >> $GITHUB_OUTPUT
+          echo "test-suites=$TEST_SUITES" >> $GITHUB_OUTPUT
+          
+          echo "🎯 Test Files to Run:"
+          echo "$TEST_FILES" | jq .
+
+  # =========================================
+  # JOB 6: FILE/FOLDER PUSH TEST TRIGGER
+  # =========================================
+  test-trigger:
+    name: 🚦 Test Trigger Detection
+    runs-on: ubuntu-latest
+    needs: [change-detection, selective-testing]
+    outputs:
+      should-run-tests: ${{ steps.trigger.outputs.should-run-tests }}
+      test-types: ${{ steps.trigger.outputs.test-types }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚦 Determine test trigger
+        id: trigger
+        run: |
+          CHANGED_FILES='${{ needs.change-detection.outputs.changed-files }}'
+          SHOULD_RUN_TESTS=false
+          TEST_TYPES=[]
+          
+          # Check if test-related files changed
+          if echo "$CHANGED_FILES" | jq -r '.[]' | grep -E "\.(js|ts|jsx|tsx|py|go|rs)$" > /dev/null; then
+            SHOULD_RUN_TESTS=true
+            TEST_TYPES='["unit", "integration"]'
+          fi
+          
+          # Check if test files themselves changed
+          if echo "$CHANGED_FILES" | jq -r '.[]' | grep -E "\.(test|spec)\." > /dev/null; then
+            SHOULD_RUN_TESTS=true
+          fi
+          
+          # Check if configuration files changed
+          if echo "$CHANGED_FILES" | jq -r '.[]' | grep -E "(jest|vitest|cypress|playwright)\.config" > /dev/null; then
+            SHOULD_RUN_TESTS=true
+          fi
+          
+          # Override if forced skip
+          if [[ "${{ env.FORCE_SKIP_TESTS }}" == "true" ]]; then
+            SHOULD_RUN_TESTS=false
+            TEST_TYPES="[]"
+          fi
+          
+          echo "should-run-tests=$SHOULD_RUN_TESTS" >> $GITHUB_OUTPUT
+          echo "test-types=$TEST_TYPES" >> $GITHUB_OUTPUT
+          
+          echo "🚦 Should Run Tests: $SHOULD_RUN_TESTS"
+          echo "📋 Test Types: $TEST_TYPES"
+
+  # =========================================
+  # JOB 7: BRANCH BASED TRIGGERING
+  # =========================================
+  branch-strategy:
+    name: 🌿 Branch-based Strategy
+    runs-on: ubuntu-latest
+    outputs:
+      deploy-environment: ${{ steps.strategy.outputs.deploy-environment }}
+      run-security: ${{ steps.strategy.outputs.run-security }}
+      run-performance: ${{ steps.strategy.outputs.run-performance }}
+      notification-level: ${{ steps.strategy.outputs.notification-level }}
+    steps:
+      - name: 🌿 Determine branch strategy
+        id: strategy
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          DEPLOY_ENV="none"
+          RUN_SECURITY=false
+          RUN_PERFORMANCE=false
+          NOTIFICATION_LEVEL="minimal"
+          
+          case "$BRANCH_NAME" in
+            "main")
+              DEPLOY_ENV="production"
+              RUN_SECURITY=true
+              RUN_PERFORMANCE=true
+              NOTIFICATION_LEVEL="full"
+              ;;
+            "develop")
+              DEPLOY_ENV="staging"
+              RUN_SECURITY=true
+              RUN_PERFORMANCE=false
+              NOTIFICATION_LEVEL="standard"
+              ;;
+            #   ;;
+            # feature/*)
+            #   DEPLOY_ENV="none"
+            #   RUN_SECURITY=false
+            #   RUN_PERFORMANCE=false
+            #   NOTIFICATION_LEVEL="minimal"
+            #   ;;
+            *)
+              DEPLOY_ENV="none"
+              RUN_SECURITY=false
+              RUN_PERFORMANCE=false
+              NOTIFICATION_LEVEL="minimal"
+              ;;
+          esac
+          
+          # Override with manual input
+          if [[ "${{ github.event.inputs.deploy_environment }}" != "" && "${{ github.event.inputs.deploy_environment }}" != "none" ]]; then
+            DEPLOY_ENV="${{ github.event.inputs.deploy_environment }}"
+          fi
+          
+          echo "deploy-environment=$DEPLOY_ENV" >> $GITHUB_OUTPUT
+          echo "run-security=$RUN_SECURITY" >> $GITHUB_OUTPUT
+          echo "run-performance=$RUN_PERFORMANCE" >> $GITHUB_OUTPUT
+          echo "notification-level=$NOTIFICATION_LEVEL" >> $GITHUB_OUTPUT
+          
+          echo "🌿 Branch: $BRANCH_NAME"
+          echo "🚀 Deploy Environment: $DEPLOY_ENV"
+          echo "🔒 Run Security: $RUN_SECURITY"
+          echo "⚡ Run Performance: $RUN_PERFORMANCE"
+
+  # =========================================
+  # JOB 8: TEST CODE DETECTION & EXECUTION
+  # =========================================
+  test-execution:
+    name: 🧪 Test Execution
+    runs-on: ubuntu-latest
+    needs: [test-trigger, selective-testing, branch-strategy]
+    if: needs.test-trigger.outputs.should-run-tests == 'true'
+    strategy:
+      matrix:
+        test-type: ${{ fromJSON(needs.test-trigger.outputs.test-types) }}
+        node-version: [18, 20]
+      fail-fast: false
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+
+      - name: 🔧 Install dependencies
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile
+          elif [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: 🧪 Run tests
+        run: |
+          TEST_FILES='${{ needs.selective-testing.outputs.test-files }}'
+          TEST_TYPE="${{ matrix.test-type }}"
+          
+          echo "🧪 Running $TEST_TYPE tests..."
+          
+          # Detect test framework and run appropriate command
+          if [ -f "jest.config.js" ] || grep -q "jest" package.json; then
+            if [ "$TEST_TYPE" = "unit" ]; then
+              yarn jest --testPathPattern="\.test\." --coverage
+            elif [ "$TEST_TYPE" = "integration" ]; then
+              yarn jest --testPathPattern="\.integration\." --runInBand
+            fi
+          elif [ -f "vitest.config.js" ] || grep -q "vitest" package.json; then
+            yarn vitest run --reporter=verbose --coverage
+          elif grep -q "mocha" package.json; then
+            yarn mocha --recursive --reporter spec
+          else
+            echo "No test framework detected, running generic test command"
+            yarn test
+          fi
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}-node-${{ matrix.node-version }}
+          path: |
+            coverage/
+            test-results.xml
+            junit.xml
+          retention-days: 7
+
+  # =========================================
+  # JOB 9: UNTESTED CODE HANDLING
+  # =========================================
+  untested-code-analysis:
+    name: 📊 Untested Code Analysis
+    runs-on: ubuntu-latest
+    needs: [test-execution]
+    if: always()
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 🔧 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 📊 Analyze untested code
+        run: |
+          echo "📊 Analyzing untested code coverage..."
+          
+          # Generate coverage report if not exists
+          if [ ! -d "coverage" ]; then
+            yarn jest --coverage --passWithNoTests || echo "No tests found"
+          fi
+          
+          # Find files without tests
+          echo "🔍 Files without corresponding test files:"
+          find src -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" | while read file; do
+            base_name=$(echo "$file" | sed 's/\.[^.]*$//')
+            if [ ! -f "${base_name}.test.js" ] && [ ! -f "${base_name}.test.ts" ] && [ ! -f "${base_name}.spec.js" ]; then
+              echo "❌ $file (no test file found)"
+            fi
+          done
+          
+          # Create untested files report
+          echo "📋 Generating untested files report..."
+          mkdir -p reports
+          find src -name "*.js" -o -name "*.ts" | while read file; do
+            base_name=$(echo "$file" | sed 's/\.[^.]*$//')
+            if [ ! -f "${base_name}.test.js" ] && [ ! -f "${base_name}.test.ts" ]; then
+              echo "$file" >> reports/untested-files.txt
+            fi
+          done
+
+      - name: 📄 Upload untested code report
+        uses: actions/upload-artifact@v3
+        with:
+          name: untested-code-report
+          path: reports/untested-files.txt
+          retention-days: 30
+
+  # =========================================
+  # JOB 10: LINTING (ESLint/Prettier)
+  # =========================================
+  linting:
+    name: 💅 Code Quality & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 🔧 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🔍 ESLint Check
+        run: |
+          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
+            echo "🔍 Running ESLint..."
+            yarn lint || npx eslint . --ext .js,.jsx,.ts,.tsx --format=json --output-file=eslint-results.json
+          else
+            echo "⚠️ No ESLint config found"
+          fi
+        continue-on-error: true
+
+      - name: 💅 Prettier Check
+        run: |
+          if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
+            echo "💅 Running Prettier..."
+            yarn prettier --check . --write || npx prettier --check .
+          else
+            echo "⚠️ No Prettier config found"
+          fi
+        continue-on-error: true
+
+      # - name: 📊 TypeScript Check
+      #   run: |
+      #     if [ -f "tsconfig.json" ]; then
+      #       echo "📊 Running TypeScript compiler..."
+      #       yarn tsc --noEmit || npx tsc --noEmit
+      #     else
+      #       echo "⚠️ No TypeScript config found"
+      #     fi
+      #   continue-on-error: true
+
+      - name: 📄 Upload lint results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lint-results
+          path: |
+            eslint-results.json
+            prettier-results.txt
+          retention-days: 7
+
+  # =========================================
+  # JOB 11: SECURITY SCAN
+  # =========================================
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: [branch-strategy]
+    if: needs.branch-strategy.outputs.run-security == 'true'
+    permissions:
+      security-events: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔒 NPM Security Audit
+        run: |
+          echo "🔒 Running npm audit..."
+          npm audit --audit-level=moderate --json > npm-audit.json || echo "Vulnerabilities found"
+          npm audit --audit-level=moderate || echo "Continuing despite vulnerabilities..."
+
+      - name: 🔍 Snyk Security Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json > snyk-results.json
+        continue-on-error: true
+
+      - name: 🛡️ CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript,typescript
+
+      - name: 🛡️ CodeQL Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 🛡️ CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      - name: 📄 Upload security results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            npm-audit.json
+            snyk-results.json
+          retention-days: 30
+
+  # =========================================
+  # JOB 12: SECRETS DETECTION
+  # =========================================
+  secrets-detection:
+    name: 🔐 Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔐 Install detect-secrets
+        run: |
+          pip install detect-secrets
+
+      - name: 🔍 Run secrets detection
+        run: |
+          echo "🔍 Scanning for secrets..."
+          detect-secrets scan --all-files --force-use-all-plugins > .secrets.baseline
+          
+          # Check if secrets are found
+          if [ -s .secrets.baseline ]; then
+            echo "⚠️ Potential secrets detected!"
+            detect-secrets audit .secrets.baseline
+          else
+            echo "✅ No secrets detected"
+          fi
+
+      - name: 🔐 GitLeaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-path: .gitleaks.toml
+
+      - name: 📄 Upload secrets scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: secrets-detection-results
+          path: |
+            .secrets.baseline
+            gitleaks-report.json
+          retention-days: 30
+
+  # =========================================
+  # JOB 13: CACHE & DEPENDENCIES
+  # =========================================
+  cache-dependencies:
+    name: 🗄️ Cache & Dependencies Management
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+      cache-key: ${{ steps.cache.outputs.cache-primary-key }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 🗄️ Cache node_modules
         id: cache
         uses: actions/cache@v3
         with:
           path: |
             node_modules
-            ${{ env.YARN_CACHE_FOLDER }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            ~/.cache/yarn
+            ~/.npm
+            .next/cache
+            .nuxt
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-
+            ${{ runner.os }}-deps-
 
-      - name: Install dependencies
+      - name: 🔧 Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --prefer-offline
-
-  # -----------------------------
-  # Job 2: Code Quality & Linting
-  # -----------------------------
-  lint:
-    name: Code Quality Check
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-
-      - name: Restore dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            ${{ env.YARN_CACHE_FOLDER }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Install dependencies (if cache miss)
-        if: needs.setup.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --prefer-offline
-
-      - name: Run ESLint
         run: |
-          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-            echo "🔍 Running ESLint..."
-            yarn lint || yarn eslint . --ext .js,.jsx,.ts,.tsx
+          echo "💾 Cache miss - Installing fresh dependencies..."
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile --prefer-offline
+          elif [ -f "package-lock.json" ]; then
+            npm ci --prefer-offline
           else
-            echo "⚠️  No ESLint config found, skipping..."
+            npm install --prefer-offline
           fi
-        continue-on-error: true
 
-      - name: 💅 Run Prettier
+      - name: 💾 Warm up additional caches
         run: |
-          if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
-            echo "💅 Running Prettier check..."
-            yarn prettier --check . || npx prettier --check .
-          else
-            echo "⚠️  No Prettier config found, skipping..."
+          # Warm up TypeScript cache
+          if [ -f "tsconfig.json" ]; then
+            npx tsc --noEmit --incremental
           fi
-        continue-on-error: true
-
-  # -----------------------------
-  # Job 3: Run Tests (Auto Detection)
-  # -----------------------------
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    needs: setup
-    # Run tests only if:
-    # 1. Tests are detected AND
-    # 2. Not forced to skip AND  
-    # 3. Not in build-only mode
-    if: |
-      needs.setup.outputs.has-tests == 'true' && 
-      needs.setup.outputs.force-skip-tests != 'true' && 
-      needs.setup.outputs.run-only-build != 'true'
-    strategy:
-      matrix:
-        test-type: [unit, integration]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-
-      - name: Restore dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            ${{ env.YARN_CACHE_FOLDER }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Install dependencies (if cache miss)
-        if: needs.setup.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --prefer-offline
-
-      - name: 🧪 Run tests with detected framework
-        run: |
-          echo "🧪 Running tests for ResumeLetterAI..."
-          echo "📦 Detected framework: ${{ needs.setup.outputs.test-framework }}"
           
-          case "${{ needs.setup.outputs.test-framework }}" in
-            "jest")
-              echo "Running Jest tests..."
-              if yarn run test:${{ matrix.test-type }} --help >/dev/null 2>&1; then
-                yarn test:${{ matrix.test-type }}
-              elif yarn run test --help >/dev/null 2>&1; then
-                yarn test
-              else
-                npx jest --passWithNoTests
-              fi
-              ;;
-            "vitest")
-              echo "Running Vitest tests..."
-              if yarn run test:${{ matrix.test-type }} --help >/dev/null 2>&1; then
-                yarn test:${{ matrix.test-type }}
-              else
-                npx vitest run
-              fi
-              ;;
-            "mocha")
-              echo "Running Mocha tests..."
-              npx mocha || yarn test
-              ;;
-            "cypress")
-              if [ "${{ matrix.test-type }}" = "integration" ]; then
-                echo "Running Cypress tests..."
-                npx cypress run || yarn test:e2e
-              else
-                echo "Skipping unit tests for Cypress (integration only)"
-                exit 0
-              fi
-              ;;
-            *)
-              echo "Unknown framework, trying generic test command..."
-              if yarn run test --help >/dev/null 2>&1; then
-                yarn test
-              elif npm run test --help >/dev/null 2>&1; then
-                npm test
-              else
-                echo "No test command found"
-                exit 1
-              fi
-              ;;
-          esac
-        env:
-          CI: true
+          # Warm up Next.js cache
+          if [ -f "next.config.js" ]; then
+            npx next build --no-lint || echo "Next.js build warmup completed"
+          fi
 
-      - name: Upload test coverage
-        if: success()
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-        continue-on-error: true
-
-  # -----------------------------
-  # Job 4: Security Scan (Conditional)
-  # -----------------------------
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    needs: setup
-    if: needs.setup.outputs.run-only-build != 'true'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: 🔒 Run security audit
+      - name: 📊 Cache statistics
         run: |
-          echo "🔒 Running yarn audit..."
-          yarn audit --level moderate || echo "⚠️  Security vulnerabilities found, but continuing..."
+          echo "📊 Cache Statistics:"
+          echo "Cache Hit: ${{ steps.cache.outputs.cache-hit }}"
+          echo "Cache Key: ${{ steps.cache.outputs.cache-primary-key }}"
+          echo "Node Modules Size: $(du -sh node_modules 2>/dev/null || echo 'Not found')"
 
-          echo "🔍 Checking for known vulnerabilities..."
-          npx audit-ci --moderate || echo "⚠️  Audit CI found issues, but continuing..."
-        continue-on-error: true
-
-  # -----------------------------
-  # Job 5: Build Application
-  # -----------------------------
+  # =========================================
+  # JOB 14: BUILD APPLICATION
+  # =========================================
   build:
-    name: Build Application
+    name: 🏗️ Build Application
     runs-on: ubuntu-latest
-    needs: [setup, lint]
-    # Build runs regardless of test skip, but waits for tests if they're running
-    if: always() && (needs.lint.result == 'success')
+    needs: [cache-dependencies, detect-services, linting]
     strategy:
       matrix:
-        build-env: [production, staging]
+        environment: [development, staging, production]
+        include:
+          - environment: development
+            build_mode: development
+            optimize: false
+          - environment: staging
+            build_mode: staging
+            optimize: true
+          - environment: production
+            build_mode: production
+            optimize: true
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
-      - name: Restore dependencies
+      - name: 🗄️ Restore dependencies cache
         uses: actions/cache@v3
         with:
           path: |
             node_modules
-            ${{ env.YARN_CACHE_FOLDER }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            ~/.cache/yarn
+          key: ${{ needs.cache-dependencies.outputs.cache-key }}
 
-      - name: Install dependencies (if cache miss)
-        if: needs.setup.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --prefer-offline
+      - name: 🔧 Install dependencies (if cache miss)
+        if: needs.cache-dependencies.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
-      - name: 🏗️ Build project
+      - name: 🏗️ Build Frontend
+        if: needs.detect-services.outputs.has-frontend == 'true'
         run: |
-          echo "🏗️ Building ResumeLetterAI for ${{ matrix.build-env }}..."
-
-          if [[ "${{ needs.setup.outputs.has-tests }}" == "false" ]]; then
-            echo "ℹ️  Building without tests (no tests detected)"
-          elif [[ "${{ needs.setup.outputs.force-skip-tests }}" == "true" ]]; then
-            echo "ℹ️  Building without test validation (tests skipped)"
-          fi
-
-          if [ "${{ matrix.build-env }}" = "production" ]; then
-            yarn build:prod || yarn build
-          else
-            yarn build:staging || yarn build
-          fi
+          echo "🎨 Building Frontend (${{ needs.detect-services.outputs.frontend-framework }})..."
+          
+          case "${{ needs.detect-services.outputs.frontend-framework }}" in
+            "react")
+              yarn build || npm run build
+              ;;
+            "nextjs")
+              yarn build || npx next build
+              ;;
+            "vue")
+              yarn build || npm run build
+              ;;
+            "angular")
+              yarn build --prod || ng build --prod
+              ;;
+            "svelte")
+              yarn build || npm run build
+              ;;
+            *)
+              yarn build || npm run build
+              ;;
+          esac
         env:
-          NODE_ENV: ${{ matrix.build-env }}
-          CI: true
+          NODE_ENV: ${{ matrix.build_mode }}
+          OPTIMIZE: ${{ matrix.optimize }}
 
-      - name: Upload build artifacts
+      - name: 🏗️ Build Backend
+        if: needs.detect-services.outputs.has-backend == 'true'
+        run: |
+          echo "⚙️ Building Backend (${{ needs.detect-services.outputs.backend-framework }})..."
+          
+          case "${{ needs.detect-services.outputs.backend-framework }}" in
+            "nodejs")
+              if [ -f "tsconfig.json" ]; then
+                yarn build || npx tsc
+              else
+                echo "✅ Node.js project - no build step required"
+              fi
+              ;;
+            "python")
+              echo "🐍 Python project - installing dependencies..."
+              pip install -r requirements.txt
+              ;;
+            "golang")
+              echo "🐹 Building Go application..."
+              go build -o app ./...
+              ;;
+            "rust")
+              echo "🦀 Building Rust application..."
+              cargo build --release
+              ;;
+          esac
+        env:
+          NODE_ENV: ${{ matrix.build_mode }}
+
+      - name: 📦 Archive build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: build-${{ matrix.build-env }}-${{ github.sha }}
+          name: build-${{ matrix.environment }}-${{ github.sha }}
           path: |
             dist/
             build/
             out/
+            .next/
+            target/release/
+            app
           retention-days: 7
 
-  # -----------------------------
-  # Job 6: Performance Test (Conditional)
-  # -----------------------------
-  performance:
-    name: Performance Test
+      - name: 📊 Build size analysis
+        run: |
+          echo "📊 Build Size Analysis for ${{ matrix.environment }}:"
+          if [ -d "dist" ]; then
+            echo "Dist folder size: $(du -sh dist)"
+            find dist -name "*.js" -exec ls -lh {} \; | head -10
+          fi
+          if [ -d "build" ]; then
+            echo "Build folder size: $(du -sh build)"
+          fi
+
+  # =========================================
+  # JOB 15: DEPLOYMENT
+  # =========================================
+  # deploy:
+  #   name: 🚀 Deploy Application
+  #   runs-on: ubuntu-latest
+  #   needs: [build, branch-strategy, security-scan]
+  #   if: needs.branch-strategy.outputs.deploy-environment != 'none'
+  #   environment:
+  #     name: ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #     url: ${{ steps.deploy.outputs.url }}
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Download build artifacts
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: build-${{ needs.branch-strategy.outputs.deploy-environment }}-${{ github.sha }}
+  #         path: ./build
+
+  #     - name: 🚀 Deploy to ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #       id: deploy
+  #       run: |
+  #         ENVIRONMENT="${{ needs.branch-strategy.outputs.deploy-environment }}"
+          
+  #         echo "🚀 Deploying to $ENVIRONMENT..."
+          
+  #         case "$ENVIRONMENT" in
+  #           "staging")
+  #             echo "📤 Deploying to staging environment..."
+  #             # Add your staging deployment commands here
+  #             # Example: aws s3 sync build/ s3://staging-bucket/
+  #             # Example: kubectl apply -f k8s/staging/
+  #             DEPLOY_URL="https://staging.yourapp.com"
+  #             ;;
+  #           "production")
+  #             echo "📤 Deploying to production environment..."
+  #             # Add your production deployment commands here
+  #             # Example: aws s3 sync build/ s3://production-bucket/
+  #             # Example: kubectl apply -f k8s/production/
+  #             DEPLOY_URL="https://yourapp.com"
+  #             ;;
+  #         esac
+          
+  #         echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+  #         echo "✅ Deployment completed successfully!"
+  #         echo "🌐 Application URL: $DEPLOY_URL"
+
+  #     - name: 🏥 Health Check
+  #       run: |
+  #         DEPLOY_URL="${{ steps.deploy.outputs.url }}"
+  #         echo "🏥 Performing health check on $DEPLOY_URL..."
+          
+  #         # Wait for deployment to be ready
+  #         sleep 30
+          
+  #         # Perform health check
+  #         if curl -f -s "$DEPLOY_URL/health" || curl -f -s "$DEPLOY_URL"; then
+  #           echo "✅ Health check passed!"
+  #         else
+  #           echo "❌ Health check failed!"
+  #           exit 1
+  #         fi
+
+  # =========================================
+  # JOB 16: ROLLBACK
+  # =========================================
+  # rollback:
+  #   name: 🔄 Rollback Deployment
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy]
+  #   if: failure() && needs.deploy.result == 'failure'
+  #   environment:
+  #     name: ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 🔄 Perform Rollback
+  #       run: |
+  #         ENVIRONMENT="${{ needs.branch-strategy.outputs.deploy-environment }}"
+          
+  #         echo "🔄 Rolling back $ENVIRONMENT deployment..."
+          
+  #         # Get previous successful deployment
+  #         PREVIOUS_SHA=$(git log --format="%H" -n 2 | tail -1)
+          
+  #         echo "📥 Rolling back to commit: $PREVIOUS_SHA"
+          
+  #         case "$ENVIRONMENT" in
+  #           "staging")
+  #             echo "🔄 Rolling back staging deployment..."
+  #             # Add your staging rollback commands here
+  #             # Example: kubectl rollout undo deployment/staging-app
+  #             ;;
+  #           "production")
+  #             echo "🔄 Rolling back production deployment..."
+  #             # Add your production rollback commands here
+  #             # Example: kubectl rollout undo deployment/production-app
+  #             ;;
+  #         esac
+          
+  #         echo "✅ Rollback completed!"
+
+  #     - name: 🏥 Post-Rollback Health Check
+  #       run: |
+  #         case "${{ needs.branch-strategy.outputs.deploy-environment }}" in
+  #           "staging")
+  #             HEALTH_URL="https://staging.yourapp.com"
+  #             ;;
+  #           "production")
+  #             HEALTH_URL="https://yourapp.com"
+  #             ;;
+  #         esac
+          
+  #         echo "🏥 Checking health after rollback..."
+  #         sleep 30
+          
+  #         if curl -f -s "$HEALTH_URL/health" || curl -f -s "$HEALTH_URL"; then
+  #           echo "✅ Rollback health check passed!"
+  #         else
+  #           echo "❌ Rollback health check failed!"
+  #           exit 1
+  #         fi
+
+  # =========================================
+  # JOB 17: PERFORMANCE TESTING
+  # =========================================
+  # performance-test:
+  #   name: ⚡ Performance Testing
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy, branch-strategy]
+  #   if: |
+  #     needs.branch-strategy.outputs.run-performance == 'true' || 
+  #     github.event.inputs.run_performance_tests == 'true'
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+
+  #     - name: ⚡ Install performance testing tools
+  #       run: |
+  #         npm install -g lighthouse artillery @playwright/test
+  #         playwright install chromium
+
+  #     - name: 🚀 Lighthouse Performance Audit
+  #       run: |
+  #         DEPLOY_URL="${{ needs.deploy.outputs.url || 'http://localhost:3000' }}"
+          
+  #         echo "🚀 Running Lighthouse audit on $DEPLOY_URL..."
+          
+  #         lighthouse $DEPLOY_URL \
+  #           --output=json \
+  #           --output=html \
+  #           --output-path=./lighthouse-report \
+  #           --chrome-flags="--headless --no-sandbox" \
+  #           --quiet
+
+  #     - name: ⚡ Load Testing with Artillery
+  #       run: |
+  #         echo "⚡ Running load tests..."
+          
+  #         # Create artillery config
+  #         cat > artillery-config.yml << EOF
+  #         config:
+  #           target: '${{ needs.deploy.outputs.url || 'http://localhost:3000' }}'
+  #           phases:
+  #             - duration: 60
+  #               arrivalRate: 10
+  #             - duration: 120
+  #               arrivalRate: 50
+  #         scenarios:
+  #           - name: "Load test"
+  #             requests:
+  #               - get:
+  #                   url: "/"
+  #               - get:
+  #                   url: "/api/health"
+  #         EOF
+          
+  #         artillery run artillery-config.yml --output performance-results.json
+
+  #     - name: 🎭 Playwright Performance Tests
+  #       run: |
+  #         cat > playwright-perf.js << 'EOF'
+  #         const { test, expect } = require('@playwright/test');
+          
+  #         test('Performance test', async ({ page }) => {
+  #           const response = await page.goto(process.env.DEPLOY_URL || 'http://localhost:3000');
+            
+  #           // Measure page load time
+  #           const loadTime = await page.evaluate(() => performance.timing.loadEventEnd - performance.timing.navigationStart);
+            
+  #           console.log(`Page load time: ${loadTime}ms`);
+  #           expect(loadTime).toBeLessThan(3000); // Should load within 3 seconds
+            
+  #           // Measure largest contentful paint
+  #           const lcp = await page.evaluate(() => {
+  #             return new Promise((resolve) => {
+  #               new PerformanceObserver((list) => {
+  #                 const entries = list.getEntries();
+  #                 const lastEntry = entries[entries.length - 1];
+  #                 resolve(lastEntry.startTime);
+  #               }).observe({entryTypes: ['largest-contentful-paint']});
+  #             });
+  #           });
+            
+  #           console.log(`LCP: ${lcp}ms`);
+  #           expect(lcp).toBeLessThan(2500); // LCP should be under 2.5s
+  #         });
+  #         EOF
+          
+  #         npx playwright test playwright-perf.js
+  #       env:
+  #         DEPLOY_URL: ${{ needs.deploy.outputs.url }}
+
+  #     - name: 📊 Upload performance results
+  #       uses: actions/upload-artifact@v3
+  #       if: always()
+  #       with:
+  #         name: performance-test-results
+  #         path: |
+  #           lighthouse-report.*
+  #           performance-results.json
+  #           test-results/
+  #         retention-days: 14
+
+  # =========================================
+  # JOB 18: BUNDLE SIZE CHECK
+  # =========================================
+  bundle-size-check:
+    name: 📦 Bundle Size Analysis
     runs-on: ubuntu-latest
-    needs: [setup, build]
-    if: >
-      github.event_name == 'pull_request' && 
-      contains(github.head_ref, 'feature/') && 
-      needs.setup.outputs.run-only-build != 'true'
+    needs: [build, detect-services]
+    if: needs.detect-services.outputs.has-frontend == 'true'
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🚀 Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v10
+      - name: 📦 Download build artifacts
+        uses: actions/download-artifact@v3
         with:
-          configPath: './lighthouserc.js'
-          uploadArtifacts: true
-        continue-on-error: true
+          name: build-production-${{ github.sha }}
+          path: ./build
 
-  # -----------------------------
-  # Job 7: Notify Results
-  # -----------------------------
-  notify:
-    name: Notify Results
+      - name: 📊 Analyze bundle size
+        run: |
+          echo "📊 Analyzing bundle sizes..."
+          
+          # Install bundle analyzer tools
+          npm install -g webpack-bundle-analyzer bundlesize
+
+          # Analyze different types of builds
+          if [ -d "build/static" ]; then
+            echo "📦 React/Create React App build detected"
+            find build/static -name "*.js" -exec ls -lh {} \;
+            
+            # Calculate total JS size
+            TOTAL_JS_SIZE=$(find build/static -name "*.js" -exec du -b {} \; | awk '{sum+=$1} END {print sum}')
+            echo "Total JS bundle size: $(echo $TOTAL_JS_SIZE | numfmt --to=iec)"
+            
+            # Check if size is reasonable (< 1MB)
+            if [ $TOTAL_JS_SIZE -gt 1048576 ]; then
+              echo "⚠️ Warning: Total JS bundle size exceeds 1MB"
+            fi
+          fi
+          
+          if [ -d ".next" ]; then
+            echo "📦 Next.js build detected"
+            if [ -f ".next/analyze/client.html" ]; then
+              echo "Bundle analyzer report available"
+            fi
+          fi
+          
+          # Create bundle size report
+          mkdir -p reports
+          echo "# Bundle Size Report" > reports/bundle-size.md
+          echo "Generated on: $(date)" >> reports/bundle-size.md
+          echo "" >> reports/bundle-size.md
+          
+          if [ -d "build" ]; then
+            echo "## Build Directory Contents" >> reports/bundle-size.md
+            find build -type f -name "*.js" -o -name "*.css" | while read file; do
+              size=$(du -h "$file" | cut -f1)
+              echo "- $file: $size" >> reports/bundle-size.md
+            done
+          fi
+
+      - name: 🔍 Bundle size limit check
+        run: |
+          # Check if bundlesize config exists
+          if grep -q "bundlesize" package.json; then
+            echo "🔍 Running bundlesize checks..."
+            npx bundlesize
+          else
+            echo "ℹ️ No bundlesize configuration found"
+          fi
+
+      - name: 📄 Upload bundle analysis
+        uses: actions/upload-artifact@v3
+        with:
+          name: bundle-size-analysis
+          path: |
+            reports/bundle-size.md
+            build/static/**/*.map
+          retention-days: 14
+
+      - name: 💬 Comment bundle size on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('reports/bundle-size.md')) {
+              const bundleReport = fs.readFileSync('reports/bundle-size.md', 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 📦 Bundle Size Analysis\n\n${bundleReport}`
+              });
+            }
+
+  # =========================================
+  # JOB 19: MONITORING & HEALTH CHECK
+  # =========================================
+  # monitoring-health-check:
+  #   name: 🏥 Monitoring & Health Check
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy]
+  #   if: needs.deploy.result == 'success'
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 🏥 Comprehensive Health Check
+  #       run: |
+  #         DEPLOY_URL="${{ needs.deploy.outputs.url }}"
+  #         echo "🏥 Running comprehensive health checks on $DEPLOY_URL..."
+          
+  #         # Basic health check
+  #         echo "1. 🔍 Basic connectivity check..."
+  #         if curl -f -s "$DEPLOY_URL" > /dev/null; then
+  #           echo "✅ Basic connectivity: PASSED"
+  #         else
+  #           echo "❌ Basic connectivity: FAILED"
+  #           exit 1
+  #         fi
+          
+  #         # API health check
+  #         echo "2. 🔍 API health check..."
+  #         if curl -f -s "$DEPLOY_URL/api/health" > /dev/null; then
+  #           echo "✅ API health check: PASSED"
+  #         else
+  #           echo "⚠️ API health check: FAILED (may not exist)"
+  #         fi
+          
+  #         # Response time check
+  #         echo "3. ⏱️ Response time check..."
+  #         RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" "$DEPLOY_URL")
+  #         echo "Response time: ${RESPONSE_TIME}s"
+          
+  #         if (( $(echo "$RESPONSE_TIME < 2.0" | bc -l) )); then
+  #           echo "✅ Response time: PASSED"
+  #         else
+  #           echo "⚠️ Response time: SLOW (${RESPONSE_TIME}s)"
+  #         fi
+          
+  #         # Status code check
+  #         echo "4. 📊 HTTP status check..."
+  #         STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL")
+  #         echo "HTTP Status: $STATUS_CODE"
+          
+  #         if [ "$STATUS_CODE" -eq 200 ]; then
+  #           echo "✅ HTTP Status: PASSED"
+  #         else
+  #           echo "❌ HTTP Status: FAILED ($STATUS_CODE)"
+  #         fi
+
+  #     - name: 📊 Setup monitoring alerts
+  #       run: |
+  #         echo "📊 Setting up monitoring alerts..."
+          
+  #         # Create monitoring configuration
+  #         cat > monitoring-config.json << EOF
+  #         {
+  #           "url": "${{ needs.deploy.outputs.url }}",
+  #           "environment": "${{ needs.branch-strategy.outputs.deploy-environment }}",
+  #           "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  #           "checks": {
+  #             "health": true,
+  #             "performance": true,
+  #             "security": true
+  #           }
+  #         }
+  #         EOF
+          
+  #         # Here you would typically send this to your monitoring service
+  #         # Example: curl -X POST -H "Content-Type: application/json" -d @monitoring-config.json https://your-monitoring-service.com/api/alerts
+
+  #     - name: 🔔 Setup uptime monitoring
+  #       run: |
+  #         echo "🔔 Configuring uptime monitoring..."
+          
+  #         # Example: Setup pingdom/uptime monitoring
+  #         # This would typically call your monitoring service API
+  #         echo "Uptime monitoring configured for ${{ needs.deploy.outputs.url }}"
+
+  # =========================================
+  # JOB 20: NOTIFICATIONS
+  # =========================================
+  notifications:
+    name: 🔔 Notifications & Reporting
     runs-on: ubuntu-latest
-    needs: [setup, lint, test, security, build]
+    needs: [
+      monorepo-versioning, 
+      test-execution, 
+      build, 
+      # deploy, 
+      # performance-test, 
+      security-scan,
+      branch-strategy
+    ]
     if: always()
     steps:
-      - name: 📊 Workflow Summary
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📊 Generate comprehensive report
         run: |
-          echo "## 🚀 ResumeLetterAI CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "📊 Generating comprehensive CI/CD report..."
+          
+          mkdir -p reports
+          REPORT_FILE="reports/cicd-report.md"
+          
+          # Generate markdown report
+          cat > $REPORT_FILE << EOF
+          # 🚀 CI/CD Pipeline Report
+          
+          **Date**: $(date)
+          **Branch**: ${{ github.ref_name }}
+          **Commit**: ${{ github.sha }}
+          **Triggered by**: ${{ github.event_name }}
+          
+          ## 📋 Pipeline Summary
+          
+          | Stage | Status | Duration | Notes |
+          |-------|--------|----------|--------|
+          | Versioning | ${{ needs.monorepo-versioning.result }} | - | Version: ${{ needs.monorepo-versioning.outputs.version }} |
+          | Testing | ${{ needs.test-execution.result }} | - | ${{ needs.test-execution.result == 'skipped' && 'No tests required' || 'Tests completed' }} |
+          | Build | ${{ needs.build.result }} | - | Multi-environment build |
+          | Security | ${{ needs.security-scan.result }} | - | Security scan completed |
+          | Deploy | ${{ needs.deploy.result }} | - | Target: ${{ needs.branch-strategy.outputs.deploy-environment }} |
+          | Performance | ${{ needs.performance-test.result }} | - | ${{ needs.performance-test.result == 'skipped' && 'Not required for branch' || 'Performance tests completed' }} |
+          
+          ## 🎯 Key Metrics
+          
+          - **New Version**: ${{ needs.monorepo-versioning.outputs.version }}
+          - **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
+          - **Notification Level**: ${{ needs.branch-strategy.outputs.notification-level }}
+          
+          EOF
+          
+          # Add deployment URL if available
+          if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
+            echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $REPORT_FILE
+          fi
+          
+          echo "" >> $REPORT_FILE
+          echo "## 🔍 Detailed Results" >> $REPORT_FILE
+          
+          # Add detailed results based on job outcomes
+          if [ "${{ needs.test-execution.result }}" = "failure" ]; then
+            echo "❌ **Tests Failed**: Some tests did not pass" >> $REPORT_FILE
+          elif [ "${{ needs.test-execution.result }}" = "success" ]; then
+            echo "✅ **Tests Passed**: All tests completed successfully" >> $REPORT_FILE
+          fi
+          
+          if [ "${{ needs.security-scan.result }}" = "failure" ]; then
+            echo "🔒 **Security Issues**: Security vulnerabilities detected" >> $REPORT_FILE
+          elif [ "${{ needs.security-scan.result }}" = "success" ]; then
+            echo "✅ **Security**: No critical vulnerabilities found" >> $REPORT_FILE
+          fi
+
+      # - name: 🔔 Discord Notification
+      #   if: contains(fromJSON('["full", "standard"]'), needs.branch-strategy.outputs.notification-level)
+      #   uses: sarisia/actions-status-discord@v1
+      #   with:
+      #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
+      #     title: "🚀 CI/CD Pipeline Report"
+      #     description: |
+      #       **Branch**: ${{ github.ref_name }}
+      #       **Version**: ${{ needs.monorepo-versioning.outputs.version }}
+      #       **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
+      #       **Status**: ${{ job.status }}
+      #     color: ${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '16776960' }}
+      #     username: "GitHub Actions"
+      #     avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+
+      # - name: 📧 Email Notification
+      #   if: |
+      #     needs.branch-strategy.outputs.notification-level == 'full' && 
+      #     (job.status == 'failure' || needs.branch-strategy.outputs.deploy-environment == 'production')
+      #   uses: dawidd6/action-send-mail@v3
+      #   with:
+      #     server_address: smtp.gmail.com
+      #     server_port: 587
+      #     username: ${{ secrets.EMAIL_USERNAME }}
+      #     password: ${{ secrets.EMAIL_PASSWORD }}
+      #     subject: "🚀 CI/CD Pipeline Report - ${{ github.repository }}"
+      #     body: file://reports/cicd-report.md
+      #     to: ${{ secrets.NOTIFICATION_EMAIL }}
+      #     from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
+      #     content_type: text/markdown
+
+      # - name: 📱 Slack Notification
+        if: needs.branch-strategy.outputs.notification-level == 'full'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          username: 'GitHub Actions'
+          icon_emoji: ':rocket:'
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+          custom_payload: |
+            {
+              attachments: [{
+                color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+                blocks: [
+                  {
+                    type: 'section',
+                    text: {
+                      type: 'mrkdwn',
+                      text: `🚀 *CI/CD Pipeline Report*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Environment:* ${{ needs.branch-strategy.outputs.deploy-environment }}\n*Status:* ${{ job.status }}`
+                    }
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: 📄 Upload final report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: cicd-pipeline-report
+          path: reports/cicd-report.md
+          retention-days: 90
+
+      - name: 📊 Update GitHub Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            const description = `CI/CD Pipeline ${status} - Version: ${{ needs.monorepo-versioning.outputs.version }}`;
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: status,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: description,
+              context: 'CI/CD Pipeline'
+            });
+
+      - name: 🏁 Pipeline Summary
+        run: |
+          echo "## 🚀 CI/CD Pipeline Completed!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🧪 Test Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.monorepo-versioning.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pipeline Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           
-          if [[ "${{ needs.setup.outputs.has-tests }}" == "true" ]]; then
-            echo "- ✅ **Tests Found:** Yes" >> $GITHUB_STEP_SUMMARY
-            echo "- 📦 **Framework:** ${{ needs.setup.outputs.test-framework }}" >> $GITHUB_STEP_SUMMARY
-            echo "- 🎯 **Files with tests:** ${{ needs.setup.outputs.testable-count }}" >> $GITHUB_STEP_SUMMARY
-            echo "- ⚠️  **Files without tests:** ${{ needs.setup.outputs.untestable-count }}" >> $GITHUB_STEP_SUMMARY
-            echo "- 💡 **Strategy:** Selective testing (only tested files)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ❌ **Tests Found:** No" >> $GITHUB_STEP_SUMMARY
-            echo "- 📦 **Framework:** None detected" >> $GITHUB_STEP_SUMMARY
-            echo "- 💡 **Strategy:** Test job skipped entirely" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
+            echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Job Results" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status | Notes |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Setup | ${{ needs.setup.result }} | Auto-detected tests |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ needs.lint.result }} | Always runs |" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ needs.setup.outputs.has-tests }}" == "false" ]]; then
-            echo "| Test | skipped | No tests detected |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ needs.setup.outputs.force-skip-tests }}" == "true" ]]; then
-            echo "| Test | skipped | Forcefully skipped |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ needs.setup.outputs.run-only-build }}" == "true" ]]; then
-            echo "| Test | skipped | Build only mode |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Test | ${{ needs.test.result }} | Auto-detected & ran |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [[ "${{ needs.setup.outputs.run-only-build }}" == "true" ]]; then
-            echo "| Security | skipped | Build only mode |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Security | ${{ needs.security.result }} | Ran normally |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "| Build | ${{ needs.build.result }} | Always runs after lint |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📝 Build Info" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ needs.setup.outputs.force-skip-tests }}" == "true" || "${{ needs.setup.outputs.run-only-build }}" == "true" ]]; then
-            echo "- **Special Mode:** Some jobs were manually skipped" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "### 🎯 Key Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test-execution.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ needs.deploy.result }} |" >> $GITHUB_STEP_SUMMARY
