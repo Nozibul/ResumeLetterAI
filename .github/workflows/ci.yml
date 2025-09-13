@@ -819,8 +819,23 @@ jobs:
             echo "Build folder size: $(du -sh build)"
           fi
 
+# =========================================
+  # SIMPLE DEBUG - ALWAYS RUNS
   # =========================================
-  # DEBUG JOB: DETECT SERVICES OUTPUTS
+  simple-debug:
+    name: 🔍 Always Run Debug
+    runs-on: ubuntu-latest
+    steps:
+      - name: Basic Info
+        run: |
+          echo "=== BASIC DEBUG INFO ==="
+          echo "GitHub Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "SHA: ${{ github.sha }}"
+
+  # =========================================
+  # DEBUG AFTER DETECT-SERVICES
   # =========================================
   debug-detect-services:
     name: 🔍 Debug Detect Services
@@ -845,12 +860,8 @@ jobs:
     name: 📦 Bundle Size Analysis
     runs-on: ubuntu-latest
     needs: [build, detect-services]
-    # Multiple conditions to debug why it's skipping
-    if: |
-      always() && 
-      (needs.detect-services.result == 'success' || needs.detect-services.result == 'skipped') &&
-      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
-      (needs.detect-services.outputs.has-frontend == 'true' || needs.detect-services.outputs.has-frontend == true)
+    # Force run for debugging - remove conditions temporarily
+    if: always()
     steps:
       - name: 🔍 Debug Job Conditions
         run: |
@@ -860,6 +871,7 @@ jobs:
           echo "build.result: '${{ needs.build.result }}'"
           echo "build.conclusion: '${{ needs.build.conclusion }}'"
           echo "has-frontend output: '${{ needs.detect-services.outputs.has-frontend }}'"
+          echo "has-frontend raw value: ${{ needs.detect-services.outputs.has-frontend }}"
           echo ""
           echo "=== All detect-services outputs ==="
           echo '${{ toJSON(needs.detect-services.outputs) }}'
@@ -1100,7 +1112,7 @@ jobs:
             } else {
               console.log('No bundle size report found to comment');
             }
-  # =========================================
+  
   # JOB 20: NOTIFICATIONS
   # =========================================
   # notifications:
