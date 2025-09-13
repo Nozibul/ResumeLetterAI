@@ -837,21 +837,21 @@ jobs:
   # =========================================
   # DEBUG AFTER DETECT-SERVICES
   # =========================================
-  debug-detect-services:
-    name: 🔍 Debug Detect Services
-    runs-on: ubuntu-latest
-    needs: [detect-services]
-    if: always()
-    steps:
-      - name: Debug outputs
-        run: |
-          echo "=== DEBUG: detect-services outputs ==="
-          echo "has-frontend: '${{ needs.detect-services.outputs.has-frontend }}'"
-          echo "result: '${{ needs.detect-services.result }}'"
-          echo "conclusion: '${{ needs.detect-services.conclusion }}'"
-          echo ""
-          echo "=== Available outputs ==="
-          echo "${{ toJSON(needs.detect-services.outputs) }}"
+  # debug-detect-services:
+  #   name: 🔍 Debug Detect Services
+  #   runs-on: ubuntu-latest
+  #   needs: [detect-services]
+  #   if: always()
+  #   steps:
+  #     - name: Debug outputs
+  #       run: |
+  #         echo "=== DEBUG: detect-services outputs ==="
+  #         echo "has-frontend: '${{ needs.detect-services.outputs.has-frontend }}'"
+  #         echo "result: '${{ needs.detect-services.result }}'"
+  #         echo "conclusion: '${{ needs.detect-services.conclusion }}'"
+  #         echo ""
+  #         echo "=== Available outputs ==="
+  #         echo "${{ toJSON(needs.detect-services.outputs) }}"
 
   # =========================================
   # JOB 13: BUNDLE SIZE CHECK (IMPROVED)
