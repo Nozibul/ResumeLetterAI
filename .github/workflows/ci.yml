@@ -120,26 +120,24 @@ jobs:
   # JOB 2: FRONTEND & BACKEND DETECTION
   # =========================================
   detect-services:
-    name: 🔍 Frontend & Backend Detection
+    name: Frontend & Backend Detection
     runs-on: ubuntu-latest
     outputs:
       has-frontend: ${{ steps.detect.outputs.has-frontend }}
       has-backend: ${{ steps.detect.outputs.has-backend }}
       frontend-framework: ${{ steps.detect.outputs.frontend-framework }}
       backend-framework: ${{ steps.detect.outputs.backend-framework }}
-      services: ${{ steps.detect.outputs.services }}
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔍 Detect Frontend & Backend
+      - name: Detect Frontend & Backend
         id: detect
         run: |
           HAS_FRONTEND=false
           HAS_BACKEND=false
           FRONTEND_FRAMEWORK="none"
           BACKEND_FRAMEWORK="none"
-          SERVICES="{}"
           
           # Detect Frontend
           if [ -f "package.json" ]; then
@@ -149,15 +147,9 @@ jobs:
             elif grep -q "vue" package.json; then
               HAS_FRONTEND=true
               FRONTEND_FRAMEWORK="vue"
-            elif grep -q "angular" package.json; then
-              HAS_FRONTEND=true
-              FRONTEND_FRAMEWORK="angular"
             elif grep -q "next" package.json; then
               HAS_FRONTEND=true
               FRONTEND_FRAMEWORK="nextjs"
-            elif grep -q "svelte" package.json; then
-              HAS_FRONTEND=true
-              FRONTEND_FRAMEWORK="svelte"
             fi
           fi
           
@@ -169,46 +161,13 @@ jobs:
             fi
           fi
           
-          if [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
-            HAS_BACKEND=true
-            BACKEND_FRAMEWORK="python"
-          fi
-          
-          if [ -f "go.mod" ]; then
-            HAS_BACKEND=true
-            BACKEND_FRAMEWORK="golang"
-          fi
-          
-          if [ -f "Cargo.toml" ]; then
-            HAS_BACKEND=true
-            BACKEND_FRAMEWORK="rust"
-          fi
-          
-          # Generate services JSON
-          SERVICES=$(jq -n \
-            --argjson hasFrontend "$HAS_FRONTEND" \
-            --argjson hasBackend "$HAS_BACKEND" \
-            --arg frontendFramework "$FRONTEND_FRAMEWORK" \
-            --arg backendFramework "$BACKEND_FRAMEWORK" \
-            '{
-              frontend: {
-                exists: $hasFrontend,
-                framework: $frontendFramework
-              },
-              backend: {
-                exists: $hasBackend,
-                framework: $backendFramework
-              }
-            }')
-          
           echo "has-frontend=$HAS_FRONTEND" >> $GITHUB_OUTPUT
           echo "has-backend=$HAS_BACKEND" >> $GITHUB_OUTPUT
           echo "frontend-framework=$FRONTEND_FRAMEWORK" >> $GITHUB_OUTPUT
           echo "backend-framework=$BACKEND_FRAMEWORK" >> $GITHUB_OUTPUT
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
           
-          echo "🎨 Frontend: $HAS_FRONTEND ($FRONTEND_FRAMEWORK)"
-          echo "⚙️ Backend: $HAS_BACKEND ($BACKEND_FRAMEWORK)"
+          echo "Frontend: $HAS_FRONTEND ($FRONTEND_FRAMEWORK)"
+          echo "Backend: $HAS_BACKEND ($BACKEND_FRAMEWORK)"
 
   # =========================================
   # JOB 3: PACKAGE MATRIX STRATEGY
