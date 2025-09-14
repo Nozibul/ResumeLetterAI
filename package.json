@@ -7,7 +7,6 @@
     "backend"
   ],
   "scripts": {
-    "install": "yarn install",
     "install:frontend": "cd frontend && yarn install",
     "install:backend": "cd backend && yarn install",
     
