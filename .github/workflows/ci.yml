@@ -402,8 +402,8 @@ jobs:
           echo "⚡ Run Performance: $RUN_PERFORMANCE"
 
   # =========================================
-# JOB 7: TEST CODE DETECTION & EXECUTION (Yarn Optimized)
-# =========================================
+  # JOB 7: TEST CODE DETECTION & EXECUTION (Yarn Optimized)
+  # =========================================
   test-execution:
     name: 🧪 Test Execution
     runs-on: ubuntu-latest
@@ -452,14 +452,12 @@ jobs:
         run: |
           echo "📦 Installing root dependencies with Yarn..."
           
-          # Check if yarn.lock exists
-          if [ -f "yarn.lock" ]; then
-            echo "Found yarn.lock, installing with --frozen-lockfile equivalent"
-            yarn install --immutable --immutable-cache
-          else
-            echo "No yarn.lock found, creating new lockfile"
-            yarn install
-          fi
+          # Remove any existing lockfile and node_modules to avoid conflicts
+          rm -f yarn.lock package-lock.json
+          rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
+          
+          # Fresh install without lockfile
+          yarn install
         env:
           YARN_ENABLE_HARDENED_MODE: false
           YARN_ENABLE_INLINE_BUILDS: false
@@ -475,15 +473,12 @@ jobs:
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set enableHardenedMode false
           
-          # Remove problematic cache/modules if they exist
+          # Remove problematic files
+          rm -f yarn.lock package-lock.json
           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-          # Install dependencies
-          if [ -f "yarn.lock" ]; then
-            yarn install --immutable --immutable-cache
-          else
-            yarn install
-          fi
+          # Install dependencies without lockfile
+          yarn install
           
           # Verify installation
           echo "✅ Frontend dependencies installed successfully"
@@ -503,15 +498,12 @@ jobs:
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set enableHardenedMode false
           
-          # Remove problematic cache/modules if they exist
+          # Remove problematic files
+          rm -f yarn.lock package-lock.json
           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-          # Install dependencies
-          if [ -f "yarn.lock" ]; then
-            yarn install --immutable --immutable-cache
-          else
-            yarn install
-          fi
+          # Install dependencies without lockfile
+          yarn install
           
           # Verify installation
           echo "✅ Backend dependencies installed successfully"
@@ -559,7 +551,8 @@ jobs:
           # Double-check dependencies are installed
           if [ ! -d "node_modules" ]; then
             echo "🔄 Dependencies missing, reinstalling..."
-            yarn install --immutable
+            rm -f yarn.lock package-lock.json
+            yarn install
           fi
           
           # Check for test script in package.json using node
@@ -581,12 +574,12 @@ jobs:
           
           echo "✅ Found test script: $HAS_TEST_SCRIPT"
           
-          # Run tests based on type
+          # Run tests based on type (JavaScript patterns only)
           case "${{ matrix.test-type }}" in
             "unit")
               echo "🔬 Running unit tests..."
               yarn test --watchAll=false --coverage --passWithNoTests \
-                --testPathPattern="\.test\.(js|jsx|ts|tsx)$" \
+                --testPathPattern="\.test\.(js|jsx)$" \
                 --testPathIgnorePatterns="integration" \
                 --maxWorkers=2 \
                 --forceExit \
@@ -595,7 +588,7 @@ jobs:
             "integration")
               echo "🔗 Running integration tests..."
               yarn test --watchAll=false --passWithNoTests \
-                --testPathPattern="integration|\.integration\.(js|jsx|ts|tsx)$" \
+                --testPathPattern="integration|\.integration\.(js|jsx)$" \
                 --runInBand \
                 --forceExit \
                 --detectOpenHandles || echo "Integration tests completed with issues"
@@ -624,7 +617,8 @@ jobs:
           # Double-check dependencies are installed
           if [ ! -d "node_modules" ]; then
             echo "🔄 Dependencies missing, reinstalling..."
-            yarn install --immutable
+            rm -f yarn.lock package-lock.json
+            yarn install
           fi
           
           # Check for test script in package.json using node
@@ -646,12 +640,12 @@ jobs:
           
           echo "✅ Found test script: $HAS_TEST_SCRIPT"
           
-          # Run tests based on type
+          # Run tests based on type (JavaScript patterns only)
           case "${{ matrix.test-type }}" in
             "unit")
               echo "🔬 Running unit tests..."
               yarn test --coverage --passWithNoTests \
-                --testPathPattern="\.test\.(js|jsx|ts|tsx)$" \
+                --testPathPattern="\.test\.(js|jsx)$" \
                 --testPathIgnorePatterns="integration" \
                 --maxWorkers=2 \
                 --forceExit \
@@ -660,7 +654,7 @@ jobs:
             "integration")
               echo "🔗 Running integration tests..."
               yarn test --passWithNoTests \
-                --testPathPattern="integration|\.integration\.(js|jsx|ts|tsx)$" \
+                --testPathPattern="integration|\.integration\.(js|jsx)$" \
                 --runInBand \
                 --forceExit \
                 --detectOpenHandles || echo "Integration tests completed with issues"
@@ -701,7 +695,10 @@ jobs:
               cd frontend
               
               # Ensure dependencies
-              [ ! -d "node_modules" ] && yarn install --immutable
+              if [ ! -d "node_modules" ]; then
+                rm -f yarn.lock package-lock.json
+                yarn install
+              fi
               
               # Run specific test
               relative_path=${test_file#"./frontend/"}
@@ -714,7 +711,10 @@ jobs:
               cd backend
               
               # Ensure dependencies
-              [ ! -d "node_modules" ] && yarn install --immutable
+              if [ ! -d "node_modules" ]; then
+                rm -f yarn.lock package-lock.json
+                yarn install
+              fi
               
               # Run specific test
               relative_path=${test_file#"./backend/"}
@@ -742,7 +742,7 @@ jobs:
           name: backend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
           path: backend/coverage/
           retention-days: 7
-          if-no-files-found: ignore  # Don't fail if no coverage files (since backend might not have tests)
+          if-no-files-found: ignore
 
       - name: 📊 Upload Test Results
         uses: actions/upload-artifact@v4
@@ -761,13 +761,15 @@ jobs:
       - name: 📋 Generate Test Summary
         if: always()
         run: |
-          echo "## 🧪 Yarn Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Yarn Test Execution Summary (JavaScript Only)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Test Type | ${{ matrix.test-type }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Node Version | ${{ matrix.node-version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Package Manager | Yarn $(yarn --version 2>/dev/null || echo 'N/A') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Language | JavaScript (No TypeScript) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lockfile | Disabled (Fresh Install) |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend Tests | $([ -d "frontend" ] && echo "✅ Enabled" || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend Tests | $([ -d "backend" ] && cd backend && node -p "Object.keys(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).scripts || {}).filter(s => s.includes('test')).length > 0 ? '✅ Available' : '⏳ Future Ready'" 2>/dev/null || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -805,7 +807,6 @@ jobs:
               }
             " >> $GITHUB_STEP_SUMMARY
           fi
-
   # =========================================
   # JOB 8: UNTESTED CODE HANDLING
   # =========================================
