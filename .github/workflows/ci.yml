@@ -404,447 +404,447 @@ jobs:
 # # =========================================
 # # JOB 7: TEST CODE DETECTION & EXECUTION (Yarn with Lockfile - JavaScript Only)
 # # =========================================
-#   test-execution:
-#     name: 🧪 Test Execution
-#     runs-on: ubuntu-latest
-#     needs: [test-trigger, selective-testing, branch-strategy]
-#     if: needs.test-trigger.outputs.should-run-tests == 'true'
-#     strategy:
-#       matrix:
-#         test-type: ${{ fromJSON(needs.test-trigger.outputs.test-types) }}
-#         node-version: [20]
-#       fail-fast: false
-#     steps:
-#       - name: 📥 Checkout code
-#         uses: actions/checkout@v4
-#         with:
-#           fetch-depth: 0
+  test-execution:
+    name: 🧪 Test Execution
+    runs-on: ubuntu-latest
+    needs: [test-trigger, selective-testing, branch-strategy]
+    if: needs.test-trigger.outputs.should-run-tests == 'true'
+    strategy:
+      matrix:
+        test-type: ${{ fromJSON(needs.test-trigger.outputs.test-types) }}
+        node-version: [20]
+      fail-fast: false
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-#       - name: 📦 Setup Node.js with Yarn
-#         uses: actions/setup-node@v4
-#         with:
-#           node-version: ${{ matrix.node-version }}
-#           cache: 'yarn'
-#           registry-url: 'https://registry.npmjs.org'
+      - name: 📦 Setup Node.js with Yarn
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
 
-#       - name: 🔧 Enable Yarn Corepack
-#         run: |
-#           echo "🔧 Enabling Yarn via Corepack..."
-#           corepack enable
-#           corepack prepare yarn@stable --activate
+      - name: 🔧 Enable Yarn Corepack
+        run: |
+          echo "🔧 Enabling Yarn via Corepack..."
+          corepack enable
+          corepack prepare yarn@stable --activate
 
-#       - name: 🔧 Configure Yarn Settings
-#         run: |
-#           echo "🔧 Configuring Yarn settings..."
-#           yarn config set npmRegistryServer "https://registry.npmjs.org"
-#           yarn config set enableHardenedMode false
-#           yarn config set enableInlineBuilds false
-#           yarn config set enableProgressBars false
-#           yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
+      - name: 🔧 Configure Yarn Settings
+        run: |
+          echo "🔧 Configuring Yarn settings..."
+          yarn config set npmRegistryServer "https://registry.npmjs.org"
+          yarn config set enableHardenedMode false
+          yarn config set enableInlineBuilds false
+          yarn config set enableProgressBars false
+          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
           
-#           # Show yarn version
-#           echo "Yarn version: $(yarn --version)"
+          # Show yarn version
+          echo "Yarn version: $(yarn --version)"
           
-#           # Clear any problematic cache
-#           yarn cache clean --all 2>/dev/null || true
+          # Clear any problematic cache
+          yarn cache clean --all 2>/dev/null || true
 
-#       - name: 🔧 Install Root Dependencies
-#         run: |
-#           echo "📦 Installing root dependencies with Yarn..."
+      - name: 🔧 Install Root Dependencies
+        run: |
+          echo "📦 Installing root dependencies with Yarn..."
           
-#           # Clean up any problematic files but keep lockfile
-#           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
+          # Clean up any problematic files but keep lockfile
+          rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-#           # Install with lockfile if exists, create if not
-#           if [ -f "yarn.lock" ]; then
-#             echo "Found yarn.lock, installing with --immutable"
-#             yarn install --immutable --immutable-cache
-#           else
-#             echo "No yarn.lock found, creating new lockfile"
-#             yarn install
-#           fi
-#         env:
-#           YARN_ENABLE_HARDENED_MODE: false
-#           YARN_ENABLE_INLINE_BUILDS: false
-#           CI: true
+          # Install with lockfile if exists, create if not
+          if [ -f "yarn.lock" ]; then
+            echo "Found yarn.lock, installing with --immutable"
+            yarn install --immutable --immutable-cache
+          else
+            echo "No yarn.lock found, creating new lockfile"
+            yarn install
+          fi
+        env:
+          YARN_ENABLE_HARDENED_MODE: false
+          YARN_ENABLE_INLINE_BUILDS: false
+          CI: true
 
-#       - name: 🔧 Install Frontend Dependencies
-#         if: hashFiles('frontend/package.json') != ''
-#         run: |
-#           echo "🎨 Installing frontend dependencies..."
-#           cd frontend
+      - name: 🔧 Install Frontend Dependencies
+        if: hashFiles('frontend/package.json') != ''
+        run: |
+          echo "🎨 Installing frontend dependencies..."
+          cd frontend
           
-#           # Configure yarn for frontend workspace
-#           yarn config set npmRegistryServer "https://registry.npmjs.org"
-#           yarn config set enableHardenedMode false
-#           yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
+          # Configure yarn for frontend workspace
+          yarn config set npmRegistryServer "https://registry.npmjs.org"
+          yarn config set enableHardenedMode false
+          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
           
-#           # Remove cache but keep lockfile
-#           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
+          # Remove cache but keep lockfile
+          rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-#           # Install dependencies
-#           if [ -f "yarn.lock" ]; then
-#             echo "Found frontend yarn.lock, installing with --immutable"
-#             yarn install --immutable --immutable-cache
-#           else
-#             echo "No frontend yarn.lock found, creating new lockfile"
-#             yarn install
-#           fi
+          # Install dependencies
+          if [ -f "yarn.lock" ]; then
+            echo "Found frontend yarn.lock, installing with --immutable"
+            yarn install --immutable --immutable-cache
+          else
+            echo "No frontend yarn.lock found, creating new lockfile"
+            yarn install
+          fi
           
-#           # Verify installation
-#           echo "✅ Frontend dependencies installed successfully"
-#           ls -la node_modules/.bin/ | head -5 2>/dev/null || echo "No .bin directory found"
-#           cd ..
-#         env:
-#           YARN_ENABLE_HARDENED_MODE: false
-#           CI: true
+          # Verify installation
+          echo "✅ Frontend dependencies installed successfully"
+          ls -la node_modules/.bin/ | head -5 2>/dev/null || echo "No .bin directory found"
+          cd ..
+        env:
+          YARN_ENABLE_HARDENED_MODE: false
+          CI: true
 
-#       - name: 🔧 Install Backend Dependencies
-#         if: hashFiles('backend/package.json') != ''
-#         run: |
-#           echo "⚙️ Installing backend dependencies..."
-#           cd backend
+      - name: 🔧 Install Backend Dependencies
+        if: hashFiles('backend/package.json') != ''
+        run: |
+          echo "⚙️ Installing backend dependencies..."
+          cd backend
           
-#           # Configure yarn for backend workspace
-#           yarn config set npmRegistryServer "https://registry.npmjs.org"
-#           yarn config set enableHardenedMode false
-#           yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
+          # Configure yarn for backend workspace
+          yarn config set npmRegistryServer "https://registry.npmjs.org"
+          yarn config set enableHardenedMode false
+          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
           
-#           # Remove cache but keep lockfile
-#           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
+          # Remove cache but keep lockfile
+          rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-#           # Install dependencies
-#           if [ -f "yarn.lock" ]; then
-#             echo "Found backend yarn.lock, installing with --immutable"
-#             yarn install --immutable --immutable-cache
-#           else
-#             echo "No backend yarn.lock found, creating new lockfile"
-#             yarn install
-#           fi
+          # Install dependencies
+          if [ -f "yarn.lock" ]; then
+            echo "Found backend yarn.lock, installing with --immutable"
+            yarn install --immutable --immutable-cache
+          else
+            echo "No backend yarn.lock found, creating new lockfile"
+            yarn install
+          fi
           
-#           # Verify installation
-#           echo "✅ Backend dependencies installed successfully"
-#           ls -la node_modules/.bin/ | head -5 2>/dev/null || echo "No .bin directory found"
-#           cd ..
-#         env:
-#           YARN_ENABLE_HARDENED_MODE: false
-#           CI: true
+          # Verify installation
+          echo "✅ Backend dependencies installed successfully"
+          ls -la node_modules/.bin/ | head -5 2>/dev/null || echo "No .bin directory found"
+          cd ..
+        env:
+          YARN_ENABLE_HARDENED_MODE: false
+          CI: true
 
-#       - name: 🔍 Verify Yarn Workspaces
-#         run: |
-#           echo "🔍 Verifying Yarn workspace setup..."
+      - name: 🔍 Verify Yarn Workspaces
+        run: |
+          echo "🔍 Verifying Yarn workspace setup..."
           
-#           # Show yarn workspaces if configured
-#           if yarn workspaces list 2>/dev/null; then
-#             echo "✅ Yarn workspaces detected"
-#           else
-#             echo "ℹ️ No yarn workspaces configured"
-#           fi
+          # Show yarn workspaces if configured
+          if yarn workspaces list 2>/dev/null; then
+            echo "✅ Yarn workspaces detected"
+          else
+            echo "ℹ️ No yarn workspaces configured"
+          fi
           
-#           # Verify frontend setup
-#           if [ -d "frontend" ]; then
-#             echo "Frontend status:"
-#             cd frontend
-#             yarn --version
-#             [ -d "node_modules" ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
-#             [ -f "yarn.lock" ] && echo "✅ yarn.lock exists" || echo "ℹ️ yarn.lock missing"
-#             cd ..
-#           fi
+          # Verify frontend setup
+          if [ -d "frontend" ]; then
+            echo "Frontend status:"
+            cd frontend
+            yarn --version
+            [ -d "node_modules" ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
+            [ -f "yarn.lock" ] && echo "✅ yarn.lock exists" || echo "ℹ️ yarn.lock missing"
+            cd ..
+          fi
           
-#           # Verify backend setup
-#           if [ -d "backend" ]; then
-#             echo "Backend status:"
-#             cd backend
-#             yarn --version
-#             [ -d "node_modules" ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
-#             [ -f "yarn.lock" ] && echo "✅ yarn.lock exists" || echo "ℹ️ yarn.lock missing"
-#             cd ..
-#           fi
+          # Verify backend setup
+          if [ -d "backend" ]; then
+            echo "Backend status:"
+            cd backend
+            yarn --version
+            [ -d "node_modules" ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
+            [ -f "yarn.lock" ] && echo "✅ yarn.lock exists" || echo "ℹ️ yarn.lock missing"
+            cd ..
+          fi
 
-#       - name: 🧪 Run Frontend Tests
-#         if: always() && hashFiles('frontend/package.json') != ''
-#         run: |
-#           echo "🎨 Running frontend ${{ matrix.test-type }} tests..."
-#           cd frontend
+      - name: 🧪 Run Frontend Tests
+        if: always() && hashFiles('frontend/package.json') != ''
+        run: |
+          echo "🎨 Running frontend ${{ matrix.test-type }} tests..."
+          cd frontend
           
-#           # Double-check dependencies are installed
-#           if [ ! -d "node_modules" ]; then
-#             echo "🔄 Dependencies missing, reinstalling..."
-#             if [ -f "yarn.lock" ]; then
-#               yarn install --immutable --immutable-cache
-#             else
-#               yarn install
-#             fi
-#           fi
+          # Double-check dependencies are installed
+          if [ ! -d "node_modules" ]; then
+            echo "🔄 Dependencies missing, reinstalling..."
+            if [ -f "yarn.lock" ]; then
+              yarn install --immutable --immutable-cache
+            else
+              yarn install
+            fi
+          fi
           
-#           # Check for test script in package.json using node
-#           HAS_TEST_SCRIPT=$(node -p "
-#             try {
-#               const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
-#               pkg.scripts && pkg.scripts.test ? pkg.scripts.test : '';
-#             } catch(e) { 
-#               ''; 
-#             }
-#           ")
+          # Check for test script in package.json using node
+          HAS_TEST_SCRIPT=$(node -p "
+            try {
+              const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+              pkg.scripts && pkg.scripts.test ? pkg.scripts.test : '';
+            } catch(e) { 
+              ''; 
+            }
+          ")
           
-#           if [ -z "$HAS_TEST_SCRIPT" ]; then
-#             echo "⚠️ No test script found in frontend package.json"
-#             echo "Available scripts:"
-#             yarn run --json 2>/dev/null | jq -r '.data.items[].name' 2>/dev/null || echo "Could not list scripts"
-#             exit 0
-#           fi
+          if [ -z "$HAS_TEST_SCRIPT" ]; then
+            echo "⚠️ No test script found in frontend package.json"
+            echo "Available scripts:"
+            yarn run --json 2>/dev/null | jq -r '.data.items[].name' 2>/dev/null || echo "Could not list scripts"
+            exit 0
+          fi
           
-#           echo "✅ Found test script: $HAS_TEST_SCRIPT"
+          echo "✅ Found test script: $HAS_TEST_SCRIPT"
           
-#           # Run tests based on type (JavaScript patterns only - no TypeScript)
-#           case "${{ matrix.test-type }}" in
-#             "unit")
-#               echo "🔬 Running unit tests..."
-#               yarn test --watchAll=false --coverage --passWithNoTests \
-#                 --testPathPattern="\.test\.(js|jsx)$" \
-#                 --testPathIgnorePatterns="integration" \
-#                 --maxWorkers=2 \
-#                 --forceExit \
-#                 --detectOpenHandles || echo "Unit tests completed with issues"
-#               ;;
-#             "integration")
-#               echo "🔗 Running integration tests..."
-#               yarn test --watchAll=false --passWithNoTests \
-#                 --testPathPattern="integration|\.integration\.(js|jsx)$" \
-#                 --runInBand \
-#                 --forceExit \
-#                 --detectOpenHandles || echo "Integration tests completed with issues"
-#               ;;
-#             *)
-#               echo "🧪 Running all tests..."
-#               yarn test --watchAll=false --coverage --passWithNoTests \
-#                 --maxWorkers=2 \
-#                 --forceExit \
-#                 --detectOpenHandles || echo "All tests completed with issues"
-#               ;;
-#           esac
-#           cd ..
-#         env:
-#           CI: true
-#           NODE_ENV: test
-#           FORCE_COLOR: true
-#           NODE_OPTIONS: "--max_old_space_size=4096"
+          # Run tests based on type (JavaScript patterns only - no TypeScript)
+          case "${{ matrix.test-type }}" in
+            "unit")
+              echo "🔬 Running unit tests..."
+              yarn test --watchAll=false --coverage --passWithNoTests \
+                --testPathPattern="\.test\.(js|jsx)$" \
+                --testPathIgnorePatterns="integration" \
+                --maxWorkers=2 \
+                --forceExit \
+                --detectOpenHandles || echo "Unit tests completed with issues"
+              ;;
+            "integration")
+              echo "🔗 Running integration tests..."
+              yarn test --watchAll=false --passWithNoTests \
+                --testPathPattern="integration|\.integration\.(js|jsx)$" \
+                --runInBand \
+                --forceExit \
+                --detectOpenHandles || echo "Integration tests completed with issues"
+              ;;
+            *)
+              echo "🧪 Running all tests..."
+              yarn test --watchAll=false --coverage --passWithNoTests \
+                --maxWorkers=2 \
+                --forceExit \
+                --detectOpenHandles || echo "All tests completed with issues"
+              ;;
+          esac
+          cd ..
+        env:
+          CI: true
+          NODE_ENV: test
+          FORCE_COLOR: true
+          NODE_OPTIONS: "--max_old_space_size=4096"
 
-#       - name: 🧪 Run Backend Tests
-#         if: always() && hashFiles('backend/package.json') != ''
-#         run: |
-#           echo "⚙️ Running backend ${{ matrix.test-type }} tests..."
-#           cd backend
+      - name: 🧪 Run Backend Tests
+        if: always() && hashFiles('backend/package.json') != ''
+        run: |
+          echo "⚙️ Running backend ${{ matrix.test-type }} tests..."
+          cd backend
           
-#           # Double-check dependencies are installed
-#           if [ ! -d "node_modules" ]; then
-#             echo "🔄 Dependencies missing, reinstalling..."
-#             if [ -f "yarn.lock" ]; then
-#               yarn install --immutable --immutable-cache
-#             else
-#               yarn install
-#             fi
-#           fi
+          # Double-check dependencies are installed
+          if [ ! -d "node_modules" ]; then
+            echo "🔄 Dependencies missing, reinstalling..."
+            if [ -f "yarn.lock" ]; then
+              yarn install --immutable --immutable-cache
+            else
+              yarn install
+            fi
+          fi
           
-#           # Check for test script in package.json using node
-#           HAS_TEST_SCRIPT=$(node -p "
-#             try {
-#               const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
-#               pkg.scripts && pkg.scripts.test ? pkg.scripts.test : '';
-#             } catch(e) { 
-#               ''; 
-#             }
-#           ")
+          # Check for test script in package.json using node
+          HAS_TEST_SCRIPT=$(node -p "
+            try {
+              const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+              pkg.scripts && pkg.scripts.test ? pkg.scripts.test : '';
+            } catch(e) { 
+              ''; 
+            }
+          ")
           
-#           if [ -z "$HAS_TEST_SCRIPT" ]; then
-#             echo "⚠️ No test script found in backend package.json"
-#             echo "Available scripts:"
-#             yarn run --json 2>/dev/null || echo "Could not list scripts"
-#             exit 0
-#           fi
+          if [ -z "$HAS_TEST_SCRIPT" ]; then
+            echo "⚠️ No test script found in backend package.json"
+            echo "Available scripts:"
+            yarn run --json 2>/dev/null || echo "Could not list scripts"
+            exit 0
+          fi
           
-#           echo "✅ Found test script: $HAS_TEST_SCRIPT"
+          echo "✅ Found test script: $HAS_TEST_SCRIPT"
           
-#           # Run tests based on type (JavaScript patterns only - no TypeScript)
-#           case "${{ matrix.test-type }}" in
-#             "unit")
-#               echo "🔬 Running unit tests..."
-#               yarn test --coverage --passWithNoTests \
-#                 --testPathPattern="\.test\.(js|jsx)$" \
-#                 --testPathIgnorePatterns="integration" \
-#                 --maxWorkers=2 \
-#                 --forceExit \
-#                 --detectOpenHandles || echo "Unit tests completed with issues"
-#               ;;
-#             "integration")
-#               echo "🔗 Running integration tests..."
-#               yarn test --passWithNoTests \
-#                 --testPathPattern="integration|\.integration\.(js|jsx)$" \
-#                 --runInBand \
-#                 --forceExit \
-#                 --detectOpenHandles || echo "Integration tests completed with issues"
-#               ;;
-#             *)
-#               echo "🧪 Running all tests..."
-#               yarn test --coverage --passWithNoTests \
-#                 --maxWorkers=2 \
-#                 --forceExit \
-#                 --detectOpenHandles || echo "All tests completed with issues"
-#               ;;
-#           esac
-#           cd ..
-#         env:
-#           CI: true
-#           NODE_ENV: test
-#           FORCE_COLOR: true
-#           NODE_OPTIONS: "--max_old_space_size=4096"
+          # Run tests based on type (JavaScript patterns only - no TypeScript)
+          case "${{ matrix.test-type }}" in
+            "unit")
+              echo "🔬 Running unit tests..."
+              yarn test --coverage --passWithNoTests \
+                --testPathPattern="\.test\.(js|jsx)$" \
+                --testPathIgnorePatterns="integration" \
+                --maxWorkers=2 \
+                --forceExit \
+                --detectOpenHandles || echo "Unit tests completed with issues"
+              ;;
+            "integration")
+              echo "🔗 Running integration tests..."
+              yarn test --passWithNoTests \
+                --testPathPattern="integration|\.integration\.(js|jsx)$" \
+                --runInBand \
+                --forceExit \
+                --detectOpenHandles || echo "Integration tests completed with issues"
+              ;;
+            *)
+              echo "🧪 Running all tests..."
+              yarn test --coverage --passWithNoTests \
+                --maxWorkers=2 \
+                --forceExit \
+                --detectOpenHandles || echo "All tests completed with issues"
+              ;;
+          esac
+          cd ..
+        env:
+          CI: true
+          NODE_ENV: test
+          FORCE_COLOR: true
+          NODE_OPTIONS: "--max_old_space_size=4096"
 
-#       - name: 🎯 Run Specific Test Files
-#         if: needs.selective-testing.outputs.test-files != '[]' && needs.selective-testing.outputs.test-files != ''
-#         run: |
-#           TEST_FILES='${{ needs.selective-testing.outputs.test-files }}'
-#           echo "🎯 Running specific test files: $TEST_FILES"
+      - name: 🎯 Run Specific Test Files
+        if: needs.selective-testing.outputs.test-files != '[]' && needs.selective-testing.outputs.test-files != ''
+        run: |
+          TEST_FILES='${{ needs.selective-testing.outputs.test-files }}'
+          echo "🎯 Running specific test files: $TEST_FILES"
           
-#           # Validate JSON
-#           if ! echo "$TEST_FILES" | jq . >/dev/null 2>&1; then
-#             echo "❌ Invalid JSON format in test files"
-#             exit 1
-#           fi
+          # Validate JSON
+          if ! echo "$TEST_FILES" | jq . >/dev/null 2>&1; then
+            echo "❌ Invalid JSON format in test files"
+            exit 1
+          fi
           
-#           # Run specific tests
-#           echo "$TEST_FILES" | jq -r '.[]' | while read -r test_file; do
-#             echo "📝 Processing test file: $test_file"
+          # Run specific tests
+          echo "$TEST_FILES" | jq -r '.[]' | while read -r test_file; do
+            echo "📝 Processing test file: $test_file"
             
-#             if [[ "$test_file" == *"frontend"* ]] && [ -d "frontend" ]; then
-#               echo "🎨 Running frontend test: $test_file"
-#               cd frontend
+            if [[ "$test_file" == *"frontend"* ]] && [ -d "frontend" ]; then
+              echo "🎨 Running frontend test: $test_file"
+              cd frontend
               
-#               # Ensure dependencies
-#               if [ ! -d "node_modules" ]; then
-#                 if [ -f "yarn.lock" ]; then
-#                   yarn install --immutable --immutable-cache
-#                 else
-#                   yarn install
-#                 fi
-#               fi
+              # Ensure dependencies
+              if [ ! -d "node_modules" ]; then
+                if [ -f "yarn.lock" ]; then
+                  yarn install --immutable --immutable-cache
+                else
+                  yarn install
+                fi
+              fi
               
-#               # Run specific test
-#               relative_path=${test_file#"./frontend/"}
-#               yarn test --watchAll=false --passWithNoTests "$relative_path" \
-#                 --forceExit --detectOpenHandles || echo "Frontend test completed with issues"
-#               cd ..
+              # Run specific test
+              relative_path=${test_file#"./frontend/"}
+              yarn test --watchAll=false --passWithNoTests "$relative_path" \
+                --forceExit --detectOpenHandles || echo "Frontend test completed with issues"
+              cd ..
               
-#             elif [[ "$test_file" == *"backend"* ]] && [ -d "backend" ]; then
-#               echo "⚙️ Running backend test: $test_file"
-#               cd backend
+            elif [[ "$test_file" == *"backend"* ]] && [ -d "backend" ]; then
+              echo "⚙️ Running backend test: $test_file"
+              cd backend
               
-#               # Ensure dependencies
-#               if [ ! -d "node_modules" ]; then
-#                 if [ -f "yarn.lock" ]; then
-#                   yarn install --immutable --immutable-cache
-#                 else
-#                   yarn install
-#                 fi
-#               fi
+              # Ensure dependencies
+              if [ ! -d "node_modules" ]; then
+                if [ -f "yarn.lock" ]; then
+                  yarn install --immutable --immutable-cache
+                else
+                  yarn install
+                fi
+              fi
               
-#               # Run specific test
-#               relative_path=${test_file#"./backend/"}
-#               yarn test --watchAll=false --passWithNoTests "$relative_path" \
-#                 --forceExit --detectOpenHandles || echo "Backend test completed with issues"
-#               cd ..
-#             fi
-#           done
-#         env:
-#           CI: true
-#           NODE_ENV: test
+              # Run specific test
+              relative_path=${test_file#"./backend/"}
+              yarn test --watchAll=false --passWithNoTests "$relative_path" \
+                --forceExit --detectOpenHandles || echo "Backend test completed with issues"
+              cd ..
+            fi
+          done
+        env:
+          CI: true
+          NODE_ENV: test
 
-#       - name: 📊 Upload Frontend Coverage
-#         uses: actions/upload-artifact@v4
-#         if: always() && hashFiles('frontend/coverage/**/*') != ''
-#         with:
-#           name: frontend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
-#           path: frontend/coverage/
-#           retention-days: 7
+      - name: 📊 Upload Frontend Coverage
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('frontend/coverage/**/*') != ''
+        with:
+          name: frontend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
+          path: frontend/coverage/
+          retention-days: 7
 
-#       - name: 📊 Upload Backend Coverage
-#         uses: actions/upload-artifact@v4
-#         if: always() && hashFiles('backend/coverage/**/*') != ''
-#         with:
-#           name: backend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
-#           path: backend/coverage/
-#           retention-days: 7
-#           if-no-files-found: ignore
+      - name: 📊 Upload Backend Coverage
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('backend/coverage/**/*') != ''
+        with:
+          name: backend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
+          path: backend/coverage/
+          retention-days: 7
+          if-no-files-found: ignore
 
-#       - name: 📊 Upload Test Results
-#         uses: actions/upload-artifact@v4
-#         if: always()
-#         with:
-#           name: test-results-${{ matrix.test-type }}-node-${{ matrix.node-version }}
-#           path: |
-#             frontend/test-results.xml
-#             backend/test-results.xml
-#             frontend/junit.xml
-#             backend/junit.xml
-#             frontend/coverage/
-#             backend/coverage/
-#           retention-days: 7
+      - name: 📊 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}-node-${{ matrix.node-version }}
+          path: |
+            frontend/test-results.xml
+            backend/test-results.xml
+            frontend/junit.xml
+            backend/junit.xml
+            frontend/coverage/
+            backend/coverage/
+          retention-days: 7
 
-#       - name: 📋 Generate Test Summary
-#         if: always()
-#         run: |
-#           echo "## 🧪 Yarn Test Execution Summary (JavaScript with Lockfile)" >> $GITHUB_STEP_SUMMARY
-#           echo "" >> $GITHUB_STEP_SUMMARY
-#           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-#           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
-#           echo "| Test Type | ${{ matrix.test-type }} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| Node Version | ${{ matrix.node-version }} |" >> $GITHUB_STEP_SUMMARY
-#           echo "| Package Manager | Yarn $(yarn --version 2>/dev/null || echo 'N/A') |" >> $GITHUB_STEP_SUMMARY
-#           echo "| Language | JavaScript Only (No TypeScript) |" >> $GITHUB_STEP_SUMMARY
-#           echo "| Lockfile | ✅ Enabled (--frozen-lockfile) |" >> $GITHUB_STEP_SUMMARY
-#           echo "| Frontend Tests | $([ -d "frontend" ] && echo "✅ Enabled" || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
-#           echo "| Backend Tests | $([ -d "backend" ] && cd backend && node -p "Object.keys(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).scripts || {}).filter(s => s.includes('test')).length > 0 ? '✅ Available' : '⏳ Future Ready'" 2>/dev/null || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
-#           echo "" >> $GITHUB_STEP_SUMMARY
+      - name: 📋 Generate Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 Yarn Test Execution Summary (JavaScript with Lockfile)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Type | ${{ matrix.test-type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node Version | ${{ matrix.node-version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Package Manager | Yarn $(yarn --version 2>/dev/null || echo 'N/A') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Language | JavaScript Only (No TypeScript) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lockfile | ✅ Enabled (--frozen-lockfile) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Tests | $([ -d "frontend" ] && echo "✅ Enabled" || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | $([ -d "backend" ] && cd backend && node -p "Object.keys(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).scripts || {}).filter(s => s.includes('test')).length > 0 ? '✅ Available' : '⏳ Future Ready'" 2>/dev/null || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
-#           # Show lockfile status
-#           echo "### 📦 Lockfile Status" >> $GITHUB_STEP_SUMMARY
-#           echo "- Root: $([ -f "yarn.lock" ] && echo "✅ yarn.lock present" || echo "❌ No lockfile")" >> $GITHUB_STEP_SUMMARY
-#           echo "- Frontend: $([ -f "frontend/yarn.lock" ] && echo "✅ yarn.lock present" || echo "ℹ️ No lockfile")" >> $GITHUB_STEP_SUMMARY
-#           echo "- Backend: $([ -f "backend/yarn.lock" ] && echo "✅ yarn.lock present" || echo "ℹ️ No lockfile")" >> $GITHUB_STEP_SUMMARY
-#           echo "" >> $GITHUB_STEP_SUMMARY
+          # Show lockfile status
+          echo "### 📦 Lockfile Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Root: $([ -f "yarn.lock" ] && echo "✅ yarn.lock present" || echo "❌ No lockfile")" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: $([ -f "frontend/yarn.lock" ] && echo "✅ yarn.lock present" || echo "ℹ️ No lockfile")" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: $([ -f "backend/yarn.lock" ] && echo "✅ yarn.lock present" || echo "ℹ️ No lockfile")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
-#           # Add coverage info if available
-#           if [ -f "frontend/coverage/coverage-summary.json" ]; then
-#             echo "### 🎨 Frontend Coverage" >> $GITHUB_STEP_SUMMARY
-#             node -p "
-#               try {
-#                 const coverage = JSON.parse(require('fs').readFileSync('frontend/coverage/coverage-summary.json', 'utf8'));
-#                 const total = coverage.total;
-#                 '- Lines: ' + total.lines.pct + '%\\n' +
-#                 '- Statements: ' + total.statements.pct + '%\\n' +
-#                 '- Functions: ' + total.functions.pct + '%\\n' +
-#                 '- Branches: ' + total.branches.pct + '%';
-#               } catch(e) { 
-#                 'Coverage data not available'; 
-#               }
-#             " >> $GITHUB_STEP_SUMMARY
-#             echo "" >> $GITHUB_STEP_SUMMARY
-#           fi
+          # Add coverage info if available
+          if [ -f "frontend/coverage/coverage-summary.json" ]; then
+            echo "### 🎨 Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+            node -p "
+              try {
+                const coverage = JSON.parse(require('fs').readFileSync('frontend/coverage/coverage-summary.json', 'utf8'));
+                const total = coverage.total;
+                '- Lines: ' + total.lines.pct + '%\\n' +
+                '- Statements: ' + total.statements.pct + '%\\n' +
+                '- Functions: ' + total.functions.pct + '%\\n' +
+                '- Branches: ' + total.branches.pct + '%';
+              } catch(e) { 
+                'Coverage data not available'; 
+              }
+            " >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
           
-#           if [ -f "backend/coverage/coverage-summary.json" ]; then
-#             echo "### ⚙️ Backend Coverage" >> $GITHUB_STEP_SUMMARY
-#             node -p "
-#               try {
-#                 const coverage = JSON.parse(require('fs').readFileSync('backend/coverage/coverage-summary.json', 'utf8'));
-#                 const total = coverage.total;
-#                 '- Lines: ' + total.lines.pct + '%\\n' +
-#                 '- Statements: ' + total.statements.pct + '%\\n' +
-#                 '- Functions: ' + total.functions.pct + '%\\n' +
-#                 '- Branches: ' + total.branches.pct + '%';
-#               } catch(e) { 
-#                 'Coverage data not available'; 
-#               }
-#             " >> $GITHUB_STEP_SUMMARY
-#           fi
+          if [ -f "backend/coverage/coverage-summary.json" ]; then
+            echo "### ⚙️ Backend Coverage" >> $GITHUB_STEP_SUMMARY
+            node -p "
+              try {
+                const coverage = JSON.parse(require('fs').readFileSync('backend/coverage/coverage-summary.json', 'utf8'));
+                const total = coverage.total;
+                '- Lines: ' + total.lines.pct + '%\\n' +
+                '- Statements: ' + total.statements.pct + '%\\n' +
+                '- Functions: ' + total.functions.pct + '%\\n' +
+                '- Branches: ' + total.branches.pct + '%';
+              } catch(e) { 
+                'Coverage data not available'; 
+              }
+            " >> $GITHUB_STEP_SUMMARY
+          fi
   
   # =========================================
   # JOB 8: UNTESTED CODE HANDLING
