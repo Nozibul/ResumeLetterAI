@@ -9,7 +9,7 @@ jest.mock('@/components/ui/skeleton', () => ({
   ),
 }));
 
-describe('CardSkeleton Component', () => {
+describe('CardSkeleton Component Test', () => {
   // 1. Render test
   test('renders without crashing', () => {
     render(<CardSkeleton count={1} />);

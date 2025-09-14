@@ -7,12 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --watchAll=false --runInBand",
-    "test:watch": "jest --watchAll --runInBand",
-    "test:ci": "jest --watchAll=false --runInBand --coverage",
-    "test:unit": "jest --testPathPatterns='\\.test\\.(js|jsx|ts|tsx)$' --testPathIgnorePatterns='integration' --watchAll=false --coverage",
-    "test:integration": "jest --testPathPatterns='integration|\\.integration\\.(js|jsx|ts|tsx)$' --watchAll=false --runInBand",
-    "test:specific": "jest --watchAll=false",
+    "test": "jest --watchAll --runInBand",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:fix": "next lint --fix"
