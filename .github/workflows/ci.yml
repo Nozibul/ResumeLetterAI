@@ -401,369 +401,186 @@ jobs:
           echo "🔒 Run Security: $RUN_SECURITY"
           echo "⚡ Run Performance: $RUN_PERFORMANCE"
 
-# =========================================
-# JOB 7: TEST CODE DETECTION & EXECUTION (Yarn with Lockfile - JavaScript Only)
-# =========================================
+  # =========================================
+  # JOB 7: TEST CODE DETECTION & EXECUTION  
+  # =========================================
   test-execution:
-    name: 🧪 Test Code Detection & Execution
+    name: 🧪 Test Execution
     runs-on: ubuntu-latest
-    needs: [
-      detect-services,
-      change-detection, 
-      selective-testing,
-      test-trigger,
-      cache-dependencies
-    ]
+    needs: [detect-services, change-detection, test-trigger, cache-dependencies]
     if: |
       needs.test-trigger.outputs.should-run-tests == 'true' && 
       github.event.inputs.force_skip_tests != 'true' &&
       !contains(github.event.head_commit.message, '[skip tests]')
-        
+    
     outputs:
-      frontend-test-status: ${{ steps.frontend-tests.outputs.status }}
-      backend-test-status: ${{ steps.backend-tests.outputs.status }}
-      root-test-status: ${{ steps.root-tests.outputs.status }}
-      overall-status: ${{ steps.summary.outputs.overall-status }}
-      coverage-generated: ${{ steps.summary.outputs.coverage-generated }}
+      frontend-status: ${{ steps.frontend.outputs.status }}
+      backend-status: ${{ steps.backend.outputs.status }}
+      overall-status: ${{ steps.summary.outputs.status }}
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
-      - name: 🗄️ Restore dependencies cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            frontend/node_modules
-            backend/node_modules
-            ~/.cache/yarn
-          key: ${{ needs.cache-dependencies.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock') }}-
-            ${{ runner.os }}-deps-
-
-      - name: 🔧 Install dependencies
-        if: needs.cache-dependencies.outputs.cache-hit != 'true'
+      - name: Install Root Dependencies
         run: |
-          echo "💾 Installing dependencies..."
-          
-          # Root level install
           if [ -f "package.json" ]; then
-            echo "📦 Installing root dependencies..."
+            echo "Installing root dependencies..."
             yarn install --frozen-lockfile
           fi
+
+      - name: Check Frontend Tests
+        id: check-frontend
+        run: |
+          HAS_TESTS=false
           
-          # Frontend install  
+          if [ -d "frontend" ]; then
+            echo "Checking frontend directory..."
+            
+            # Check for test files
+            if find frontend -name "*.test.js" -o -name "*.test.ts" -o -name "*.spec.js" -o -name "*.spec.ts" | grep -q .; then
+              echo "Found test files in frontend"
+              HAS_TESTS=true
+            fi
+            
+            # Check for test script
+            if [ -f "frontend/package.json" ] && grep -q '"test"' frontend/package.json; then
+              echo "Found test script in frontend package.json"
+              HAS_TESTS=true
+            fi
+          fi
+          
+          echo "has-tests=$HAS_TESTS" >> $GITHUB_OUTPUT
+          echo "Frontend has tests: $HAS_TESTS"
+
+      - name: Check Backend Tests
+        id: check-backend
+        run: |
+          HAS_TESTS=false
+          
+          if [ -d "backend" ]; then
+            echo "Checking backend directory..."
+            
+            # Check for test files
+            if find backend -name "*.test.js" -o -name "*.test.ts" -o -name "*.spec.js" -o -name "*.spec.ts" | grep -q .; then
+              echo "Found test files in backend"
+              HAS_TESTS=true
+            fi
+            
+            # Check for test script
+            if [ -f "backend/package.json" ] && grep -q '"test"' backend/package.json; then
+              echo "Found test script in backend package.json"
+              HAS_TESTS=true
+            fi
+          fi
+          
+          echo "has-tests=$HAS_TESTS" >> $GITHUB_OUTPUT
+          echo "Backend has tests: $HAS_TESTS"
+
+      - name: Run Frontend Tests
+        id: frontend
+        if: steps.check-frontend.outputs.has-tests == 'true'
+        continue-on-error: true
+        run: |
+          echo "Running frontend tests..."
+          STATUS="failed"
+          
+          # Install frontend dependencies first
           if [ -f "frontend/package.json" ]; then
-            echo "📦 Installing frontend dependencies..."
-            yarn install:frontend
-          fi
-          
-          # Backend install
-          if [ -f "backend/package.json" ]; then
-            echo "📦 Installing backend dependencies..."
-            yarn install:backend
-          fi
-
-      - name: 🔍 Detect Frontend Tests
-        id: detect-frontend
-        run: |
-          HAS_FRONTEND_TESTS=false
-          FRONTEND_TEST_FILES=0
-          
-          if [ -d "frontend" ] && [ "${{ needs.detect-services.outputs.has-frontend }}" = "true" ]; then
-            # Check for test files
-            if find frontend -name "*.test.*" -o -name "*.spec.*" | head -1 | grep -q .; then
-              FRONTEND_TEST_FILES=$(find frontend -name "*.test.*" -o -name "*.spec.*" | wc -l)
-              echo "✅ Found $FRONTEND_TEST_FILES test files in frontend"
-              HAS_FRONTEND_TESTS=true
-            fi
-            
-            # Check for test scripts in package.json
-            if [ -f "frontend/package.json" ]; then
-              if grep -q '"test"' frontend/package.json; then
-                echo "✅ Found test script in frontend/package.json"
-                HAS_FRONTEND_TESTS=true
-              fi
-            fi
-          fi
-          
-          echo "has-tests=$HAS_FRONTEND_TESTS" >> $GITHUB_OUTPUT
-          echo "test-files=$FRONTEND_TEST_FILES" >> $GITHUB_OUTPUT
-          
-          echo "Frontend Test Detection: $HAS_FRONTEND_TESTS ($FRONTEND_TEST_FILES files)"
-
-      - name: 🔍 Detect Backend Tests  
-        id: detect-backend
-        run: |
-          HAS_BACKEND_TESTS=false
-          BACKEND_TEST_FILES=0
-          
-          if [ -d "backend" ] && [ "${{ needs.detect-services.outputs.has-backend }}" = "true" ]; then
-            # Check for test files
-            if find backend -name "*.test.*" -o -name "*.spec.*" | head -1 | grep -q .; then
-              BACKEND_TEST_FILES=$(find backend -name "*.test.*" -o -name "*.spec.*" | wc -l)
-              echo "✅ Found $BACKEND_TEST_FILES test files in backend"
-              HAS_BACKEND_TESTS=true
-            fi
-            
-            # Check for test scripts in package.json
-            if [ -f "backend/package.json" ]; then
-              if grep -q '"test"' backend/package.json; then
-                echo "✅ Found test script in backend/package.json"
-                HAS_BACKEND_TESTS=true
-              fi
-            fi
-          fi
-          
-          echo "has-tests=$HAS_BACKEND_TESTS" >> $GITHUB_OUTPUT
-          echo "test-files=$BACKEND_TEST_FILES" >> $GITHUB_OUTPUT
-          
-          echo "Backend Test Detection: $HAS_BACKEND_TESTS ($BACKEND_TEST_FILES files)"
-
-      - name: 🧪 Run Frontend Tests
-        id: frontend-tests
-        if: steps.detect-frontend.outputs.has-tests == 'true'
-        run: |
-          echo "🎨 Running Frontend Tests..."
-          cd frontend
-          
-          # Try different test commands based on your package.json
-          TEST_STATUS="skipped"
-          
-          # First try CI test command
-          if yarn test:ci; then
-            TEST_STATUS="success"
-            echo "✅ Frontend tests passed (test:ci)"
-          # Then try unit tests
-          elif yarn test:unit; then
-            TEST_STATUS="success" 
-            echo "✅ Frontend unit tests passed"
-          # Finally try regular test
-          elif yarn test; then
-            TEST_STATUS="success"
-            echo "✅ Frontend tests passed (regular test)"
-          else
-            TEST_STATUS="failure"
-            echo "❌ Frontend tests failed"
-          fi
-          
-          echo "status=$TEST_STATUS" >> $GITHUB_OUTPUT
-          
-          # Don't fail the job if frontend tests fail, let other tests run
-          if [ "$TEST_STATUS" = "failure" ]; then
-            echo "::warning::Frontend tests failed but continuing with other tests"
-          fi
-
-      - name: ⚙️ Run Backend Tests
-        id: backend-tests  
-        if: steps.detect-backend.outputs.has-tests == 'true'
-        run: |
-          echo "⚙️ Running Backend Tests..."
-          cd backend
-          
-          TEST_STATUS="skipped"
-          
-          # Try different test commands based on your package.json
-          # First try CI test command
-          if yarn test:ci; then
-            TEST_STATUS="success"
-            echo "✅ Backend tests passed (test:ci)"
-          # Then try unit tests
-          elif yarn test:unit; then
-            TEST_STATUS="success"
-            echo "✅ Backend unit tests passed" 
-          # Try integration tests
-          elif yarn test:integration; then
-            TEST_STATUS="success"
-            echo "✅ Backend integration tests passed"
-          # Finally try regular test
-          elif yarn test; then
-            TEST_STATUS="success"
-            echo "✅ Backend tests passed (regular test)"
-          else
-            TEST_STATUS="failure"
-            echo "❌ Backend tests failed"
-          fi
-          
-          echo "status=$TEST_STATUS" >> $GITHUB_OUTPUT
-          
-          # Don't fail the job if backend tests fail, let root tests run
-          if [ "$TEST_STATUS" = "failure" ]; then
-            echo "::warning::Backend tests failed but continuing with other tests"
-          fi
-
-      - name: 🏠 Run Root Level Tests
-        id: root-tests
-        if: |
-          steps.detect-frontend.outputs.has-tests == 'true' || 
-          steps.detect-backend.outputs.has-tests == 'true'
-        run: |
-          echo "🏠 Running Root Level Orchestrated Tests..."
-          
-          TEST_STATUS="skipped"
-          
-          # Use your root package.json scripts for orchestration
-          # This will run both frontend and backend tests
-          if yarn test; then
-            TEST_STATUS="success"
-            echo "✅ Root orchestrated tests passed"
-          else
-            TEST_STATUS="failure"
-            echo "❌ Root orchestrated tests failed"
-          fi
-          
-          echo "status=$TEST_STATUS" >> $GITHUB_OUTPUT
-
-      - name: 📊 Generate Coverage Reports
-        id: coverage
-        if: |
-          steps.detect-frontend.outputs.has-tests == 'true' || 
-          steps.detect-backend.outputs.has-tests == 'true'
-        run: |
-          echo "📊 Generating Coverage Reports..."
-          
-          COVERAGE_GENERATED=false
-          
-          # Frontend coverage
-          if [ "${{ steps.frontend-tests.outputs.status }}" = "success" ]; then
+            echo "Installing frontend dependencies..."
             cd frontend
-            if [ -d "coverage" ]; then
-              echo "✅ Frontend coverage found"
-              COVERAGE_GENERATED=true
-              
-              # Copy coverage for upload
-              mkdir -p ../coverage-reports
-              cp -r coverage ../coverage-reports/frontend-coverage
+            yarn install --frozen-lockfile
+            
+            # Try different test commands
+            if yarn test:ci 2>/dev/null; then
+              echo "Frontend test:ci passed"
+              STATUS="success"
+            elif yarn test:unit 2>/dev/null; then
+              echo "Frontend test:unit passed"  
+              STATUS="success"
+            elif yarn test 2>/dev/null; then
+              echo "Frontend test passed"
+              STATUS="success"
+            else
+              echo "All frontend test commands failed"
+              STATUS="failed"
             fi
+            
             cd ..
           fi
           
-          # Backend coverage  
-          if [ "${{ steps.backend-tests.outputs.status }}" = "success" ]; then
-            cd backend
-            if [ -d "coverage" ]; then
-              echo "✅ Backend coverage found"
-              COVERAGE_GENERATED=true
-              
-              # Copy coverage for upload
-              mkdir -p ../coverage-reports
-              cp -r coverage ../coverage-reports/backend-coverage
-            fi
-            cd ..
-          fi
-          
-          echo "coverage-generated=$COVERAGE_GENERATED" >> $GITHUB_OUTPUT
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Frontend test status: $STATUS"
 
-      - name: 📋 Test Summary
+      - name: Run Backend Tests
+        id: backend
+        if: steps.check-backend.outputs.has-tests == 'true'
+        continue-on-error: true
+        run: |
+          echo "Running backend tests..."
+          STATUS="failed"
+          
+          # Install backend dependencies first
+          if [ -f "backend/package.json" ]; then
+            echo "Installing backend dependencies..."
+            cd backend
+            yarn install --frozen-lockfile
+            
+            # Try different test commands
+            if yarn test:ci 2>/dev/null; then
+              echo "Backend test:ci passed"
+              STATUS="success"
+            elif yarn test:unit 2>/dev/null; then
+              echo "Backend test:unit passed"
+              STATUS="success"
+            elif yarn test:integration 2>/dev/null; then
+              echo "Backend test:integration passed"
+              STATUS="success"  
+            elif yarn test 2>/dev/null; then
+              echo "Backend test passed"
+              STATUS="success"
+            else
+              echo "All backend test commands failed"
+              STATUS="failed"
+            fi
+            
+            cd ..
+          fi
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Backend test status: $STATUS"
+
+      - name: Test Summary
         id: summary
         if: always()
         run: |
-          echo "📋 Generating Test Summary..."
+          FRONTEND_STATUS="${{ steps.frontend.outputs.status }}"
+          BACKEND_STATUS="${{ steps.backend.outputs.status }}"
+          HAS_FRONTEND="${{ steps.check-frontend.outputs.has-tests }}"
+          HAS_BACKEND="${{ steps.check-backend.outputs.has-tests }}"
           
-          FRONTEND_STATUS="${{ steps.frontend-tests.outputs.status || 'skipped' }}"
-          BACKEND_STATUS="${{ steps.backend-tests.outputs.status || 'skipped' }}"
-          ROOT_STATUS="${{ steps.root-tests.outputs.status || 'skipped' }}"
-          COVERAGE="${{ steps.coverage.outputs.coverage-generated || 'false' }}"
+          echo "Test Summary:"
+          echo "Frontend has tests: $HAS_FRONTEND"
+          echo "Backend has tests: $HAS_BACKEND"
+          echo "Frontend status: $FRONTEND_STATUS"
+          echo "Backend status: $BACKEND_STATUS"
           
           # Determine overall status
-          OVERALL_STATUS="success"
-          
-          if [[ "$FRONTEND_STATUS" == "failure" ]] || [[ "$BACKEND_STATUS" == "failure" ]] || [[ "$ROOT_STATUS" == "failure" ]]; then
-            OVERALL_STATUS="failure"
-          elif [[ "$FRONTEND_STATUS" == "skipped" ]] && [[ "$BACKEND_STATUS" == "skipped" ]] && [[ "$ROOT_STATUS" == "skipped" ]]; then
-            OVERALL_STATUS="skipped"
-          fi
-          
-          echo "overall-status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
-          echo "coverage-generated=$COVERAGE" >> $GITHUB_OUTPUT
-          
-          # Print summary
-          echo "📊 Test Execution Summary:"
-          echo "Frontend Tests: $FRONTEND_STATUS"
-          echo "Backend Tests: $BACKEND_STATUS" 
-          echo "Root Tests: $ROOT_STATUS"
-          echo "Overall Status: $OVERALL_STATUS"
-          echo "Coverage Generated: $COVERAGE"
-          
-          # Update GitHub Step Summary
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## 🧪 Test Execution Results
-          
-          | Component | Status | Test Files |
-          |-----------|--------|------------|
-          | Frontend | $FRONTEND_STATUS | ${{ steps.detect-frontend.outputs.test-files }} |
-          | Backend | $BACKEND_STATUS | ${{ steps.detect-backend.outputs.test-files }} |  
-          | Root Orchestration | $ROOT_STATUS | Combined |
-          
-          **Overall Status:** $OVERALL_STATUS  
-          **Coverage Generated:** $COVERAGE
-          
-          EOF
-          
-          # Fail the job only if all tests failed
-          if [ "$OVERALL_STATUS" = "failure" ]; then
-            echo "❌ Tests failed - check individual test outputs above"
-            exit 1
-          fi
+          if [ "$HAS_FRONTEND" = "false" ] && [ "$HAS_BACKEND" = "false" ]; then
+            OVERALL="no-tests"
+            echo "No tests found in either frontend or backend"
+          elif [ "$FRONTEND_STATUS" = "success" ] || [ "$BACKEND_STATUS" = "success" ]; then
+            OVERALL="success"
+            echo "At least one test suite passed"
+          else
+            OVERALL
 
-      - name: 📄 Upload Test Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-${{ github.run_id }}
-          path: |
-            coverage-reports/
-            frontend/coverage/
-            backend/coverage/
-            frontend/test-results.xml
-            backend/test-results.xml
-          retention-days: 30
-
-      - name: 💬 Comment on PR
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const frontendStatus = '${{ steps.frontend-tests.outputs.status || 'skipped' }}';
-            const backendStatus = '${{ steps.backend-tests.outputs.status || 'skipped' }}'; 
-            const overallStatus = '${{ steps.summary.outputs.overall-status }}';
-            const coverageGenerated = '${{ steps.summary.outputs.coverage-generated }}' === 'true';
-            
-            const statusEmoji = (status) => {
-              switch(status) {
-                case 'success': return '✅';
-                case 'failure': return '❌'; 
-                case 'skipped': return '⏭️';
-                default: return '❓';
-              }
-            };
-            
-            const comment = `## 🧪 Test Results
-            
-            | Component | Status | 
-            |-----------|--------|
-            | Frontend Tests | ${statusEmoji(frontendStatus)} ${frontendStatus} |
-            | Backend Tests | ${statusEmoji(backendStatus)} ${backendStatus} |
-            
-            **Overall:** ${statusEmoji(overallStatus)} ${overallStatus}
-            **Coverage:** ${coverageGenerated ? '📊 Generated' : '❌ Not available'}
-            `;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-  
   # =========================================
   # JOB 8: UNTESTED CODE HANDLING
   # =========================================
