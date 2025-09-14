@@ -44,7 +44,7 @@ permissions:
 
 # Global environment variables
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   YARN_CACHE_FOLDER: ~/.cache/yarn
   FORCE_SKIP_TESTS: ${{ github.event.inputs.force_skip_tests == 'true' || contains(github.event.head_commit.message, '[skip tests]') }}
 
