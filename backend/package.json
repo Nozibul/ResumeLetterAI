@@ -8,7 +8,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "test": "jest --watchAll=false --runInBand",
+    "test:unit": "jest --testPathPatterns='\\.test\\.(js|jsx|ts|tsx)$' --testPathIgnorePatterns='integration'",
+    "test:integration": "jest --testPathPatterns='integration|\\.integration\\.(js|jsx|ts|tsx)$'",
+    "test:ci": "jest --watchAll=false --coverage"
   },
   "dependencies": {
     "axios": "^1.12.0",
