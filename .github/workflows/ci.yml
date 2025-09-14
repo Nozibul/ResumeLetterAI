@@ -425,7 +425,10 @@ jobs:
           cache: 'yarn'
 
       - name: 🔧 Install root dependencies
-        run: yarn install
+        run: |
+          echo "📦 Installing root dependencies..."
+          yarn install --frozen-lockfile
+        continue-on-error: false
 
       - name: 🔧 Install workspace dependencies
         run: |
@@ -434,92 +437,135 @@ jobs:
           # Install frontend dependencies
           if [ -d "frontend" ]; then
             echo "Installing frontend dependencies..."
-            cd frontend && yarn install && cd ..
+            cd frontend
+            yarn install --frozen-lockfile
+            cd ..
           fi
           
           # Install backend dependencies  
           if [ -d "backend" ]; then
             echo "Installing backend dependencies..."
-            cd backend && yarn install && cd ..
+            cd backend
+            yarn install --frozen-lockfile
+            cd ..
           fi
 
-      - name: 🧪 Run tests
+      - name: 🧪 Run Frontend Tests
+        if: always() && hashFiles('frontend/package.json') != ''
         run: |
-          TEST_FILES='${{ needs.selective-testing.outputs.test-files }}'
-          TEST_TYPE="${{ matrix.test-type }}"
+          echo "🎨 Running frontend ${{ matrix.test-type }} tests..."
+          cd frontend
           
-          echo "🧪 Running $TEST_TYPE tests..."
-          
-          # Run frontend tests
-          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
-            echo "🎨 Running frontend tests..."
-            cd frontend
-            
-            if grep -q "test" package.json; then
-              # Detect Jest and run appropriate commands
-              if [ -f "jest.config.js" ] || grep -q "jest" package.json; then
-                echo "📋 Detected Jest framework"
-                if [ "$TEST_TYPE" = "unit" ]; then
-                  yarn jest --watchAll=false --coverage --testPathPattern="\.test\." || npm run test -- --watchAll=false --coverage --testPathPattern="\.test\."
-                elif [ "$TEST_TYPE" = "integration" ]; then
-                  yarn jest --watchAll=false --testPathPattern="integration|\.integration\." --runInBand || npm run test -- --watchAll=false --testPathPattern="integration|\.integration\." --runInBand
-                else
-                  yarn jest --watchAll=false --coverage || npm run test -- --watchAll=false --coverage
-                fi
-              else
-                # Generic test command
-                if [ "$TEST_TYPE" = "unit" ]; then
-                  yarn test --watchAll=false --coverage || npm test -- --watchAll=false --coverage
-                elif [ "$TEST_TYPE" = "integration" ]; then
-                  yarn test --watchAll=false --testPathPattern="integration" || npm test -- --watchAll=false --testPathPattern="integration"
-                else
-                  yarn test --watchAll=false || npm test -- --watchAll=false
-                fi
-              fi
-            else
-              echo "⚠️ No test script found in frontend"
-            fi
-            cd ..
+          # Check if test script exists
+          if ! yarn run --json | grep -q '"name":"test"'; then
+            echo "⚠️ No test script found in frontend package.json"
+            exit 0
           fi
           
-          # Run backend tests
-          if [ -d "backend" ] && [ -f "backend/package.json" ]; then
-            echo "⚙️ Running backend tests..."
-            cd backend
-            
-            if grep -q "test" package.json; then
-              # Detect Jest for backend too
-              if [ -f "jest.config.js" ] || grep -q "jest" package.json; then
-                echo "📋 Detected Jest framework for backend"
-                if [ "$TEST_TYPE" = "unit" ]; then
-                  yarn jest --coverage --testPathPattern="\.test\." || npm run test -- --coverage --testPathPattern="\.test\."
-                elif [ "$TEST_TYPE" = "integration" ]; then
-                  yarn jest --testPathPattern="integration|\.integration\." --runInBand || npm run test -- --testPathPattern="integration|\.integration\." --runInBand
-                else
-                  yarn jest --coverage || npm run test -- --coverage
-                fi
-              else
-                yarn test || npm test
-              fi
-            else
-              echo "⚠️ No test script found in backend"
-            fi
-            cd ..
-          fi
+          # Set test command based on test type
+          case "${{ matrix.test-type }}" in
+            "unit")
+              echo "Running unit tests..."
+              yarn test --watchAll=false --coverage --testPathPatterns="\.test\.(js|jsx|ts|tsx)$" --testPathIgnorePatterns="integration"
+              ;;
+            "integration")
+              echo "Running integration tests..."
+              yarn test --watchAll=false --testPathPatterns="integration|\.integration\.(js|jsx|ts|tsx)$" --runInBand
+              ;;
+            *)
+              echo "Running all tests..."
+              yarn test --watchAll=false --coverage
+              ;;
+          esac
         env:
           CI: true
           NODE_ENV: test
 
-      - name: 📊 Upload test results
+      - name: 🧪 Run Backend Tests
+        if: always() && hashFiles('backend/package.json') != ''
+        run: |
+          echo "⚙️ Running backend ${{ matrix.test-type }} tests..."
+          cd backend
+          
+          # Check if test script exists
+          if ! yarn run --json | grep -q '"name":"test"'; then
+            echo "⚠️ No test script found in backend package.json"
+            exit 0
+          fi
+          
+          # Set test command based on test type
+          case "${{ matrix.test-type }}" in
+            "unit")
+              echo "Running unit tests..."
+              yarn test --coverage --testPathPatterns="\.test\.(js|jsx|ts|tsx)$" --testPathIgnorePatterns="integration"
+              ;;
+            "integration")
+              echo "Running integration tests..."
+              yarn test --testPathPatterns="integration|\.integration\.(js|jsx|ts|tsx)$" --runInBand
+              ;;
+            *)
+              echo "Running all tests..."
+              yarn test --coverage
+              ;;
+          esac
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: 🧪 Run Specific Test Files (if provided)
+        if: needs.selective-testing.outputs.test-files != '[]' && needs.selective-testing.outputs.test-files != ''
+        run: |
+          TEST_FILES='${{ needs.selective-testing.outputs.test-files }}'
+          echo "🎯 Running specific test files: $TEST_FILES"
+          
+          # Parse JSON array and run specific tests
+          echo "$TEST_FILES" | jq -r '.[]' | while read -r test_file; do
+            if [[ "$test_file" == *"frontend"* ]] && [ -d "frontend" ]; then
+              echo "Running frontend test: $test_file"
+              cd frontend
+              # Convert absolute path to relative path for Jest
+              relative_path=${test_file#"./frontend/"}
+              yarn test:specific "$relative_path"
+              cd ..
+            elif [[ "$test_file" == *"backend"* ]] && [ -d "backend" ]; then
+              echo "Running backend test: $test_file"
+              cd backend
+              # Convert absolute path to relative path for Jest
+              relative_path=${test_file#"./backend/"}
+              yarn test --watchAll=false "$relative_path"
+              cd ..
+            fi
+          done
+        env:
+          CI: true
+          NODE_ENV: test
+
+      - name: 📊 Upload Frontend Coverage
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('frontend/coverage/**/*') != ''
+        with:
+          name: frontend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
+          path: frontend/coverage/
+          retention-days: 7
+
+      - name: 📊 Upload Backend Coverage
+        uses: actions/upload-artifact@v4
+        if: always() && hashFiles('backend/coverage/**/*') != ''
+        with:
+          name: backend-coverage-${{ matrix.test-type }}-node-${{ matrix.node-version }}
+          path: backend/coverage/
+          retention-days: 7
+
+      - name: 📊 Upload Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results-${{ matrix.test-type }}-node-${{ matrix.node-version }}
           path: |
-            frontend/coverage/
-            backend/coverage/
             frontend/test-results.xml
             backend/test-results.xml
+            frontend/junit.xml
+            backend/junit.xml
           retention-days: 7
 
   # =========================================

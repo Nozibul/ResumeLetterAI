@@ -10,8 +10,9 @@
     "test": "jest --watchAll=false --runInBand",
     "test:watch": "jest --watchAll --runInBand",
     "test:ci": "jest --watchAll=false --runInBand --coverage",
-    "test:unit": "jest --testPathPattern='\\.test\\.' --watchAll=false",
-    "test:integration": "jest --testPathPattern='integration' --watchAll=false --runInBand",
+    "test:unit": "jest --testPathPatterns='\\.test\\.(js|jsx|ts|tsx)$' --testPathIgnorePatterns='integration' --watchAll=false --coverage",
+    "test:integration": "jest --testPathPatterns='integration|\\.integration\\.(js|jsx|ts|tsx)$' --watchAll=false --runInBand",
+    "test:specific": "jest --watchAll=false",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:fix": "next lint --fix"
