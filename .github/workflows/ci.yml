@@ -402,7 +402,7 @@ jobs:
           echo "⚡ Run Performance: $RUN_PERFORMANCE"
 
   # =========================================
-  # JOB 7: TEST CODE DETECTION & EXECUTION (Yarn Optimized)
+  # JOB 7: TEST CODE DETECTION & EXECUTION (Yarn Optimized - No TypeScript)
   # =========================================
   test-execution:
     name: 🧪 Test Execution
@@ -697,7 +697,7 @@ jobs:
               # Ensure dependencies
               if [ ! -d "node_modules" ]; then
                 rm -f yarn.lock package-lock.json
-                yarn install
+                YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
               fi
               
               # Run specific test
@@ -807,6 +807,8 @@ jobs:
               }
             " >> $GITHUB_STEP_SUMMARY
           fi
+  
+  
   # =========================================
   # JOB 8: UNTESTED CODE HANDLING
   # =========================================
