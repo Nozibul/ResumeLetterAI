@@ -424,14 +424,23 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'yarn'
 
-      - name: 🔧 Install dependencies
+      - name: 🔧 Install root dependencies
+        run: yarn install
+
+      - name: 🔧 Install workspace dependencies
         run: |
-          if [ -f "yarn.lock" ]; then
-            yarn install --frozen-lockfile
-          elif [ -f "package-lock.json" ]; then
-            yarn ci
-          else
-            yarn install
+          echo "📦 Installing workspace dependencies..."
+          
+          # Install frontend dependencies
+          if [ -d "frontend" ]; then
+            echo "Installing frontend dependencies..."
+            cd frontend && yarn install && cd ..
+          fi
+          
+          # Install backend dependencies  
+          if [ -d "backend" ]; then
+            echo "Installing backend dependencies..."
+            cd backend && yarn install && cd ..
           fi
 
       - name: 🧪 Run tests
@@ -441,20 +450,61 @@ jobs:
           
           echo "🧪 Running $TEST_TYPE tests..."
           
-          # Detect test framework and run appropriate command
-          if [ -f "jest.config.js" ] || grep -q "jest" package.json; then
-            if [ "$TEST_TYPE" = "unit" ]; then
-              yarn jest --testPathPattern="\.test\." --coverage
-            elif [ "$TEST_TYPE" = "integration" ]; then
-              yarn jest --testPathPattern="\.integration\." --runInBand
+          # Run frontend tests
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+            echo "🎨 Running frontend tests..."
+            cd frontend
+            
+            if grep -q "test" package.json; then
+              # Detect Jest and run appropriate commands
+              if [ -f "jest.config.js" ] || grep -q "jest" package.json; then
+                echo "📋 Detected Jest framework"
+                if [ "$TEST_TYPE" = "unit" ]; then
+                  yarn jest --watchAll=false --coverage --testPathPattern="\.test\." || npm run test -- --watchAll=false --coverage --testPathPattern="\.test\."
+                elif [ "$TEST_TYPE" = "integration" ]; then
+                  yarn jest --watchAll=false --testPathPattern="integration|\.integration\." --runInBand || npm run test -- --watchAll=false --testPathPattern="integration|\.integration\." --runInBand
+                else
+                  yarn jest --watchAll=false --coverage || npm run test -- --watchAll=false --coverage
+                fi
+              else
+                # Generic test command
+                if [ "$TEST_TYPE" = "unit" ]; then
+                  yarn test --watchAll=false --coverage || npm test -- --watchAll=false --coverage
+                elif [ "$TEST_TYPE" = "integration" ]; then
+                  yarn test --watchAll=false --testPathPattern="integration" || npm test -- --watchAll=false --testPathPattern="integration"
+                else
+                  yarn test --watchAll=false || npm test -- --watchAll=false
+                fi
+              fi
+            else
+              echo "⚠️ No test script found in frontend"
             fi
-          elif [ -f "vitest.config.js" ] || grep -q "vitest" package.json; then
-            yarn vitest run --reporter=verbose --coverage
-          elif grep -q "mocha" package.json; then
-            yarn mocha --recursive --reporter spec
-          else
-            echo "No test framework detected, running generic test command"
-            yarn test
+            cd ..
+          fi
+          
+          # Run backend tests
+          if [ -d "backend" ] && [ -f "backend/package.json" ]; then
+            echo "⚙️ Running backend tests..."
+            cd backend
+            
+            if grep -q "test" package.json; then
+              # Detect Jest for backend too
+              if [ -f "jest.config.js" ] || grep -q "jest" package.json; then
+                echo "📋 Detected Jest framework for backend"
+                if [ "$TEST_TYPE" = "unit" ]; then
+                  yarn jest --coverage --testPathPattern="\.test\." || npm run test -- --coverage --testPathPattern="\.test\."
+                elif [ "$TEST_TYPE" = "integration" ]; then
+                  yarn jest --testPathPattern="integration|\.integration\." --runInBand || npm run test -- --testPathPattern="integration|\.integration\." --runInBand
+                else
+                  yarn jest --coverage || npm run test -- --coverage
+                fi
+              else
+                yarn test || npm test
+              fi
+            else
+              echo "⚠️ No test script found in backend"
+            fi
+            cd ..
           fi
         env:
           CI: true
@@ -466,9 +516,10 @@ jobs:
         with:
           name: test-results-${{ matrix.test-type }}-node-${{ matrix.node-version }}
           path: |
-            coverage/
-            test-results.xml
-            junit.xml
+            frontend/coverage/
+            backend/coverage/
+            frontend/test-results.xml
+            backend/test-results.xml
           retention-days: 7
 
   # =========================================

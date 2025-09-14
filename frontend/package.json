@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --watchAll --runInBand",
+    "test": "jest --watchAll=false --runInBand",
+    "test:watch": "jest --watchAll --runInBand",
+    "test:ci": "jest --watchAll=false --runInBand --coverage",
+    "test:unit": "jest --testPathPattern='\\.test\\.' --watchAll=false",
+    "test:integration": "jest --testPathPattern='integration' --watchAll=false --runInBand",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:fix": "next lint --fix"
