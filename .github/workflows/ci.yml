@@ -401,9 +401,9 @@ jobs:
           echo "🔒 Run Security: $RUN_SECURITY"
           echo "⚡ Run Performance: $RUN_PERFORMANCE"
 
-  # =========================================
-  # JOB 7: TEST CODE DETECTION & EXECUTION (Yarn Optimized - No TypeScript)
-  # =========================================
+# =========================================
+# JOB 7: TEST CODE DETECTION & EXECUTION (Yarn with Lockfile - JavaScript Only)
+# =========================================
   test-execution:
     name: 🧪 Test Execution
     runs-on: ubuntu-latest
@@ -440,7 +440,7 @@ jobs:
           yarn config set enableHardenedMode false
           yarn config set enableInlineBuilds false
           yarn config set enableProgressBars false
-          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}]'
+          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
           
           # Show yarn version
           echo "Yarn version: $(yarn --version)"
@@ -452,12 +452,17 @@ jobs:
         run: |
           echo "📦 Installing root dependencies with Yarn..."
           
-          # Remove any existing lockfile and node_modules to avoid conflicts
-          rm -f yarn.lock package-lock.json
+          # Clean up any problematic files but keep lockfile
           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-          # Fresh install without lockfile
-          yarn install
+          # Install with lockfile if exists, create if not
+          if [ -f "yarn.lock" ]; then
+            echo "Found yarn.lock, installing with --immutable"
+            yarn install --immutable --immutable-cache
+          else
+            echo "No yarn.lock found, creating new lockfile"
+            yarn install
+          fi
         env:
           YARN_ENABLE_HARDENED_MODE: false
           YARN_ENABLE_INLINE_BUILDS: false
@@ -472,13 +477,19 @@ jobs:
           # Configure yarn for frontend workspace
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set enableHardenedMode false
+          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
           
-          # Remove problematic files
-          rm -f yarn.lock package-lock.json
+          # Remove cache but keep lockfile
           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-          # Install dependencies without lockfile
-          yarn install
+          # Install dependencies
+          if [ -f "yarn.lock" ]; then
+            echo "Found frontend yarn.lock, installing with --immutable"
+            yarn install --immutable --immutable-cache
+          else
+            echo "No frontend yarn.lock found, creating new lockfile"
+            yarn install
+          fi
           
           # Verify installation
           echo "✅ Frontend dependencies installed successfully"
@@ -497,13 +508,19 @@ jobs:
           # Configure yarn for backend workspace
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set enableHardenedMode false
+          yarn config set logFilters --json '[{"code": "YN0013", "level": "discard"}, {"code": "YN0002", "level": "discard"}, {"code": "YN0086", "level": "discard"}]'
           
-          # Remove problematic files
-          rm -f yarn.lock package-lock.json
+          # Remove cache but keep lockfile
           rm -rf node_modules .yarn/cache .yarn/install-state.gz 2>/dev/null || true
           
-          # Install dependencies without lockfile
-          yarn install
+          # Install dependencies
+          if [ -f "yarn.lock" ]; then
+            echo "Found backend yarn.lock, installing with --immutable"
+            yarn install --immutable --immutable-cache
+          else
+            echo "No backend yarn.lock found, creating new lockfile"
+            yarn install
+          fi
           
           # Verify installation
           echo "✅ Backend dependencies installed successfully"
@@ -530,6 +547,7 @@ jobs:
             cd frontend
             yarn --version
             [ -d "node_modules" ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
+            [ -f "yarn.lock" ] && echo "✅ yarn.lock exists" || echo "ℹ️ yarn.lock missing"
             cd ..
           fi
           
@@ -539,6 +557,7 @@ jobs:
             cd backend
             yarn --version
             [ -d "node_modules" ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
+            [ -f "yarn.lock" ] && echo "✅ yarn.lock exists" || echo "ℹ️ yarn.lock missing"
             cd ..
           fi
 
@@ -551,8 +570,11 @@ jobs:
           # Double-check dependencies are installed
           if [ ! -d "node_modules" ]; then
             echo "🔄 Dependencies missing, reinstalling..."
-            rm -f yarn.lock package-lock.json
-            yarn install
+            if [ -f "yarn.lock" ]; then
+              yarn install --immutable --immutable-cache
+            else
+              yarn install
+            fi
           fi
           
           # Check for test script in package.json using node
@@ -574,7 +596,7 @@ jobs:
           
           echo "✅ Found test script: $HAS_TEST_SCRIPT"
           
-          # Run tests based on type (JavaScript patterns only)
+          # Run tests based on type (JavaScript patterns only - no TypeScript)
           case "${{ matrix.test-type }}" in
             "unit")
               echo "🔬 Running unit tests..."
@@ -617,8 +639,11 @@ jobs:
           # Double-check dependencies are installed
           if [ ! -d "node_modules" ]; then
             echo "🔄 Dependencies missing, reinstalling..."
-            rm -f yarn.lock package-lock.json
-            yarn install
+            if [ -f "yarn.lock" ]; then
+              yarn install --immutable --immutable-cache
+            else
+              yarn install
+            fi
           fi
           
           # Check for test script in package.json using node
@@ -634,13 +659,13 @@ jobs:
           if [ -z "$HAS_TEST_SCRIPT" ]; then
             echo "⚠️ No test script found in backend package.json"
             echo "Available scripts:"
-            yarn run --json 2>/dev/null | jq -r '.data.items[].name' 2>/dev/null || echo "Could not list scripts"
+            yarn run --json 2>/dev/null || echo "Could not list scripts"
             exit 0
           fi
           
           echo "✅ Found test script: $HAS_TEST_SCRIPT"
           
-          # Run tests based on type (JavaScript patterns only)
+          # Run tests based on type (JavaScript patterns only - no TypeScript)
           case "${{ matrix.test-type }}" in
             "unit")
               echo "🔬 Running unit tests..."
@@ -696,8 +721,11 @@ jobs:
               
               # Ensure dependencies
               if [ ! -d "node_modules" ]; then
-                rm -f yarn.lock package-lock.json
-                YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
+                if [ -f "yarn.lock" ]; then
+                  yarn install --immutable --immutable-cache
+                else
+                  yarn install
+                fi
               fi
               
               # Run specific test
@@ -712,8 +740,11 @@ jobs:
               
               # Ensure dependencies
               if [ ! -d "node_modules" ]; then
-                rm -f yarn.lock package-lock.json
-                yarn install
+                if [ -f "yarn.lock" ]; then
+                  yarn install --immutable --immutable-cache
+                else
+                  yarn install
+                fi
               fi
               
               # Run specific test
@@ -761,17 +792,24 @@ jobs:
       - name: 📋 Generate Test Summary
         if: always()
         run: |
-          echo "## 🧪 Yarn Test Execution Summary (JavaScript Only)" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Yarn Test Execution Summary (JavaScript with Lockfile)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Test Type | ${{ matrix.test-type }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Node Version | ${{ matrix.node-version }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Package Manager | Yarn $(yarn --version 2>/dev/null || echo 'N/A') |" >> $GITHUB_STEP_SUMMARY
-          echo "| Language | JavaScript (No TypeScript) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lockfile | Disabled (Fresh Install) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Language | JavaScript Only (No TypeScript) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lockfile | ✅ Enabled (--frozen-lockfile) |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend Tests | $([ -d "frontend" ] && echo "✅ Enabled" || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend Tests | $([ -d "backend" ] && cd backend && node -p "Object.keys(JSON.parse(require('fs').readFileSync('package.json', 'utf8')).scripts || {}).filter(s => s.includes('test')).length > 0 ? '✅ Available' : '⏳ Future Ready'" 2>/dev/null || echo "❌ Not Found") |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Show lockfile status
+          echo "### 📦 Lockfile Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Root: $([ -f "yarn.lock" ] && echo "✅ yarn.lock present" || echo "❌ No lockfile")" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: $([ -f "frontend/yarn.lock" ] && echo "✅ yarn.lock present" || echo "ℹ️ No lockfile")" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: $([ -f "backend/yarn.lock" ] && echo "✅ yarn.lock present" || echo "ℹ️ No lockfile")" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Add coverage info if available
@@ -808,7 +846,6 @@ jobs:
             " >> $GITHUB_STEP_SUMMARY
           fi
   
-  
   # =========================================
   # JOB 8: UNTESTED CODE HANDLING
   # =========================================
@@ -828,7 +865,7 @@ jobs:
           cache: 'yarn'
 
       - name: 🔧 Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
       - name: 📊 Analyze untested code
         run: |
@@ -882,7 +919,7 @@ jobs:
           cache: 'yarn'
 
       - name: 🔧 Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
       - name: ESLint Check
         run: |
@@ -1007,7 +1044,7 @@ jobs:
         run: |
           echo "💾 Cache miss - Installing fresh dependencies..."
           if [ -f "yarn.lock" ]; then
-            yarn install --prefer-offline
+            yarn install --frozen-lockfile --prefer-offline
           elif [ -f "package-lock.json" ]; then
             npm ci --prefer-offline
           else
