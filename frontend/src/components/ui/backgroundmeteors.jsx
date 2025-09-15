@@ -6,7 +6,7 @@ export default function BackgroundMeteors({
   children,
   className = '',
   minHeight = 'auto', // auto, screen, or custom value
-  gridSizes = 45,
+  gridSizes = 50,
 }) {
   const [beams, setBeams] = useState([]);
   const gridSize = gridSizes;
@@ -62,7 +62,7 @@ export default function BackgroundMeteors({
 
   return (
     <section
-      className={`relative w-full overflow-hidden bg-white dark:bg-black ${heightClass} ${className}`}
+      className={`relative w-full overflow-hidden bg-white  ${heightClass} ${className}`}
     >
       {/* Grid Background */}
       <div
@@ -83,14 +83,14 @@ export default function BackgroundMeteors({
         style={{
           backgroundSize: `${gridSize}px ${gridSize}px`,
           backgroundImage:
-            'linear-gradient(to right, #262626 1px, transparent 1px), linear-gradient(to bottom, #024e6b 1px, transparent 1px)',
+            'linear-gradient(to right, transparent 1px), linear-gradient(to bottom, transparent 1px)',
         }}
       />
 
       {/* Radial Mask */}
       <div
-        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white dark:bg-black 
-        [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"
+        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white 
+        [mask-image:radial-gradient(ellipse_at_center,transparent_1%,white)]"
       />
 
       {/* Animated Beams */}
@@ -108,8 +108,8 @@ export default function BackgroundMeteors({
         >
           <div
             className="h-14 w-px rounded-full
-              bg-gradient-to-t from-black to-transparent
-              dark:from-indigo-500 dark:via-teal-500 dark:to-transparent"
+              bg-gradient-to-t from-white to-transparent
+              dark:from-indigo-500 dark:via-teal-500 "
             style={{ margin: '0 auto' }}
           />
         </motion.div>

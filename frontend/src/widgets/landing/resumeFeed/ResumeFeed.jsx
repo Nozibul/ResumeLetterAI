@@ -4,8 +4,8 @@ import ContentFeed from '@/shared/components/atoms/contentFeed/ContentFeed';
 import Link from 'next/link';
 import { useState } from 'react';
 import { resumeTemplates } from '@/local-data/template-data';
-import TemplateFeed from '@/shared/components/atoms/templateFeed/TemplateFeed';
 import Typography from '@/shared/components/atoms/typography/Typography';
+import TemplateFeed from '@/features/templates/ui/TemplateFeed';
 
 const ResumeFeed = () => {
   const [active, setActive] = useState('1');

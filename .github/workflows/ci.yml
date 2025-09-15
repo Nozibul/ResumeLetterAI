@@ -401,9 +401,9 @@ jobs:
           echo "🔒 Run Security: $RUN_SECURITY"
           echo "⚡ Run Performance: $RUN_PERFORMANCE"
 
-  # =========================================
+  # ========================================
   # JOB 7: TEST CODE DETECTION & EXECUTION  
-  # =========================================
+  # ========================================
   test-execution:
     name: 🧪 Test Execution
     runs-on: ubuntu-latest
@@ -1192,8 +1192,10 @@ jobs:
   #             console.log('No bundle size report found to comment');
   #           }
   
+  # =========================================
   # JOB 14: NOTIFICATIONS
   # =========================================
+  
   # notifications:
   #   name: 🔔 Notifications & Reporting
   #   runs-on: ubuntu-latest
