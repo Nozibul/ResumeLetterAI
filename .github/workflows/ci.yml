@@ -52,6 +52,7 @@ jobs:
   # =========================================
   # JOB 1: MONOREPO VERSIONING (FIXED)
   # =========================================
+
   monorepo-versioning:
     name: 📦 Monorepo Versioning
     runs-on: ubuntu-latest
@@ -89,7 +90,7 @@ jobs:
             CURRENT_VERSION="0.0.0"
           fi
           
-          # Determine release type based on branch
+          # Determine release type based on branch (USE GITHUB VARIABLE)
           BRANCH_NAME="${{ github.ref_name }}"
           echo "🌿 Current Branch: $BRANCH_NAME"
           
@@ -101,34 +102,49 @@ jobs:
             RELEASE_TYPE="prerelease"
           fi
           
-          # Generate new version
+          # Generate new version with error handling
           if [[ "$RELEASE_TYPE" == "prerelease" ]]; then
             # For prerelease, we need to specify a prerelease identifier
             if [[ "$CURRENT_VERSION" == *"-"* ]]; then
               # If already a prerelease, increment it
-              NEW_VERSION=$(semver -i prerelease $CURRENT_VERSION)
+              NEW_VERSION=$(semver -i prerelease $CURRENT_VERSION 2>/dev/null || echo "$CURRENT_VERSION-beta.1")
             else
               # If not a prerelease, create first prerelease version
-              NEW_VERSION=$(semver -i prerelease --preid=beta $CURRENT_VERSION)
+              NEW_VERSION=$(semver -i prerelease --preid=beta $CURRENT_VERSION 2>/dev/null || echo "$CURRENT_VERSION-beta.0")
             fi
           else
-            NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION)
+            NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION 2>/dev/null || echo "$CURRENT_VERSION")
           fi
           
-          # Detect changed packages in monorepo
+          # Detect changed packages in monorepo (YOUR STRUCTURE)
           CHANGED_PACKAGES="[]"
-          if [ -d "packages" ]; then
-            # Find packages and create JSON array
+          if [ -d "frontend" ] || [ -d "backend" ]; then
+            # Your frontend/backend structure
+            MODULES=""
+            [ -d "frontend" ] && MODULES="$MODULES frontend"
+            [ -d "backend" ] && MODULES="$MODULES backend"
+            
+            if [ -n "$MODULES" ]; then
+              CHANGED_PACKAGES=$(echo "$MODULES" | tr ' ' '\n' | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
+            fi
+          elif [ -d "packages" ]; then
+            # Standard packages structure
             PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | sort | uniq)
             if [ -n "$PACKAGES" ]; then
               CHANGED_PACKAGES=$(echo "$PACKAGES" | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
             fi
           elif [ -d "apps" ]; then
-            # Find apps and create JSON array
+            # Apps structure
             APPS=$(find apps -name "package.json" -exec dirname {} \; | sort | uniq)
             if [ -n "$APPS" ]; then
               CHANGED_PACKAGES=$(echo "$APPS" | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
             fi
+          fi
+          
+          # Validate NEW_VERSION
+          if [ -z "$NEW_VERSION" ] || [ "$NEW_VERSION" == "null" ]; then
+            echo "❌ Failed to generate version, using fallback"
+            NEW_VERSION="$CURRENT_VERSION-$(date +%Y%m%d%H%M%S)"
           fi
           
           # Set outputs
@@ -142,6 +158,13 @@ jobs:
           echo "🔄 Release Type: $RELEASE_TYPE"
           echo "🌿 Branch Name: $BRANCH_NAME"
           echo "📂 Changed Packages: $CHANGED_PACKAGES"
+          
+          # Debug output
+          echo "📋 Debug Info:"
+          echo "  - semver command available: $(which semver || echo 'NOT FOUND')"
+          echo "  - jq command available: $(which jq || echo 'NOT FOUND')"
+          echo "  - Project structure: $(ls -la | grep ^d)"
+  
   # =========================================
   # JOB 2: FRONTEND & BACKEND DETECTION
   # =========================================
