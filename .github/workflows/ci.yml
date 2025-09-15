@@ -50,7 +50,7 @@ env:
 
 jobs:
   # =========================================
-  # JOB 1: MONOREPO VERSIONING
+  # JOB 1: MONOREPO VERSIONING (FIXED)
   # =========================================
   monorepo-versioning:
     name: 📦 Monorepo Versioning
@@ -72,12 +72,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'yarn'
 
+      - name: 🔧 Install dependencies
+        run: |
+          # Install semver tool globally
+          npm install -g semver
+          # Ensure jq is available (usually pre-installed on Ubuntu)
+          sudo apt-get update && sudo apt-get install -y jq
+
       - name: 📋 Generate version and detect changes
         id: version
         run: |
-          # Install semver tool
-          npm install -g semver
-          
           # Get current version from package.json
           if [ -f "package.json" ]; then
             CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -87,35 +91,57 @@ jobs:
           
           # Determine release type based on branch
           BRANCH_NAME="${{ github.ref_name }}"
+          echo "🌿 Current Branch: $BRANCH_NAME"
+          
           if [[ "$BRANCH_NAME" == "main" ]]; then
             RELEASE_TYPE="patch"
           elif [[ "$BRANCH_NAME" == "develop" ]]; then
             RELEASE_TYPE="minor"
-
           else
             RELEASE_TYPE="prerelease"
           fi
           
           # Generate new version
-          NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION)
+          if [[ "$RELEASE_TYPE" == "prerelease" ]]; then
+            # For prerelease, we need to specify a prerelease identifier
+            if [[ "$CURRENT_VERSION" == *"-"* ]]; then
+              # If already a prerelease, increment it
+              NEW_VERSION=$(semver -i prerelease $CURRENT_VERSION)
+            else
+              # If not a prerelease, create first prerelease version
+              NEW_VERSION=$(semver -i prerelease --preid=beta $CURRENT_VERSION)
+            fi
+          else
+            NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION)
+          fi
           
           # Detect changed packages in monorepo
           CHANGED_PACKAGES="[]"
           if [ -d "packages" ]; then
-            CHANGED_PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1]')
+            # Find packages and create JSON array
+            PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | sort | uniq)
+            if [ -n "$PACKAGES" ]; then
+              CHANGED_PACKAGES=$(echo "$PACKAGES" | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
+            fi
           elif [ -d "apps" ]; then
-            CHANGED_PACKAGES=$(find apps -name "package.json" -exec dirname {} \; | jq -R -s -c 'split("\n")[:-1]')
+            # Find apps and create JSON array
+            APPS=$(find apps -name "package.json" -exec dirname {} \; | sort | uniq)
+            if [ -n "$APPS" ]; then
+              CHANGED_PACKAGES=$(echo "$APPS" | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
+            fi
           fi
           
+          # Set outputs
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
           echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
           
+          # Display information
           echo "📦 Current Version: $CURRENT_VERSION"
           echo "🆕 New Version: $NEW_VERSION"
           echo "🔄 Release Type: $RELEASE_TYPE"
+          echo "🌿 Branch Name: $BRANCH_NAME"
           echo "📂 Changed Packages: $CHANGED_PACKAGES"
-
   # =========================================
   # JOB 2: FRONTEND & BACKEND DETECTION
   # =========================================
