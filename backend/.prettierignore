@@ -1,0 +1,34 @@
+# ==========================================
+# Prettier Ignore Rules
+# ==========================================
+
+# Dependencies
+node_modules/
+yarn.lock
+package-lock.json
+
+# Build & Distribution
+dist/
+build/
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+.eslintcache
+
+# Documentation
+docs/api/openapi.yaml
+docs/api/postman-collection.json
+
+# Config files
+.env*
+ecosystem.config.js
+
+# Database
+database/migrations/
+database/seeders/
+
