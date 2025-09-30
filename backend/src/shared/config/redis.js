@@ -10,15 +10,15 @@ const redisConfig = {
   port: parseInt(process.env.REDIS_PORT) || 6379,
   password: process.env.REDIS_PASSWORD || undefined,
   db: parseInt(process.env.REDIS_DB) || 0,
-  
+
   // Connection options
   maxRetriesPerRequest: parseInt(process.env.REDIS_MAX_RETRIES) || 3,
   retryDelayOnFailover: parseInt(process.env.REDIS_RETRY_DELAY) || 100,
   connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT) || 10000,
-  
+
   // Connect immediately (production best practice)
   lazyConnect: false,
-  
+
   // ================================================================
   // Retry Strategy: Exponential backoff with max delay
   // ================================================================
@@ -26,27 +26,27 @@ const redisConfig = {
   retryStrategy: (times) => {
     // Exponential backoff: 50ms, 100ms, 200ms, 400ms... max 2000ms
     const delay = Math.min(times * 50, 2000);
-    
+
     logger.warn({
       type: 'redis_retry',
       attempt: times,
       delay: `${delay}ms`,
-      message: `Retrying Redis connection (attempt ${times})`
+      message: `Retrying Redis connection (attempt ${times})`,
     });
-    
+
     // Stop retrying after 10 attempts
     if (times > 10) {
       logger.error({
         type: 'redis_connection',
         status: 'failed',
-        message: 'Redis connection failed after 10 attempts'
+        message: 'Redis connection failed after 10 attempts',
       });
       return null; // Stop retrying
     }
-    
+
     return delay;
   },
-  
+
   // ================================================================
   // Reconnect on specific errors
   // ================================================================
@@ -56,12 +56,12 @@ const redisConfig = {
     if (err.message.includes(targetError)) {
       logger.warn({
         type: 'redis_reconnect',
-        reason: 'READONLY error - master-slave failover detected'
+        reason: 'READONLY error - master-slave failover detected',
       });
       return true; // Reconnect
     }
     return false; // Don't reconnect for other errors
-  }
+  },
 };
 
 // ====================================================================
@@ -80,7 +80,7 @@ redis.on('connect', () => {
     status: 'connecting',
     host: redisConfig.host,
     port: redisConfig.port,
-    db: redisConfig.db
+    db: redisConfig.db,
   });
 });
 
@@ -90,7 +90,7 @@ redis.on('ready', () => {
     type: 'redis_connection',
     status: 'ready',
     message: 'Redis is ready to accept commands',
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
   });
 });
 
@@ -100,7 +100,7 @@ redis.on('error', (error) => {
     type: 'redis_connection',
     status: 'error',
     error: error.message,
-    code: error.code
+    code: error.code,
   });
 });
 
@@ -109,7 +109,7 @@ redis.on('close', () => {
   logger.warn({
     type: 'redis_connection',
     status: 'closed',
-    message: 'Redis connection closed'
+    message: 'Redis connection closed',
   });
 });
 
@@ -118,7 +118,7 @@ redis.on('reconnecting', (delay) => {
   logger.info({
     type: 'redis_connection',
     status: 'reconnecting',
-    delay: `${delay}ms`
+    delay: `${delay}ms`,
   });
 });
 
@@ -127,7 +127,7 @@ redis.on('end', () => {
   logger.warn({
     type: 'redis_connection',
     status: 'ended',
-    message: 'Redis connection ended permanently'
+    message: 'Redis connection ended permanently',
   });
 });
 
@@ -149,7 +149,7 @@ const getCache = async (key) => {
       type: 'cache_error',
       operation: 'get',
       key,
-      error: error.message
+      error: error.message,
     });
     return null; // Return null on error (graceful degradation)
   }
@@ -167,13 +167,13 @@ const setCache = async (key, value, ttl = 300) => {
     // Redis এ data save করো (JSON string হিসেবে)
     await redis.setex(key, ttl, JSON.stringify(value));
     // setex = SET with EXpiry (TTL সহ save করে)
-    return true;  // Success
+    return true; // Success
   } catch (error) {
     logger.error({
       type: 'cache_error',
       operation: 'set',
       key,
-      error: error.message
+      error: error.message,
     });
     return false; // Return false on error
   }
@@ -193,7 +193,7 @@ const deleteCache = async (key) => {
       type: 'cache_error',
       operation: 'delete',
       key,
-      error: error.message
+      error: error.message,
     });
     return false;
   }
@@ -213,7 +213,7 @@ const clearCacheByPattern = async (pattern) => {
       logger.info({
         type: 'cache_clear',
         pattern,
-        keysDeleted: keys.length
+        keysDeleted: keys.length,
       });
     }
     return keys.length;
@@ -222,7 +222,7 @@ const clearCacheByPattern = async (pattern) => {
       type: 'cache_error',
       operation: 'clearPattern',
       pattern,
-      error: error.message
+      error: error.message,
     });
     return 0;
   }
@@ -237,17 +237,17 @@ const healthCheck = async () => {
     const startTime = Date.now();
     await redis.ping();
     const duration = Date.now() - startTime;
-    
+
     return {
       status: 'healthy',
       responseTime: `${duration}ms`,
       host: redisConfig.host,
-      port: redisConfig.port
+      port: redisConfig.port,
     };
   } catch (error) {
     return {
       status: 'unhealthy',
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -261,13 +261,13 @@ const disconnect = async () => {
     logger.info({
       type: 'redis_connection',
       status: 'disconnected',
-      message: 'Redis connection closed gracefully'
+      message: 'Redis connection closed gracefully',
     });
   } catch (error) {
     logger.error({
       type: 'redis_connection',
       status: 'disconnect_failed',
-      error: error.message
+      error: error.message,
     });
     process.exit(1); // Force exit on failure
   }
@@ -296,11 +296,11 @@ process.on('SIGTERM', async () => {
 // Exports
 // ====================================================================
 module.exports = {
-  redis,              // Raw Redis client (for advanced usage)
-  getCache,           // Get cached data
-  setCache,           // Set cached data with TTL
-  deleteCache,        // Delete single cache key
-  clearCacheByPattern,// Delete multiple keys by pattern
-  healthCheck,        // Health check for monitoring
-  disconnect          // Graceful shutdown
+  redis, // Raw Redis client (for advanced usage)
+  getCache, // Get cached data
+  setCache, // Set cached data with TTL
+  deleteCache, // Delete single cache key
+  clearCacheByPattern, // Delete multiple keys by pattern
+  healthCheck, // Health check for monitoring
+  disconnect, // Graceful shutdown
 };
