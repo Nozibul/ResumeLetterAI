@@ -1,0 +1,40 @@
+{
+  "name": "resume-letter-ai",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "install:frontend": "cd frontend && yarn install",
+    "install:backend": "cd backend && yarn install",
+    "build": "yarn build:frontend && yarn build:backend",
+    "build:frontend": "cd frontend && yarn build",
+    "build:backend": "cd backend && yarn build",
+    "dev": "concurrently \"yarn dev:frontend\" \"yarn dev:backend\"",
+    "dev:frontend": "cd frontend && yarn dev",
+    "dev:backend": "cd backend && yarn dev",
+    "test": "yarn test:frontend && yarn test:backend",
+    "test:frontend": "cd frontend && yarn test",
+    "test:backend": "cd backend && yarn test",
+    "lint": "yarn lint:frontend && yarn lint:backend",
+    "lint:frontend": "cd frontend && yarn lint",
+    "lint:backend": "cd backend && yarn lint",
+    "lint:fix": "yarn lint:fix:frontend && yarn lint:fix:backend",
+    "lint:fix:frontend": "cd frontend && yarn lint --fix",
+    "lint:fix:backend": "cd backend && yarn lint --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
+    "clean": "rimraf node_modules frontend/node_modules backend/node_modules",
+    "clean:build": "rimraf frontend/dist frontend/build backend/dist backend/build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "yarn": ">=1.22.0"
+  }
+}

@@ -13,8 +13,8 @@ import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Typography from '../../atoms/typography/Typography';
 import Icon from '../../atoms/icons/Icons';
-import { formatCategoryName } from '@/lib/formatCategoryName';
-import { getColorGradient, getBorderColor } from '@/lib/colorsUtils';
+import { getColorGradient, getBorderColor } from '@/shared/lib/colorsUtils';
+import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 
 const ResumeCategoryCard = memo(
   ({ templates, isActive = true, onClick, className = '', index = 0 }) => {

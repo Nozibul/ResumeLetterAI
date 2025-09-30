@@ -1,5 +1,4 @@
 'use client';
-
 /**
  * @file page.jsx
  * @author Nozibul Islam
@@ -10,18 +9,18 @@
 
 import Image from 'next/image';
 import React, { useState, useEffect, useMemo } from 'react';
-import { ResumeSkeleton } from './ResumeSkeleton';
 import Button from '@/shared/components/atoms/buttons/Button';
 import { useSearchParams } from 'next/navigation';
 import {
   INITIAL_ITEMS_ALL,
   INITIAL_ITEMS_FILTERED,
   ITEMS_PER_LOAD,
-} from '@/lib/constants';
+} from '@/shared/lib/constants';
 import Link from 'next/link';
 import Typography from '@/shared/components/atoms/typography/Typography';
-import { formatCategoryName } from '@/lib/formatCategoryName';
+import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 import { resumeTemplates } from '@/local-data/template-data';
+import { CardSkeleton } from '@/shared/components/atoms/cardSkeleton/CardSkeleton';
 
 const TemplatePage = () => {
   const [moreItem, setMoreItem] = useState(INITIAL_ITEMS_ALL);
@@ -122,7 +121,7 @@ const TemplatePage = () => {
             </div>
           </div>
         ) : (
-          <ResumeSkeleton count={displayedTemplates?.length} />
+          <CardSkeleton count={displayedTemplates?.length} />
         )}
 
         {/* Show More Button */}

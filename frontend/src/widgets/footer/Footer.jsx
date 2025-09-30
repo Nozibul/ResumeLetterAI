@@ -17,7 +17,7 @@ const Footer = React.memo(() => {
       {/* Professional Curved Top Design */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none">
         <svg
-          className="relative block w-full h-10 md:h-12 lg:h-16"
+          className="relative block w-full h-10 md:h-8 lg:h-10"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 1440 54"
           preserveAspectRatio="none"
@@ -29,7 +29,7 @@ const Footer = React.memo(() => {
         </svg>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20 md:pt-24 lg:pt-28">
+      <div className="relative max-w-7xl mx-auto -mt-4 px-4 sm:px-6 lg:px-8 py-6 pt-20 md:pt-24 lg:pt-28">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
           {/* Brand Section */}

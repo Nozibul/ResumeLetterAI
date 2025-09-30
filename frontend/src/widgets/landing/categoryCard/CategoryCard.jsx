@@ -12,7 +12,7 @@ import Typography from '@/shared/components/atoms/typography/Typography';
 import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
 import Link from 'next/link';
 import { useState } from 'react';
-import { formatCategoryName } from '@/lib/formatCategoryName';
+import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 import { resumeCards } from '@/local-data/cardCategory';
 
 const CategoryCard = () => {

@@ -126,6 +126,7 @@ export default function RootLayout({ children }) {
       >
         <Navigation />
         {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
+
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

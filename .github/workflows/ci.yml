@@ -1,0 +1,1441 @@
+name: 🚀 Complete CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - '**' 
+      # - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      force_skip_tests:
+        description: 'Force skip all tests'
+        required: false
+        default: false
+        type: boolean
+      # deploy_environment:
+      #   description: 'Deploy to environment'
+      #   required: false
+      #   default: 'none'
+      #   type: choice
+      #   options:
+      #     - none
+      #     - staging
+      #     - production
+      # run_performance_tests:
+      #   description: 'Run performance tests'
+      #   required: false
+      #   default: false
+      #   type: boolean
+
+# Security permissions (principle of least privilege)
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+  security-events: write
+  issues: write
+
+# Global environment variables
+env:
+  NODE_VERSION: '20'
+  YARN_CACHE_FOLDER: ~/.cache/yarn
+  FORCE_SKIP_TESTS: ${{ github.event.inputs.force_skip_tests == 'true' || contains(github.event.head_commit.message, '[skip tests]') }}
+
+jobs:
+  # =========================================
+  # JOB 1: MONOREPO VERSIONING (FIXED)
+  # =========================================
+
+  monorepo-versioning:
+    name: 📦 Monorepo Versioning
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      changed-packages: ${{ steps.version.outputs.changed-packages }}
+      release-type: ${{ steps.version.outputs.release-type }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 🔧 Install dependencies
+        run: |
+          # Install semver tool globally
+          npm install -g semver
+          # Ensure jq is available (usually pre-installed on Ubuntu)
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: 📋 Generate version and detect changes
+        id: version
+        run: |
+          # Get current version from package.json
+          if [ -f "package.json" ]; then
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+          else
+            CURRENT_VERSION="0.0.0"
+          fi
+          
+          # Determine release type based on branch (USE GITHUB VARIABLE)
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "🌿 Current Branch: $BRANCH_NAME"
+          
+          if [[ "$BRANCH_NAME" == "main" ]]; then
+            RELEASE_TYPE="patch"
+          elif [[ "$BRANCH_NAME" == "develop" ]]; then
+            RELEASE_TYPE="minor"
+          else
+            RELEASE_TYPE="prerelease"
+          fi
+          
+          # Generate new version with error handling
+          if [[ "$RELEASE_TYPE" == "prerelease" ]]; then
+            # For prerelease, we need to specify a prerelease identifier
+            if [[ "$CURRENT_VERSION" == *"-"* ]]; then
+              # If already a prerelease, increment it
+              NEW_VERSION=$(semver -i prerelease $CURRENT_VERSION 2>/dev/null || echo "$CURRENT_VERSION-beta.1")
+            else
+              # If not a prerelease, create first prerelease version
+              NEW_VERSION=$(semver -i prerelease --preid=beta $CURRENT_VERSION 2>/dev/null || echo "$CURRENT_VERSION-beta.0")
+            fi
+          else
+            NEW_VERSION=$(semver -i $RELEASE_TYPE $CURRENT_VERSION 2>/dev/null || echo "$CURRENT_VERSION")
+          fi
+          
+          # Detect changed packages in monorepo (YOUR STRUCTURE)
+          CHANGED_PACKAGES="[]"
+          if [ -d "frontend" ] || [ -d "backend" ]; then
+            # Your frontend/backend structure
+            MODULES=""
+            [ -d "frontend" ] && MODULES="$MODULES frontend"
+            [ -d "backend" ] && MODULES="$MODULES backend"
+            
+            if [ -n "$MODULES" ]; then
+              CHANGED_PACKAGES=$(echo "$MODULES" | tr ' ' '\n' | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
+            fi
+          elif [ -d "packages" ]; then
+            # Standard packages structure
+            PACKAGES=$(find packages -name "package.json" -exec dirname {} \; | sort | uniq)
+            if [ -n "$PACKAGES" ]; then
+              CHANGED_PACKAGES=$(echo "$PACKAGES" | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
+            fi
+          elif [ -d "apps" ]; then
+            # Apps structure
+            APPS=$(find apps -name "package.json" -exec dirname {} \; | sort | uniq)
+            if [ -n "$APPS" ]; then
+              CHANGED_PACKAGES=$(echo "$APPS" | jq -R -s -c 'split("\n")[:-1] | map(select(. != ""))')
+            fi
+          fi
+          
+          # Validate NEW_VERSION
+          if [ -z "$NEW_VERSION" ] || [ "$NEW_VERSION" == "null" ]; then
+            echo "❌ Failed to generate version, using fallback"
+            NEW_VERSION="$CURRENT_VERSION-$(date +%Y%m%d%H%M%S)"
+          fi
+          
+          # Set outputs
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
+          echo "release-type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          
+          # Display information
+          echo "📦 Current Version: $CURRENT_VERSION"
+          echo "🆕 New Version: $NEW_VERSION"
+          echo "🔄 Release Type: $RELEASE_TYPE"
+          echo "🌿 Branch Name: $BRANCH_NAME"
+          echo "📂 Changed Packages: $CHANGED_PACKAGES"
+          
+          # Debug output
+          echo "📋 Debug Info:"
+          echo "  - semver command available: $(which semver || echo 'NOT FOUND')"
+          echo "  - jq command available: $(which jq || echo 'NOT FOUND')"
+          echo "  - Project structure: $(ls -la | grep ^d)"
+  
+  # =========================================
+  # JOB 2: FRONTEND & BACKEND DETECTION
+  # =========================================
+  detect-services:
+    name: Frontend & Backend Detection
+    runs-on: ubuntu-latest
+    outputs:
+      has-frontend: ${{ steps.detect.outputs.has-frontend }}
+      has-backend: ${{ steps.detect.outputs.has-backend }}
+      frontend-framework: ${{ steps.detect.outputs.frontend-framework }}
+      backend-framework: ${{ steps.detect.outputs.backend-framework }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect Frontend & Backend
+        id: detect
+        run: |
+          HAS_FRONTEND=false
+          HAS_BACKEND=false
+          FRONTEND_FRAMEWORK="none"
+          BACKEND_FRAMEWORK="none"
+          
+          # Detect Frontend
+          if [ -f "package.json" ]; then
+            if grep -q "react" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="react"
+            elif grep -q "vue" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="vue"
+            elif grep -q "next" package.json; then
+              HAS_FRONTEND=true
+              FRONTEND_FRAMEWORK="nextjs"
+            fi
+          fi
+          
+          # Detect Backend
+          if [ -f "package.json" ]; then
+            if grep -q "express" package.json || grep -q "fastify" package.json || grep -q "koa" package.json; then
+              HAS_BACKEND=true
+              BACKEND_FRAMEWORK="nodejs"
+            fi
+          fi
+          
+          echo "has-frontend=$HAS_FRONTEND" >> $GITHUB_OUTPUT
+          echo "has-backend=$HAS_BACKEND" >> $GITHUB_OUTPUT
+          echo "frontend-framework=$FRONTEND_FRAMEWORK" >> $GITHUB_OUTPUT
+          echo "backend-framework=$BACKEND_FRAMEWORK" >> $GITHUB_OUTPUT
+          
+          echo "Frontend: $HAS_FRONTEND ($FRONTEND_FRAMEWORK)"
+          echo "Backend: $HAS_BACKEND ($BACKEND_FRAMEWORK)"
+
+  # =========================================
+  # JOB 3: CHANGE DETECTION
+  # =========================================
+  change-detection:
+    name: 🔄 Change Detection
+    runs-on: ubuntu-latest
+    outputs:
+      changed-files: ${{ steps.changes.outputs.changed-files }}
+      changed-packages: ${{ steps.changes.outputs.changed-packages }}
+      should-test-frontend: ${{ steps.changes.outputs.should-test-frontend }}
+      should-test-backend: ${{ steps.changes.outputs.should-test-backend }}
+      should-deploy: ${{ steps.changes.outputs.should-deploy }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔄 Detect changed files
+        id: changes
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
+          fi
+          
+          # Convert to JSON array
+          CHANGED_FILES_JSON=$(echo "$CHANGED_FILES" | jq -R -s -c 'split("\n")[:-1]')
+          
+          # Detect changed packages
+          CHANGED_PACKAGES=[]
+          if echo "$CHANGED_FILES" | grep -E "^(frontend/|src/|components/|pages/)" > /dev/null; then
+            SHOULD_TEST_FRONTEND=true
+          else
+            SHOULD_TEST_FRONTEND=false
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -E "^(backend/|server/|api/)" > /dev/null; then
+            SHOULD_TEST_BACKEND=true
+          else
+            SHOULD_TEST_BACKEND=false
+          fi
+          
+          # Check if deployment files changed
+          if echo "$CHANGED_FILES" | grep -E "(package\.json|yarn\.lock|Dockerfile|docker-compose)" > /dev/null; then
+            SHOULD_DEPLOY=true
+          else
+            SHOULD_DEPLOY=false
+          fi
+          
+          echo "changed-files=$CHANGED_FILES_JSON" >> $GITHUB_OUTPUT
+          echo "changed-packages=$CHANGED_PACKAGES" >> $GITHUB_OUTPUT
+          echo "should-test-frontend=$SHOULD_TEST_FRONTEND" >> $GITHUB_OUTPUT
+          echo "should-test-backend=$SHOULD_TEST_BACKEND" >> $GITHUB_OUTPUT
+          echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          
+          echo "📁 Changed Files: $(echo "$CHANGED_FILES" | wc -l) files"
+          echo "🎨 Test Frontend: $SHOULD_TEST_FRONTEND"
+          echo "⚙️ Test Backend: $SHOULD_TEST_BACKEND"
+          echo "🚀 Should Deploy: $SHOULD_DEPLOY"
+
+  # =========================================
+  # JOB 4: FILE-LEVEL SELECTIVE TESTING
+  # =========================================
+  selective-testing:
+    name: 🎯 File-level Selective Testing
+    runs-on: ubuntu-latest
+    needs: [change-detection]
+    outputs:
+      test-files: ${{ steps.selective.outputs.test-files }}
+      test-suites: ${{ steps.selective.outputs.test-suites }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🎯 Generate selective test list
+        id: selective
+        run: |
+          CHANGED_FILES='${{ needs.change-detection.outputs.changed-files }}'
+          TEST_FILES=[]
+          TEST_SUITES=[]
+          
+          # Find corresponding test files for changed files
+          echo "$CHANGED_FILES" | jq -r '.[]' | while read file; do
+            # Remove extension and find test files
+            BASE_NAME=$(echo "$file" | sed 's/\.[^.]*$//')
+            
+            # Look for test files
+            if [ -f "${BASE_NAME}.test.js" ]; then
+              TEST_FILES=$(echo "$TEST_FILES" | jq ". + [\"${BASE_NAME}.test.js\"]")
+            fi
+            
+            if [ -f "${BASE_NAME}.test.ts" ]; then
+              TEST_FILES=$(echo "$TEST_FILES" | jq ". + [\"${BASE_NAME}.test.ts\"]")
+            fi
+            
+            if [ -f "${BASE_NAME}.spec.js" ]; then
+              TEST_FILES=$(echo "$TEST_FILES" | jq ". + [\"${BASE_NAME}.spec.js\"]")
+            fi
+            
+            # Check test directories
+            if [ -d "__tests__" ] && find __tests__ -name "*$(basename $BASE_NAME)*" | head -1 | grep -q .; then
+              TEST_SUITES=$(echo "$TEST_SUITES" | jq ". + [\"$(basename $BASE_NAME)\"]")
+            fi
+          done
+          
+          # If no specific tests found, include all tests
+          if [ "$TEST_FILES" = "[]" ]; then
+            TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" | jq -R -s -c 'split("\n")[:-1]')
+          fi
+          
+          echo "test-files=$TEST_FILES" >> $GITHUB_OUTPUT
+          echo "test-suites=$TEST_SUITES" >> $GITHUB_OUTPUT
+          
+          echo "🎯 Test Files to Run:"
+          echo "$TEST_FILES" | jq .
+
+  # =========================================
+  # JOB 5: FILE/FOLDER PUSH TEST TRIGGER
+  # =========================================
+  test-trigger:
+    name: 🚦 Test Trigger Detection
+    runs-on: ubuntu-latest
+    needs: [change-detection, selective-testing]
+    outputs:
+      should-run-tests: ${{ steps.trigger.outputs.should-run-tests }}
+      test-types: ${{ steps.trigger.outputs.test-types }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚦 Determine test trigger
+        id: trigger
+        run: |
+          CHANGED_FILES='${{ needs.change-detection.outputs.changed-files }}'
+          SHOULD_RUN_TESTS=false
+          TEST_TYPES=[]
+          
+          # Check if test-related files changed
+          if echo "$CHANGED_FILES" | jq -r '.[]' | grep -E "\.(js|ts|jsx|tsx|py|go|rs)$" > /dev/null; then
+            SHOULD_RUN_TESTS=true
+            TEST_TYPES='["unit", "integration"]'
+          fi
+          
+          # Check if test files themselves changed
+          if echo "$CHANGED_FILES" | jq -r '.[]' | grep -E "\.(test|spec)\." > /dev/null; then
+            SHOULD_RUN_TESTS=true
+          fi
+          
+          # Check if configuration files changed
+          if echo "$CHANGED_FILES" | jq -r '.[]' | grep -E "(jest|vitest|cypress|playwright)\.config" > /dev/null; then
+            SHOULD_RUN_TESTS=true
+          fi
+          
+          # Override if forced skip
+          if [[ "${{ env.FORCE_SKIP_TESTS }}" == "true" ]]; then
+            SHOULD_RUN_TESTS=false
+            TEST_TYPES="[]"
+          fi
+          
+          echo "should-run-tests=$SHOULD_RUN_TESTS" >> $GITHUB_OUTPUT
+          echo "test-types=$TEST_TYPES" >> $GITHUB_OUTPUT
+          
+          echo "🚦 Should Run Tests: $SHOULD_RUN_TESTS"
+          echo "📋 Test Types: $TEST_TYPES"
+
+  # =========================================
+  # JOB 6: BRANCH BASED TRIGGERING
+  # =========================================
+  branch-strategy:
+    name: 🌿 Branch-based Strategy
+    runs-on: ubuntu-latest
+    outputs:
+      deploy-environment: ${{ steps.strategy.outputs.deploy-environment }}
+      run-security: ${{ steps.strategy.outputs.run-security }}
+      run-performance: ${{ steps.strategy.outputs.run-performance }}
+      notification-level: ${{ steps.strategy.outputs.notification-level }}
+    steps:
+      - name: 🌿 Determine branch strategy
+        id: strategy
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          DEPLOY_ENV="none"
+          RUN_SECURITY=false
+          RUN_PERFORMANCE=false
+          NOTIFICATION_LEVEL="minimal"
+          
+          case "$BRANCH_NAME" in
+            "main")
+              DEPLOY_ENV="production"
+              RUN_SECURITY=true
+              RUN_PERFORMANCE=true
+              NOTIFICATION_LEVEL="full"
+              ;;
+            "develop")
+              DEPLOY_ENV="staging"
+              RUN_SECURITY=true
+              RUN_PERFORMANCE=false
+              NOTIFICATION_LEVEL="standard"
+              ;;
+            #   ;;
+            # feature/*)
+            #   DEPLOY_ENV="none"
+            #   RUN_SECURITY=false
+            #   RUN_PERFORMANCE=false
+            #   NOTIFICATION_LEVEL="minimal"
+            #   ;;
+            *)
+              DEPLOY_ENV="none"
+              RUN_SECURITY=false
+              RUN_PERFORMANCE=false
+              NOTIFICATION_LEVEL="minimal"
+              ;;
+          esac
+          
+          # Override with manual input
+          if [[ "${{ github.event.inputs.deploy_environment }}" != "" && "${{ github.event.inputs.deploy_environment }}" != "none" ]]; then
+            DEPLOY_ENV="${{ github.event.inputs.deploy_environment }}"
+          fi
+          
+          echo "deploy-environment=$DEPLOY_ENV" >> $GITHUB_OUTPUT
+          echo "run-security=$RUN_SECURITY" >> $GITHUB_OUTPUT
+          echo "run-performance=$RUN_PERFORMANCE" >> $GITHUB_OUTPUT
+          echo "notification-level=$NOTIFICATION_LEVEL" >> $GITHUB_OUTPUT
+          
+          echo "🌿 Branch: $BRANCH_NAME"
+          echo "🚀 Deploy Environment: $DEPLOY_ENV"
+          echo "🔒 Run Security: $RUN_SECURITY"
+          echo "⚡ Run Performance: $RUN_PERFORMANCE"
+
+  # ========================================
+  # JOB 7: TEST CODE DETECTION & EXECUTION  
+  # ========================================
+  test-execution:
+    name: 🧪 Test Execution
+    runs-on: ubuntu-latest
+    needs: [detect-services, change-detection, test-trigger, cache-dependencies]
+    if: |
+      needs.test-trigger.outputs.should-run-tests == 'true' && 
+      github.event.inputs.force_skip_tests != 'true' &&
+      !contains(github.event.head_commit.message, '[skip tests]')
+    
+    outputs:
+      frontend-status: ${{ steps.frontend.outputs.status }}
+      backend-status: ${{ steps.backend.outputs.status }}
+      overall-status: ${{ steps.summary.outputs.status }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Install Root Dependencies
+        run: |
+          if [ -f "package.json" ]; then
+            echo "Installing root dependencies..."
+            yarn install --frozen-lockfile
+          fi
+
+      - name: Check Frontend Tests
+        id: check-frontend
+        run: |
+          HAS_TESTS=false
+          
+          if [ -d "frontend" ]; then
+            echo "Checking frontend directory..."
+            
+            # Check for test files
+            if find frontend -name "*.test.js" -o -name "*.test.ts" -o -name "*.spec.js" -o -name "*.spec.ts" | grep -q .; then
+              echo "Found test files in frontend"
+              HAS_TESTS=true
+            fi
+            
+            # Check for test script
+            if [ -f "frontend/package.json" ] && grep -q '"test"' frontend/package.json; then
+              echo "Found test script in frontend package.json"
+              HAS_TESTS=true
+            fi
+          fi
+          
+          echo "has-tests=$HAS_TESTS" >> $GITHUB_OUTPUT
+          echo "Frontend has tests: $HAS_TESTS"
+
+      - name: Check Backend Tests
+        id: check-backend
+        run: |
+          HAS_TESTS=false
+          
+          if [ -d "backend" ]; then
+            echo "Checking backend directory..."
+            
+            # Check for test files
+            if find backend -name "*.test.js" -o -name "*.test.ts" -o -name "*.spec.js" -o -name "*.spec.ts" | grep -q .; then
+              echo "Found test files in backend"
+              HAS_TESTS=true
+            fi
+            
+            # Check for test script
+            if [ -f "backend/package.json" ] && grep -q '"test"' backend/package.json; then
+              echo "Found test script in backend package.json"
+              HAS_TESTS=true
+            fi
+          fi
+          
+          echo "has-tests=$HAS_TESTS" >> $GITHUB_OUTPUT
+          echo "Backend has tests: $HAS_TESTS"
+
+      - name: Run Frontend Tests
+        id: frontend
+        if: steps.check-frontend.outputs.has-tests == 'true'
+        continue-on-error: true
+        run: |
+          echo "Running frontend tests..."
+          STATUS="failed"
+          
+          # Install frontend dependencies first
+          if [ -f "frontend/package.json" ]; then
+            echo "Installing frontend dependencies..."
+            cd frontend
+            yarn install --frozen-lockfile
+            
+            # Try different test commands
+            if yarn test:ci 2>/dev/null; then
+              echo "Frontend test:ci passed"
+              STATUS="success"
+            elif yarn test:unit 2>/dev/null; then
+              echo "Frontend test:unit passed"  
+              STATUS="success"
+            elif yarn test 2>/dev/null; then
+              echo "Frontend test passed"
+              STATUS="success"
+            else
+              echo "All frontend test commands failed"
+              STATUS="failed"
+            fi
+            
+            cd ..
+          fi
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Frontend test status: $STATUS"
+
+      - name: Run Backend Tests
+        id: backend
+        if: steps.check-backend.outputs.has-tests == 'true'
+        continue-on-error: true
+        run: |
+          echo "Running backend tests..."
+          STATUS="failed"
+          
+          # Install backend dependencies first
+          if [ -f "backend/package.json" ]; then
+            echo "Installing backend dependencies..."
+            cd backend
+            yarn install --frozen-lockfile
+            
+            # Try different test commands
+            if yarn test:ci 2>/dev/null; then
+              echo "Backend test:ci passed"
+              STATUS="success"
+            elif yarn test:unit 2>/dev/null; then
+              echo "Backend test:unit passed"
+              STATUS="success"
+            elif yarn test:integration 2>/dev/null; then
+              echo "Backend test:integration passed"
+              STATUS="success"  
+            elif yarn test 2>/dev/null; then
+              echo "Backend test passed"
+              STATUS="success"
+            else
+              echo "All backend test commands failed"
+              STATUS="failed"
+            fi
+            
+            cd ..
+          fi
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Backend test status: $STATUS"
+
+      - name: Test Summary
+        id: summary
+        if: always()
+        run: |
+          FRONTEND_STATUS="${{ steps.frontend.outputs.status }}"
+          BACKEND_STATUS="${{ steps.backend.outputs.status }}"
+          HAS_FRONTEND="${{ steps.check-frontend.outputs.has-tests }}"
+          HAS_BACKEND="${{ steps.check-backend.outputs.has-tests }}"
+          
+          echo "Test Summary:"
+          echo "Frontend has tests: $HAS_FRONTEND"
+          echo "Backend has tests: $HAS_BACKEND"
+          echo "Frontend status: $FRONTEND_STATUS"
+          echo "Backend status: $BACKEND_STATUS"
+          
+          # Determine overall status
+          if [ "$HAS_FRONTEND" = "false" ] && [ "$HAS_BACKEND" = "false" ]; then
+            OVERALL="no-tests"
+            echo "No tests found in either frontend or backend"
+          elif [ "$FRONTEND_STATUS" = "success" ] || [ "$BACKEND_STATUS" = "success" ]; then
+            OVERALL="success"
+            echo "At least one test suite passed"
+          else
+            OVERALL
+
+  # =========================================
+  # JOB 8: UNTESTED CODE HANDLING
+  # =========================================
+  untested-code-analysis:
+    name: 📊 Untested Code Analysis
+    runs-on: ubuntu-latest
+    needs: [test-execution]
+    if: always()
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: 🔧 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 📊 Analyze untested code
+        run: |
+          echo "📊 Analyzing untested code coverage..."
+          
+          # Generate coverage report if not exists
+          if [ ! -d "coverage" ]; then
+            yarn jest --coverage --passWithNoTests || echo "No tests found"
+          fi
+          
+          # Find files without tests
+          echo "🔍 Files without corresponding test files:"
+          find src -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" | while read file; do
+            base_name=$(echo "$file" | sed 's/\.[^.]*$//')
+            if [ ! -f "${base_name}.test.js" ] && [ ! -f "${base_name}.test.ts" ] && [ ! -f "${base_name}.spec.js" ]; then
+              echo "❌ $file (no test file found)"
+            fi
+          done
+          
+          # Create untested files report
+          echo "📋 Generating untested files report..."
+          mkdir -p reports
+          find src -name "*.js" -o -name "*.ts" | while read file; do
+            base_name=$(echo "$file" | sed 's/\.[^.]*$//')
+            if [ ! -f "${base_name}.test.js" ] && [ ! -f "${base_name}.test.ts" ]; then
+              echo "$file" >> reports/untested-files.txt
+            fi
+          done
+
+      - name: 📄 Upload untested code report
+        uses: actions/upload-artifact@v4
+        with:
+          name: untested-code-report
+          path: reports/untested-files.txt
+          retention-days: 30
+
+  # =========================================
+  # JOB 9: LINTING (ESLint/Prettier)
+  # =========================================
+  # linting:
+  #   name: 💅 Code Quality & Linting
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'yarn'
+
+  #     - name: 🔧 Install dependencies
+  #       run: yarn install --frozen-lockfile
+
+  #     - name: ESLint Check
+  #       run: |
+  #         if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
+  #           echo " Running ESLint..."
+  #           yarn lint || npx eslint . --ext .js,.jsx,.ts,.tsx --format=json --output-file=eslint-results.json
+  #         else
+  #           echo " No ESLint config found"
+  #         fi
+  #       continue-on-error: true
+
+  #     - name: Prettier Check
+  #       run: |
+  #         if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ]; then
+  #           echo " Running Prettier..."
+  #           yarn format:check || npm run format:check
+  #         else
+  #           echo " No Prettier config found"
+  #         fi
+  #       continue-on-error: true
+
+  #     - name: 📄 Upload lint results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: lint-results
+  #         path: |
+  #           eslint-results.json
+  #           prettier-results.txt
+  #         retention-days: 7
+
+  # =========================================
+  # JOB 10: SECURITY SCAN
+  # =========================================
+  # security-scan:
+  #   name: 🔒 Security Scan
+  #   runs-on: ubuntu-latest
+  #   needs: [branch-strategy]
+  #   if: needs.branch-strategy.outputs.run-security == 'true'
+  #   permissions:
+  #     security-events: write
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+
+  #     - name: 🔒 NPM Security Audit
+  #       run: |
+  #         echo "🔒 Running npm audit..."
+  #         npm audit --audit-level=moderate --json > npm-audit.json || echo "Vulnerabilities found"
+  #         npm audit --audit-level=moderate || echo "Continuing despite vulnerabilities..."
+
+  #     - name: 🔍 Snyk Security Scan
+  #       uses: snyk/actions/node@master
+  #       env:
+  #         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  #       with:
+  #         args: --severity-threshold=high --json > snyk-results.json
+  #       continue-on-error: true
+
+  #     - name: 🛡️ CodeQL Analysis
+  #       uses: github/codeql-action/init@v3
+  #       with:
+  #         languages: javascript,typescript
+
+  #     - name: 🛡️ CodeQL Autobuild
+  #       uses: github/codeql-action/autobuild@v3
+
+  #     - name: 🛡️ CodeQL Analysis
+  #       uses: github/codeql-action/analyze@v3
+
+  #     - name: 📄 Upload security results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: security-scan-results
+  #         path: |
+  #           npm-audit.json
+  #           snyk-results.json
+  #         retention-days: 30
+
+  # =========================================
+  # JOB 11: CACHE & DEPENDENCIES
+  # =========================================
+  # cache-dependencies:
+  #   name: 🗄️ Cache & Dependencies Management
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     cache-hit: ${{ steps.cache.outputs.cache-hit }}
+  #     cache-key: ${{ steps.cache.outputs.cache-primary-key }}
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'yarn'
+
+  #     - name: 🗄️ Cache node_modules
+  #       id: cache
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           node_modules
+  #           ~/.cache/yarn
+  #           ~/.npm
+  #           .next/cache
+  #           .nuxt
+  #         key: ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-${{ github.sha }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-
+  #           ${{ runner.os }}-deps-
+
+  #     - name: 🔧 Install dependencies
+  #       if: steps.cache.outputs.cache-hit != 'true'
+  #       run: |
+  #         echo "💾 Cache miss - Installing fresh dependencies..."
+  #         if [ -f "yarn.lock" ]; then
+  #           yarn install --frozen-lockfile --prefer-offline
+  #         elif [ -f "package-lock.json" ]; then
+  #           npm ci --prefer-offline
+  #         else
+  #           npm install --prefer-offline
+  #         fi
+
+  #     - name: 💾 Warm up additional caches
+  #       run: |
+  #         # Warm up TypeScript cache
+  #         if [ -f "tsconfig.json" ]; then
+  #           npx tsc --noEmit --incremental
+  #         fi
+          
+  #         # Warm up Next.js cache
+  #         if [ -f "next.config.js" ]; then
+  #           npx next build --no-lint || echo "Next.js build warmup completed"
+  #         fi
+
+  #     - name: 📊 Cache statistics
+  #       run: |
+  #         echo "📊 Cache Statistics:"
+  #         echo "Cache Hit: ${{ steps.cache.outputs.cache-hit }}"
+  #         echo "Cache Key: ${{ steps.cache.outputs.cache-primary-key }}"
+  #         echo "Node Modules Size: $(du -sh node_modules 2>/dev/null || echo 'Not found')"
+
+  # =========================================
+  # JOB 12: BUILD APPLICATION
+  # =========================================
+  # build:
+  #   name: 🏗️ Build Application
+  #   runs-on: ubuntu-latest
+  #   needs: [cache-dependencies, detect-services, linting]
+  #   strategy:
+  #     matrix:
+  #       environment: [development, staging, production]
+  #       include:
+  #         - environment: development
+  #           build_mode: development
+  #           optimize: false
+  #         - environment: staging
+  #           build_mode: staging
+  #           optimize: true
+  #         - environment: production
+  #           build_mode: production
+  #           optimize: true
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'yarn'
+
+  #     - name: 🗄️ Restore dependencies cache
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           node_modules
+  #           ~/.cache/yarn
+  #         key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}-${{ github.sha }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+  #           ${{ runner.os }}-yarn-
+
+  #     - name: 🔧 Install dependencies (if cache miss)
+  #       if: needs.cache-dependencies.outputs.cache-hit != 'true'
+  #       run: yarn install --frozen-lockfile
+
+  #     - name: 🏗️ Build Frontend
+  #       if: needs.detect-services.outputs.has-frontend == 'true'
+  #       run: |
+  #         echo "🎨 Building Frontend (${{ needs.detect-services.outputs.frontend-framework }})..."
+          
+  #         case "${{ needs.detect-services.outputs.frontend-framework }}" in
+  #           "react")
+  #             yarn build || npm run build
+  #             ;;
+  #           "nextjs")
+  #             yarn build || npx next build
+  #             ;;
+  #           "vue")
+  #             yarn build || npm run build
+  #             ;;
+  #           "angular")
+  #             yarn build --prod || ng build --prod
+  #             ;;
+  #           "svelte")
+  #             yarn build || npm run build
+  #             ;;
+  #           *)
+  #             yarn build || npm run build
+  #             ;;
+  #         esac
+  #       env:
+  #         NODE_ENV: ${{ matrix.build_mode }}
+  #         OPTIMIZE: ${{ matrix.optimize }}
+
+  #     - name: 🏗️ Build Backend
+  #       if: needs.detect-services.outputs.has-backend == 'true'
+  #       run: |
+  #         echo "⚙️ Building Backend (${{ needs.detect-services.outputs.backend-framework }})..."
+          
+  #         case "${{ needs.detect-services.outputs.backend-framework }}" in
+  #           "nodejs")
+  #             if [ -f "tsconfig.json" ]; then
+  #               yarn build || npx tsc
+  #             else
+  #               echo "✅ Node.js project - no build step required"
+  #             fi
+  #             ;;
+  #           "python")
+  #             echo "🐍 Python project - installing dependencies..."
+  #             pip install -r requirements.txt
+  #             ;;
+  #           "golang")
+  #             echo "🐹 Building Go application..."
+  #             go build -o app ./...
+  #             ;;
+  #           "rust")
+  #             echo "🦀 Building Rust application..."
+  #             cargo build --release
+  #             ;;
+  #         esac
+  #       env:
+  #         NODE_ENV: ${{ matrix.build_mode }}
+
+  #     - name: 📦 Archive build artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: build-${{ matrix.environment }}-${{ github.sha }}
+  #         path: |
+  #           dist/
+  #           build/
+  #           out/
+  #           .next/
+  #           target/release/
+  #           app
+  #         retention-days: 7
+
+  #     - name: 📊 Build size analysis
+  #       run: |
+  #         echo "📊 Build Size Analysis for ${{ matrix.environment }}:"
+  #         if [ -d "dist" ]; then
+  #           echo "Dist folder size: $(du -sh dist)"
+  #           find dist -name "*.js" -exec ls -lh {} \; | head -10
+  #         fi
+  #         if [ -d "build" ]; then
+  #           echo "Build folder size: $(du -sh build)"
+  #         fi
+
+  # =========================================
+  # JOB 13: BUNDLE SIZE CHECK (IMPROVED)
+  # =========================================
+  # bundle-size-check:
+  #   name: 📦 Bundle Size Analysis
+  #   runs-on: ubuntu-latest
+  #   needs: [build, detect-services]
+  #   # Force run for debugging - remove conditions temporarily
+  #   if: always()
+  #   steps:
+  #     - name: 🔍 Debug Job Conditions
+  #       run: |
+  #         echo "=== JOB CONDITION DEBUG ==="
+  #         echo "detect-services.result: '${{ needs.detect-services.result }}'"
+  #         echo "detect-services.conclusion: '${{ needs.detect-services.conclusion }}'"
+  #         echo "build.result: '${{ needs.build.result }}'"
+  #         echo "build.conclusion: '${{ needs.build.conclusion }}'"
+  #         echo "has-frontend output: '${{ needs.detect-services.outputs.has-frontend }}'"
+  #         echo "has-frontend raw value: ${{ needs.detect-services.outputs.has-frontend }}"
+  #         echo ""
+  #         echo "=== All detect-services outputs ==="
+  #         echo '${{ toJSON(needs.detect-services.outputs) }}'
+
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         cache: 'npm'
+
+  #     - name: 📦 Download build artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: build-production-${{ github.sha }}
+  #         path: ./build
+  #       continue-on-error: true
+
+  #     - name: 🔍 Verify build artifacts
+  #       run: |
+  #         echo "Checking build artifacts..."
+  #         if [ -d "./build" ]; then
+  #           echo "✅ Build directory found"
+  #           ls -la ./build
+  #         else
+  #           echo "❌ No build directory found - checking for other build outputs"
+  #           find . -name "dist" -o -name ".next" -o -name "out" -type d | head -5
+  #         fi
+
+  #     - name: 📊 Analyze bundle size
+  #       run: |
+  #         echo "🔍 Analyzing bundle sizes..."
+          
+  #         # Install bundle analyzer tools globally
+  #         npm install -g bundlesize webpack-bundle-analyzer || true
+
+  #         # Initialize report
+  #         mkdir -p reports
+  #         echo "# 📦 Bundle Size Report" > reports/bundle-size.md
+  #         echo "Generated on: $(date)" >> reports/bundle-size.md
+  #         echo "Commit: ${{ github.sha }}" >> reports/bundle-size.md
+  #         echo "" >> reports/bundle-size.md
+
+  #         # Function to analyze directory
+  #         analyze_directory() {
+  #           local dir=$1
+  #           local build_type=$2
+            
+  #           if [ -d "$dir" ]; then
+  #             echo "## $build_type Build Analysis" >> reports/bundle-size.md
+  #             echo "" >> reports/bundle-size.md
+              
+  #             # Find JS and CSS files
+  #             js_files=$(find "$dir" -name "*.js" -not -path "*/node_modules/*" | wc -l)
+  #             css_files=$(find "$dir" -name "*.css" -not -path "*/node_modules/*" | wc -l)
+              
+  #             echo "📊 **Files found:** $js_files JS, $css_files CSS" >> reports/bundle-size.md
+  #             echo "" >> reports/bundle-size.md
+              
+  #             # Calculate total sizes
+  #             if [ $js_files -gt 0 ]; then
+  #               total_js_size=$(find "$dir" -name "*.js" -not -path "*/node_modules/*" -exec du -b {} \; | awk '{sum+=$1} END {print sum}' || echo "0")
+  #               echo "📦 **Total JS Size:** $(echo $total_js_size | numfmt --to=iec-i --suffix=B)" >> reports/bundle-size.md
+                
+  #               # Size warnings
+  #               if [ $total_js_size -gt 1048576 ]; then # 1MB
+  #                 echo "⚠️ **Warning:** JS bundle size exceeds 1MB" >> reports/bundle-size.md
+  #               elif [ $total_js_size -gt 512000 ]; then # 512KB
+  #                 echo "💡 **Note:** JS bundle size is above 512KB" >> reports/bundle-size.md
+  #               else
+  #                 echo "✅ **Good:** JS bundle size is reasonable" >> reports/bundle-size.md
+  #               fi
+  #             fi
+              
+  #             if [ $css_files -gt 0 ]; then
+  #               total_css_size=$(find "$dir" -name "*.css" -not -path "*/node_modules/*" -exec du -b {} \; | awk '{sum+=$1} END {print sum}' || echo "0")
+  #               echo "🎨 **Total CSS Size:** $(echo $total_css_size | numfmt --to=iec-i --suffix=B)" >> reports/bundle-size.md
+  #             fi
+              
+  #             echo "" >> reports/bundle-size.md
+  #             echo "### 📋 File Details" >> reports/bundle-size.md
+              
+  #             # List individual files with sizes
+  #             find "$dir" -type f \( -name "*.js" -o -name "*.css" \) -not -path "*/node_modules/*" | sort | while read file; do
+  #               if [ -f "$file" ]; then
+  #                 size=$(du -h "$file" | cut -f1)
+  #                 rel_path=${file#$dir/}
+  #                 echo "- \`$rel_path\`: **$size**" >> reports/bundle-size.md
+  #               fi
+  #             done
+              
+  #             echo "" >> reports/bundle-size.md
+  #             return 0
+  #           fi
+  #           return 1
+  #         }
+
+  #         # Analyze different build patterns
+  #         analyzed=false
+          
+  #         # React/CRA build
+  #         if analyze_directory "build/static" "React (Create React App)"; then
+  #           echo "✅ React/CRA build analyzed"
+  #           analyzed=true
+  #         elif analyze_directory "build" "Generic Build"; then
+  #           echo "✅ Generic build analyzed"
+  #           analyzed=true
+  #         fi
+          
+  #         # Next.js build
+  #         if analyze_directory ".next/static" "Next.js"; then
+  #           echo "✅ Next.js build analyzed"
+  #           analyzed=true
+  #         fi
+          
+  #         # Vite build
+  #         if analyze_directory "dist/assets" "Vite"; then
+  #           echo "✅ Vite build analyzed"
+  #           analyzed=true
+  #         elif analyze_directory "dist" "Distribution"; then
+  #           echo "✅ Distribution build analyzed"
+  #           analyzed=true
+  #         fi
+          
+  #         # Webpack build
+  #         if analyze_directory "public/build" "Webpack"; then
+  #           echo "✅ Webpack build analyzed"
+  #           analyzed=true
+  #         fi
+          
+  #         if [ "$analyzed" = false ]; then
+  #           echo "## ⚠️ No Build Output Found" >> reports/bundle-size.md
+  #           echo "" >> reports/bundle-size.md
+  #           echo "No recognizable build output was detected. Checked locations:" >> reports/bundle-size.md
+  #           echo "- \`build/\`, \`build/static/\`" >> reports/bundle-size.md
+  #           echo "- \`dist/\`, \`dist/assets/\`" >> reports/bundle-size.md
+  #           echo "- \`.next/static/\`" >> reports/bundle-size.md
+  #           echo "- \`public/build/\`" >> reports/bundle-size.md
+  #           echo "" >> reports/bundle-size.md
+            
+  #           # Show what we found instead
+  #           echo "### 🔍 Available Directories" >> reports/bundle-size.md
+  #           find . -maxdepth 2 -type d -name "*build*" -o -name "*dist*" -o -name ".next" | head -10 | while read dir; do
+  #             echo "- \`$dir\`" >> reports/bundle-size.md
+  #           done
+  #         fi
+
+  #     - name: 🔍 Run bundlesize checks
+  #       run: |
+  #         if [ -f "package.json" ] && grep -q "bundlesize" package.json; then
+  #           echo "🔍 Running bundlesize checks..."
+  #           npx bundlesize || echo "⚠️ Bundlesize check completed with warnings"
+  #         else
+  #           echo "💡 No bundlesize configuration found in package.json"
+  #           echo "" >> reports/bundle-size.md
+  #           echo "## 💡 Bundlesize Setup" >> reports/bundle-size.md
+  #           echo "" >> reports/bundle-size.md
+  #           echo "Consider adding bundlesize configuration to your \`package.json\`:" >> reports/bundle-size.md
+  #           echo '```json' >> reports/bundle-size.md
+  #           echo '"bundlesize": [' >> reports/bundle-size.md
+  #           echo '  {' >> reports/bundle-size.md
+  #           echo '    "path": "./build/static/js/*.js",' >> reports/bundle-size.md
+  #           echo '    "maxSize": "1mb"' >> reports/bundle-size.md
+  #           echo '  }' >> reports/bundle-size.md
+  #           echo ']' >> reports/bundle-size.md
+  #           echo '```' >> reports/bundle-size.md
+  #         fi
+
+  #     - name: 📄 Upload bundle analysis
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: bundle-size-analysis-${{ github.sha }}
+  #         path: |
+  #           reports/
+  #           build/static/**/*.map
+  #           .next/static/**/*.map
+  #           dist/**/*.map
+  #         retention-days: 14
+
+  #     - name: 💬 Comment bundle size on PR
+  #       if: github.event_name == 'pull_request'
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           const fs = require('fs');
+  #           const path = require('path');
+            
+  #           const reportPath = 'reports/bundle-size.md';
+            
+  #           if (fs.existsSync(reportPath)) {
+  #             const bundleReport = fs.readFileSync(reportPath, 'utf8');
+              
+  #             // Truncate if too long (GitHub comment limit)
+  #             const maxLength = 60000;
+  #             const report = bundleReport.length > maxLength 
+  #               ? bundleReport.substring(0, maxLength) + '\n\n*... (report truncated due to length)*'
+  #               : bundleReport;
+              
+  #             try {
+  #               // Check if comment already exists
+  #               const { data: comments } = await github.rest.issues.listComments({
+  #                 issue_number: context.issue.number,
+  #                 owner: context.repo.owner,
+  #                 repo: context.repo.repo
+  #               });
+                
+  #               const existingComment = comments.find(comment => 
+  #                 comment.body.includes('Bundle Size Analysis') && 
+  #                 comment.user.type === 'Bot'
+  #               );
+                
+  #               if (existingComment) {
+  #                 // Update existing comment
+  #                 await github.rest.issues.updateComment({
+  #                   comment_id: existingComment.id,
+  #                   owner: context.repo.owner,
+  #                   repo: context.repo.repo,
+  #                   body: report
+  #                 });
+  #                 console.log('Updated existing bundle size comment');
+  #               } else {
+  #                 // Create new comment
+  #                 await github.rest.issues.createComment({
+  #                   issue_number: context.issue.number,
+  #                   owner: context.repo.owner,
+  #                   repo: context.repo.repo,
+  #                   body: report
+  #                 });
+  #                 console.log('Created new bundle size comment');
+  #               }
+  #             } catch (error) {
+  #               console.error('Failed to post/update comment:', error);
+  #               // Don't fail the job if commenting fails
+  #             }
+  #           } else {
+  #             console.log('No bundle size report found to comment');
+  #           }
+  
+  # =========================================
+  # JOB 14: NOTIFICATIONS
+  # =========================================
+  
+  # notifications:
+  #   name: 🔔 Notifications & Reporting
+  #   runs-on: ubuntu-latest
+  #   needs: [
+  #     monorepo-versioning, 
+  #     test-execution, 
+  #     build, 
+  #     # deploy, 
+  #     # performance-test, 
+  #     security-scan,
+  #     branch-strategy
+  #   ]
+  #   if: always()
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: 📊 Generate comprehensive report
+  #       run: |
+  #         echo "📊 Generating comprehensive CI/CD report..."
+          
+  #         mkdir -p reports
+  #         REPORT_FILE="reports/cicd-report.md"
+          
+  #         # Generate markdown report
+  #         cat > $REPORT_FILE << EOF
+  #         # 🚀 CI/CD Pipeline Report
+          
+  #         **Date**: $(date)
+  #         **Branch**: ${{ github.ref_name }}
+  #         **Commit**: ${{ github.sha }}
+  #         **Triggered by**: ${{ github.event_name }}
+          
+  #         ## 📋 Pipeline Summary
+          
+  #         | Stage | Status | Duration | Notes |
+  #         |-------|--------|----------|--------|
+  #         | Versioning | ${{ needs.monorepo-versioning.result }} | - | Version: ${{ needs.monorepo-versioning.outputs.version }} |
+  #         | Testing | ${{ needs.test-execution.result }} | - | ${{ needs.test-execution.result == 'skipped' && 'No tests required' || 'Tests completed' }} |
+  #         | Build | ${{ needs.build.result }} | - | Multi-environment build |
+  #         | Security | ${{ needs.security-scan.result }} | - | Security scan completed |
+  #         | Deploy | ${{ needs.deploy.result }} | - | Target: ${{ needs.branch-strategy.outputs.deploy-environment }} |
+  #         | Performance | ${{ needs.performance-test.result }} | - | ${{ needs.performance-test.result == 'skipped' && 'Not required for branch' || 'Performance tests completed' }} |
+          
+  #         ## 🎯 Key Metrics
+          
+  #         - **New Version**: ${{ needs.monorepo-versioning.outputs.version }}
+  #         - **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #         - **Notification Level**: ${{ needs.branch-strategy.outputs.notification-level }}
+          
+  #         EOF
+          
+  #         # Add deployment URL if available
+  #         if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
+  #           echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $REPORT_FILE
+  #         fi
+          
+  #         echo "" >> $REPORT_FILE
+  #         echo "## 🔍 Detailed Results" >> $REPORT_FILE
+          
+  #         # Add detailed results based on job outcomes
+  #         if [ "${{ needs.test-execution.result }}" = "failure" ]; then
+  #           echo "❌ **Tests Failed**: Some tests did not pass" >> $REPORT_FILE
+  #         elif [ "${{ needs.test-execution.result }}" = "success" ]; then
+  #           echo "✅ **Tests Passed**: All tests completed successfully" >> $REPORT_FILE
+  #         fi
+          
+  #         if [ "${{ needs.security-scan.result }}" = "failure" ]; then
+  #           echo "🔒 **Security Issues**: Security vulnerabilities detected" >> $REPORT_FILE
+  #         elif [ "${{ needs.security-scan.result }}" = "success" ]; then
+  #           echo "✅ **Security**: No critical vulnerabilities found" >> $REPORT_FILE
+  #         fi
+
+  #     # - name: 🔔 Discord Notification
+  #     #   if: contains(fromJSON('["full", "standard"]'), needs.branch-strategy.outputs.notification-level)
+  #     #   uses: sarisia/actions-status-discord@v1
+  #     #   with:
+  #     #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
+  #     #     title: "🚀 CI/CD Pipeline Report"
+  #     #     description: |
+  #     #       **Branch**: ${{ github.ref_name }}
+  #     #       **Version**: ${{ needs.monorepo-versioning.outputs.version }}
+  #     #       **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}
+  #     #       **Status**: ${{ job.status }}
+  #     #     color: ${{ job.status == 'success' && '3066993' || job.status == 'failure' && '15158332' || '16776960' }}
+  #     #     username: "GitHub Actions"
+  #     #     avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+
+  #     # - name: 📧 Email Notification
+  #     #   if: |
+  #     #     needs.branch-strategy.outputs.notification-level == 'full' && 
+  #     #     (job.status == 'failure' || needs.branch-strategy.outputs.deploy-environment == 'production')
+  #     #   uses: dawidd6/action-send-mail@v3
+  #     #   with:
+  #     #     server_address: smtp.gmail.com
+  #     #     server_port: 587
+  #     #     username: ${{ secrets.EMAIL_USERNAME }}
+  #     #     password: ${{ secrets.EMAIL_PASSWORD }}
+  #     #     subject: "🚀 CI/CD Pipeline Report - ${{ github.repository }}"
+  #     #     body: file://reports/cicd-report.md
+  #     #     to: ${{ secrets.NOTIFICATION_EMAIL }}
+  #     #     from: "GitHub Actions <${{ secrets.EMAIL_USERNAME }}>"
+  #     #     content_type: text/markdown
+
+  #     # - name: 📱 Slack Notification
+  #     #   if: needs.branch-strategy.outputs.notification-level == 'full'
+  #     #   uses: 8398a7/action-slack@v3
+  #     #   with:
+  #     #     status: ${{ job.status }}
+  #     #     channel: '#deployments'
+  #     #     username: 'GitHub Actions'
+  #     #     icon_emoji: ':rocket:'
+  #     #     fields: repo,message,commit,author,action,eventName,ref,workflow
+  #     #     custom_payload: |
+  #     #       {
+  #     #         attachments: [{
+  #     #           color: '${{ job.status }}' === 'success' ? 'good' : '${{ job.status }}' === 'failure' ? 'danger' : 'warning',
+  #     #           blocks: [
+  #     #             {
+  #     #               type: 'section',
+  #     #               text: {
+  #     #                 type: 'mrkdwn',
+  #     #                 text: `🚀 *CI/CD Pipeline Report*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Environment:* ${{ needs.branch-strategy.outputs.deploy-environment }}\n*Status:* ${{ job.status }}`
+  #     #               }
+  #     #             }
+  #     #           ]
+  #     #         }]
+  #     #       }
+  #     #   env:
+  #     #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  #     - name: 📄 Upload final report
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: cicd-pipeline-report
+  #         path: reports/cicd-report.md
+  #         retention-days: 90
+
+  #     - name: 📊 Update GitHub Status
+  #       if: always()
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+  #           const description = `CI/CD Pipeline ${status} - Version: ${{ needs.monorepo-versioning.outputs.version }}`;
+            
+  #           github.rest.repos.createCommitStatus({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             sha: context.sha,
+  #             state: status,
+  #             target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+  #             description: description,
+  #             context: 'CI/CD Pipeline'
+  #           });
+
+  #     - name: 🏁 Pipeline Summary
+  #       run: |
+  #         echo "## 🚀 CI/CD Pipeline Completed!" >> $GITHUB_STEP_SUMMARY
+  #         echo "" >> $GITHUB_STEP_SUMMARY
+  #         echo "### 📊 Summary" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Version**: ${{ needs.monorepo-versioning.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Environment**: ${{ needs.branch-strategy.outputs.deploy-environment }}" >> $GITHUB_STEP_SUMMARY
+  #         echo "- **Pipeline Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          
+  #         if [ "${{ needs.deploy.outputs.url }}" != "" ]; then
+  #           echo "- **Deployment URL**: ${{ needs.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+  #         fi
+          
+  #         echo "" >> $GITHUB_STEP_SUMMARY
+  #         echo "### 🎯 Key Results" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+  #         echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Tests | ${{ needs.test-execution.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+  #         echo "| Deploy | ${{ needs.deploy.result }} |" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================
+  # SIMPLE DEBUG - ALWAYS RUNS
+  # =========================================
+  simple-debug:
+    name: 🔍 Always Run Debug
+    runs-on: ubuntu-latest
+    steps:
+      - name: Basic Info
+        run: |
+          echo "=== BASIC DEBUG INFO ==="
+          echo "GitHub Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "SHA: ${{ github.sha }}"
