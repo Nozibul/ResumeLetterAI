@@ -2,12 +2,12 @@
   "name": "resume-letter-ai",
   "private": true,
   "workspaces": [
-    "frontend", 
+    "frontend",
     "backend"
   ],
   "scripts": {
     "install:frontend": "cd frontend && yarn install",
-    "install:backend": "cd backend && yarn install", 
+    "install:backend": "cd backend && yarn install",
     "build": "yarn build:frontend && yarn build:backend",
     "build:frontend": "cd frontend && yarn build",
     "build:backend": "cd backend && yarn build",
@@ -15,7 +15,7 @@
     "dev:frontend": "cd frontend && yarn dev",
     "dev:backend": "cd backend && yarn dev",
     "test": "yarn test:frontend && yarn test:backend",
-    "test:frontend": "cd frontend && yarn test", 
+    "test:frontend": "cd frontend && yarn test",
     "test:backend": "cd backend && yarn test",
     "lint": "yarn lint:frontend && yarn lint:backend",
     "lint:frontend": "cd frontend && yarn lint",

@@ -47,6 +47,5 @@
     "tailwindcss": "^4.1.12",
     "tw-animate-css": "^1.3.7",
     "whatwg-fetch": "^3.6.20"
-  },
-  "packageManager": "yarn@4.9.2"
+  }
 }

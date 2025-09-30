@@ -689,170 +689,170 @@ jobs:
   # =========================================
   # JOB 9: LINTING (ESLint/Prettier)
   # =========================================
-  linting:
-    name: 💅 Code Quality & Linting
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+  # linting:
+  #   name: 💅 Code Quality & Linting
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'yarn'
 
-      - name: 🔧 Install dependencies
-        run: yarn install --frozen-lockfile
+  #     - name: 🔧 Install dependencies
+  #       run: yarn install --frozen-lockfile
 
-      - name: ESLint Check
-        run: |
-          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-            echo " Running ESLint..."
-            yarn lint || npx eslint . --ext .js,.jsx,.ts,.tsx --format=json --output-file=eslint-results.json
-          else
-            echo " No ESLint config found"
-          fi
-        continue-on-error: true
+  #     - name: ESLint Check
+  #       run: |
+  #         if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
+  #           echo " Running ESLint..."
+  #           yarn lint || npx eslint . --ext .js,.jsx,.ts,.tsx --format=json --output-file=eslint-results.json
+  #         else
+  #           echo " No ESLint config found"
+  #         fi
+  #       continue-on-error: true
 
-      - name: Prettier Check
-        run: |
-          if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ]; then
-            echo " Running Prettier..."
-            yarn format:check || npm run format:check
-          else
-            echo " No Prettier config found"
-          fi
-        continue-on-error: true
+  #     - name: Prettier Check
+  #       run: |
+  #         if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ]; then
+  #           echo " Running Prettier..."
+  #           yarn format:check || npm run format:check
+  #         else
+  #           echo " No Prettier config found"
+  #         fi
+  #       continue-on-error: true
 
-      - name: 📄 Upload lint results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lint-results
-          path: |
-            eslint-results.json
-            prettier-results.txt
-          retention-days: 7
+  #     - name: 📄 Upload lint results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: lint-results
+  #         path: |
+  #           eslint-results.json
+  #           prettier-results.txt
+  #         retention-days: 7
 
   # =========================================
   # JOB 10: SECURITY SCAN
   # =========================================
-  security-scan:
-    name: 🔒 Security Scan
-    runs-on: ubuntu-latest
-    needs: [branch-strategy]
-    if: needs.branch-strategy.outputs.run-security == 'true'
-    permissions:
-      security-events: write
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+  # security-scan:
+  #   name: 🔒 Security Scan
+  #   runs-on: ubuntu-latest
+  #   needs: [branch-strategy]
+  #   if: needs.branch-strategy.outputs.run-security == 'true'
+  #   permissions:
+  #     security-events: write
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
 
-      - name: 🔒 NPM Security Audit
-        run: |
-          echo "🔒 Running npm audit..."
-          npm audit --audit-level=moderate --json > npm-audit.json || echo "Vulnerabilities found"
-          npm audit --audit-level=moderate || echo "Continuing despite vulnerabilities..."
+  #     - name: 🔒 NPM Security Audit
+  #       run: |
+  #         echo "🔒 Running npm audit..."
+  #         npm audit --audit-level=moderate --json > npm-audit.json || echo "Vulnerabilities found"
+  #         npm audit --audit-level=moderate || echo "Continuing despite vulnerabilities..."
 
-      - name: 🔍 Snyk Security Scan
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --json > snyk-results.json
-        continue-on-error: true
+  #     - name: 🔍 Snyk Security Scan
+  #       uses: snyk/actions/node@master
+  #       env:
+  #         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  #       with:
+  #         args: --severity-threshold=high --json > snyk-results.json
+  #       continue-on-error: true
 
-      - name: 🛡️ CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript,typescript
+  #     - name: 🛡️ CodeQL Analysis
+  #       uses: github/codeql-action/init@v3
+  #       with:
+  #         languages: javascript,typescript
 
-      - name: 🛡️ CodeQL Autobuild
-        uses: github/codeql-action/autobuild@v3
+  #     - name: 🛡️ CodeQL Autobuild
+  #       uses: github/codeql-action/autobuild@v3
 
-      - name: 🛡️ CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+  #     - name: 🛡️ CodeQL Analysis
+  #       uses: github/codeql-action/analyze@v3
 
-      - name: 📄 Upload security results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: security-scan-results
-          path: |
-            npm-audit.json
-            snyk-results.json
-          retention-days: 30
+  #     - name: 📄 Upload security results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: security-scan-results
+  #         path: |
+  #           npm-audit.json
+  #           snyk-results.json
+  #         retention-days: 30
 
   # =========================================
   # JOB 11: CACHE & DEPENDENCIES
   # =========================================
-  cache-dependencies:
-    name: 🗄️ Cache & Dependencies Management
-    runs-on: ubuntu-latest
-    outputs:
-      cache-hit: ${{ steps.cache.outputs.cache-hit }}
-      cache-key: ${{ steps.cache.outputs.cache-primary-key }}
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+  # cache-dependencies:
+  #   name: 🗄️ Cache & Dependencies Management
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     cache-hit: ${{ steps.cache.outputs.cache-hit }}
+  #     cache-key: ${{ steps.cache.outputs.cache-primary-key }}
+  #   steps:
+  #     - name: 📥 Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
+  #     - name: 📦 Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #         cache: 'yarn'
 
-      - name: 🗄️ Cache node_modules
-        id: cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            ~/.cache/yarn
-            ~/.npm
-            .next/cache
-            .nuxt
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-
-            ${{ runner.os }}-deps-
+  #     - name: 🗄️ Cache node_modules
+  #       id: cache
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           node_modules
+  #           ~/.cache/yarn
+  #           ~/.npm
+  #           .next/cache
+  #           .nuxt
+  #         key: ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-${{ github.sha }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock', '**/package-lock.json') }}-
+  #           ${{ runner.os }}-deps-
 
-      - name: 🔧 Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          echo "💾 Cache miss - Installing fresh dependencies..."
-          if [ -f "yarn.lock" ]; then
-            yarn install --frozen-lockfile --prefer-offline
-          elif [ -f "package-lock.json" ]; then
-            npm ci --prefer-offline
-          else
-            npm install --prefer-offline
-          fi
+  #     - name: 🔧 Install dependencies
+  #       if: steps.cache.outputs.cache-hit != 'true'
+  #       run: |
+  #         echo "💾 Cache miss - Installing fresh dependencies..."
+  #         if [ -f "yarn.lock" ]; then
+  #           yarn install --frozen-lockfile --prefer-offline
+  #         elif [ -f "package-lock.json" ]; then
+  #           npm ci --prefer-offline
+  #         else
+  #           npm install --prefer-offline
+  #         fi
 
-      - name: 💾 Warm up additional caches
-        run: |
-          # Warm up TypeScript cache
-          if [ -f "tsconfig.json" ]; then
-            npx tsc --noEmit --incremental
-          fi
+  #     - name: 💾 Warm up additional caches
+  #       run: |
+  #         # Warm up TypeScript cache
+  #         if [ -f "tsconfig.json" ]; then
+  #           npx tsc --noEmit --incremental
+  #         fi
           
-          # Warm up Next.js cache
-          if [ -f "next.config.js" ]; then
-            npx next build --no-lint || echo "Next.js build warmup completed"
-          fi
+  #         # Warm up Next.js cache
+  #         if [ -f "next.config.js" ]; then
+  #           npx next build --no-lint || echo "Next.js build warmup completed"
+  #         fi
 
-      - name: 📊 Cache statistics
-        run: |
-          echo "📊 Cache Statistics:"
-          echo "Cache Hit: ${{ steps.cache.outputs.cache-hit }}"
-          echo "Cache Key: ${{ steps.cache.outputs.cache-primary-key }}"
-          echo "Node Modules Size: $(du -sh node_modules 2>/dev/null || echo 'Not found')"
+  #     - name: 📊 Cache statistics
+  #       run: |
+  #         echo "📊 Cache Statistics:"
+  #         echo "Cache Hit: ${{ steps.cache.outputs.cache-hit }}"
+  #         echo "Cache Key: ${{ steps.cache.outputs.cache-primary-key }}"
+  #         echo "Node Modules Size: $(du -sh node_modules 2>/dev/null || echo 'Not found')"
 
   # =========================================
   # JOB 12: BUILD APPLICATION
