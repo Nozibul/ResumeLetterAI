@@ -9,6 +9,7 @@ ResumeLetterAI is an enterprise-grade SaaS application that leverages AI to help
 - **Usage Period:** August 2025
 - **My Role:** Architect, Full-Stack Developer, Product Designer
 
+
 ---
 
 ## 🎯 AI Contribution Breakdown
@@ -32,6 +33,7 @@ ResumeLetterAI is an enterprise-grade SaaS application that leverages AI to help
 | MongoDB schemas | "Create Mongoose schema for user authentication" | `models/User.js` | Added custom indexes, virtuals, instance methods, pre/post hooks |
 | JWT utilities | "Generate JWT token creation and verification functions" | `utils/jwt.js` | Implemented refresh token rotation, blacklist strategy |
 | File upload handler | "Create multer configuration for PDF uploads" | `middleware/upload.js` | Added virus scanning, file type validation, S3 integration |
+
 
 ---
 
@@ -104,6 +106,7 @@ ResumeLetterAI is an enterprise-grade SaaS application that leverages AI to help
 - Test data generation strategy
 - CI/CD pipeline configuration
 
+
 ---
 
 ## 📝 Detailed Prompt Examples
@@ -133,6 +136,7 @@ My Implementation:
 - Created error logging pipeline (file + Sentry + Slack alerts)
 - Implemented retry logic with exponential backoff
 ```
+
 
 ---
 ## 🧠 My Problem-Solving Approach
@@ -171,6 +175,7 @@ My Implementation:
 - Added circuit breaker pattern for external API calls
 - Result: Handled 50,000 concurrent users with 99.9% uptime
 
+
 ---
 ## 🎓 Skills Demonstrated Through This Project
 
@@ -187,6 +192,7 @@ My Implementation:
 - ✅ **Code Review:** Critically evaluating AI-generated code
 - ✅ **Documentation:** Clear technical communication
 - ✅ **Ownership:** Full accountability for all code in production
+
 
 ---
 ## 🔍 How to Verify My Understanding
@@ -220,6 +226,7 @@ My Implementation:
 - Load balancing and session management approach
 <!-- - Background job processing and queue management -->
 
+
 ---
 ## 💼 Why This Approach Benefits You
 
@@ -245,6 +252,7 @@ My Implementation:
 - Scalability built into architecture
 - Monitoring and observability from start
 - Comprehensive error handling -->
+
 
 ---
 ## 📈 My Philosophy on AI in Development
@@ -273,6 +281,7 @@ My Approach:
   ├─ I review, refine, and optimize every line
   └─ Full ownership and understanding of the codebase
 
+
 ---
 ## 🎯 Key Differentiators
 
@@ -300,6 +309,7 @@ My Approach:
    - Optimized performance (sub-2s page loads)
    - Security-first approach
 
+
 ---
 ## 🚀 Continuous Learning & Improvement
 
@@ -315,6 +325,7 @@ My Approach:
 - [ ] Real-time collaboration v2 with CRDT
 - [ ] Mobile app with React Native
 - [ ] Advanced AI features (interview prep, salary negotiation)
+
 
 ---
 ## 🏆 Bottom Line
