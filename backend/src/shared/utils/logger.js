@@ -1,3 +1,8 @@
+/**
+ * @file logger.js
+ * @author Nozibul Islam
+ * @AIPromptUsed "Create a production-ready Node.js logging utility using Winston"
+ */
 const winston = require('winston');
 const crypto = require('crypto');
 const path = require('path');

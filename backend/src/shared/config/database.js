@@ -1,3 +1,8 @@
+/**
+ * @file database.js
+ * @author Nozibul Islams
+ */
+
 const mongoose = require('mongoose');
 const { logger } = require('../utils/logger');
 
