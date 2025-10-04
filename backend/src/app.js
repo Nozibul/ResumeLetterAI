@@ -9,11 +9,14 @@ const compression = require('compression');
 const helmet = require('helmet');
 const { requestLogger } = require('./shared/utils/logger');
 const routes = require('./routes');
-const { rateLimiter } = require('./shared/middleware/rateLimiter');
-const { notFoundHandler } = require('./shared/middleware/notFoundHandler');
+const { getHealthStatus } = require('./shared/health/health.controller');
+// const { rateLimiter } = require('./shared/middleware/rateLimiter');
 const corsOptions = require('./shared/config/cors.config');
 const errorHandler = require('./shared/middleware/errorHandler');
+const { notFoundHandler } = require('./shared/middleware/notFoundHandle');
 
+
+// Initialize Express app
 const app = express();
 
 // ====================================
@@ -64,64 +67,35 @@ app.use(requestLogger);
 // HEALTH CHECK ENDPOINT
 // ====================================
 // Simple health check (before routes, no auth needed)
-const Database = require('./shared/config/database');
-const { healthCheck: redisHealthCheck } = require('./shared/config/redis');
-
-app.get('/health', async (_, res) => {
-  try {
-    const dbHealth = await Database.healthCheck();
-    const redisHealth = await redisHealthCheck();
-
-    const isHealthy = dbHealth.status === 'healthy' && redisHealth.status === 'healthy';
-    const statusCode = isHealthy ? 200 : 503;
-
-    res.status(statusCode).json({
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      services: {
-        database: dbHealth,
-        redis: redisHealth,
-      },
-    });
-  } catch (error) {
-    res.status(503).json({
-      status: 'unhealthy',
-      error: error.message,
-    });
-  }
-});
+app.get('/health', getHealthStatus);
 
 // ====================================
 // API ROUTES
 // ====================================
-const routes = require('./routes');
 app.use('/api', routes);
 
 // ====================================
-// ROOT ENDPOINT
+// ROOT ENDPOINT HELTH CHECK
 // ====================================
+// tech-level health info fordeveloper, monitoring systems
 app.get('/', (_, res) => {
   res.json({
     name: 'ResumeLetterAI API',
-    version: '1.0.0',
+    version: process.env.APP_VERSION || '1.0.0',
     status: 'running',
     docs: '/api/docs',
+    timestamp: new Date().toISOString(),
   });
 });
 
 // ====================================
-// 404 HANDLER
+// 404 HANDLER (using shared middleware)
 // ====================================
-// Handle undefined routes
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Cannot ${req.method} ${req.originalUrl}`,
-    path: req.originalUrl,
-  });
-});
+app.use(notFoundHandler);
 
+// ====================================
+// Global ERROR HANDLER (using shared middleware)
+// ====================================
 app.use(errorHandler);
 
 module.exports = app;

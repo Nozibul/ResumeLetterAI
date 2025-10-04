@@ -16,7 +16,7 @@ ResumeLetterAI is an enterprise-grade SaaS application that leverages AI to help
 
 ### 🤖 What AI Helped With (≈25-30%)
 
-#### Frontend (AI Assistance: ~10%)
+#### Frontend (AI Assistance: ~15%)
 | Task | AI Prompt Used | Files | My Modifications |
 |------|----------------|-------|------------------|
 | Component structure | "Create React component for resume builder form with sections" | `components/ResumeBuilder.jsx` | Restructured for dynamic sections, added custom validation |
