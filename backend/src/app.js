@@ -12,9 +12,7 @@ const routes = require('./routes');
 const { getHealthStatus } = require('./shared/health/health.controller');
 // const { rateLimiter } = require('./shared/middleware/rateLimiter');
 const corsOptions = require('./shared/config/cors.config');
-const errorHandler = require('./shared/middleware/errorHandler');
-const { notFoundHandler } = require('./shared/middleware/notFoundHandle');
-
+const errorHandler = require('./shared/middleware/errorHandler');const { notFoundHandler } = require('./shared/middleware/notFoundHandle');
 
 // Initialize Express app
 const app = express();

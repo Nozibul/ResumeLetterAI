@@ -14,7 +14,7 @@ const redisConfig = {
   // Connection options
   maxRetriesPerRequest: parseInt(process.env.REDIS_MAX_RETRIES) || 3,
   retryDelayOnFailover: parseInt(process.env.REDIS_RETRY_DELAY) || 100,
-  connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT) || 10000,
+  connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT) || 20000,
 
   // Connect immediately (production best practice)
   lazyConnect: false,
@@ -135,11 +135,6 @@ redis.on('end', () => {
 // Helper Functions (Essential Only)
 // ====================================================================
 
-/**
- * Get cached data
- * @param {string} key - Cache key
- * @returns {Promise<any|null>} - Parsed data or null
- */
 const getCache = async (key) => {
   try {
     const value = await redis.get(key);
@@ -155,13 +150,8 @@ const getCache = async (key) => {
   }
 };
 
-/**
- * Set cached data with TTL
- * @param {string} key - Cache key
- * @param {any} value - Data to cache
- * @param {number} ttl - Time to live in seconds (default: 5 minutes)
- * @returns {Promise<boolean>} - Success status
- */
+
+//  Set cached data with TTL
 const setCache = async (key, value, ttl = 300) => {
   try {
     // Redis এ data save করো (JSON string হিসেবে)
@@ -179,11 +169,7 @@ const setCache = async (key, value, ttl = 300) => {
   }
 };
 
-/**
- * Delete cached data
- * @param {string} key - Cache key
- * @returns {Promise<boolean>} - Success status
- */
+ // Delete cached data
 const deleteCache = async (key) => {
   try {
     await redis.del(key); // Redis থেকে key delete করো
@@ -199,12 +185,8 @@ const deleteCache = async (key) => {
   }
 };
 
-/**
- * Clear multiple cache keys by pattern
- * Example: clearCacheByPattern('user:*') deletes user:123, user:456, etc.
- * @param {string} pattern - Redis key pattern (e.g., 'user:*')
- * @returns {Promise<number>} - Number of keys deleted
- */
+
+// Clear multiple cache keys by pattern
 const clearCacheByPattern = async (pattern) => {
   try {
     const keys = await redis.keys(pattern);
@@ -228,10 +210,8 @@ const clearCacheByPattern = async (pattern) => {
   }
 };
 
-/**
- * Redis health check for monitoring
- * @returns {Promise<object>} - Health status
- */
+
+// Redis health check for monitoring
 const healthCheck = async () => {
   try {
     const startTime = Date.now();
@@ -252,9 +232,8 @@ const healthCheck = async () => {
   }
 };
 
-/**
- * Graceful shutdown - close Redis connection cleanly
- */
+
+// Graceful shutdown - close Redis connection cleanly
 const disconnect = async () => {
   try {
     await redis.quit(); // Redis connection সুন্দরভাবে close করো
@@ -292,6 +271,33 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
+
+// ====================================================================
+// Initialize Redis (for server.js compatibility)
+// ====================================================================
+/**
+ * Initialize Redis connection
+ * This is called from server.js during startup
+ */
+const initRedis = async () => {
+  // Redis already connects automatically (lazyConnect: false)
+  // But we can wait for 'ready' event to ensure connection
+  return new Promise((resolve, reject) => {
+    if (redis.status === 'ready') {
+      resolve();
+    } else {
+      redis.once('ready', resolve);
+      redis.once('error', reject);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        reject(new Error('Redis connection timeout'));
+      }, 10000);
+    }
+  });
+};
+
+
 // ====================================================================
 // Exports
 // ====================================================================
@@ -303,4 +309,5 @@ module.exports = {
   clearCacheByPattern, // Delete multiple keys by pattern
   healthCheck, // Health check for monitoring
   disconnect, // Graceful shutdown
+  initRedis,
 };
