@@ -1,0 +1,1129 @@
+# Main OpenAPI specification for the API
+openapi: 3.0.3
+
+info:
+  title: ResumeLetterAI API
+  version: 1.0.0
+  description: |
+    Production-ready REST API for resume and cover letter generation platform.
+    
+    ## Features
+    - User authentication with JWT
+    - Resume template management
+    - Cover letter generation
+    - User profile management
+    - Review and rating system
+    
+    ## Rate Limiting
+    - Anonymous users: 10 requests/minute
+    - Authenticated users: 100 requests/minute
+    - Write operations: 10 requests/minute
+    
+    ## Error Handling
+    All errors follow RFC 7807 Problem Details format.
+    
+  contact:
+    name: ResumeLetterAI Support
+    email: nozibulislamspi@gmail.com
+    url: https://resumeletterai.com
+  
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+  - url: https://api.resumeletterai.com/api/v1
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User profile management
+  - name: Templates
+    description: Resume and cover letter templates
+  - name: Reviews
+    description: Template reviews and ratings
+
+# ============================================
+# PATHS
+# ============================================
+paths:
+  # ============================================
+  # HEALTH CHECK
+  # ============================================
+  /health:
+    get:
+      summary: Health check
+      description: Check if API is running and all services are healthy
+      tags: [Health]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                timestamp: "2025-10-07T10:30:00Z"
+                services:
+                  database: "connected"
+                  redis: "connected"
+                uptime: 3600
+
+  # ============================================
+  # AUTHENTICATION
+  # ============================================
+  /auth/register:
+    post:
+      summary: Register new user
+      description: Create a new user account
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              name: "John Doe"
+              email: "john@example.com"
+              password: "SecurePass123!"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      summary: User login
+      description: Authenticate user and get access token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "john@example.com"
+              password: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      summary: User logout
+      description: Invalidate user session and tokens
+      tags: [Authentication]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # USERS
+  # ============================================
+  /users/me:
+    get:
+      summary: Get current user profile
+      description: Retrieve authenticated user's profile information
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      summary: Update user profile
+      description: Update authenticated user's profile information
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+            example:
+              name: "John Smith"
+              phone: "+8801712345678"
+              bio: "Experienced software developer"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/password:
+    put:
+      summary: Change password
+      description: Change user's password
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+            example:
+              currentPassword: "OldPass123!"
+              newPassword: "NewSecurePass456!"
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # TEMPLATES
+  # ============================================
+  /templates:
+    get:
+      summary: List all templates
+      description: Get paginated list of resume templates
+      tags: [Templates]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: category
+          in: query
+          description: Filter by template category
+          schema:
+            type: string
+            enum: [professional, creative, academic, technical, modern]
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [newest, oldest, popular, rating]
+            default: newest
+        - name: search
+          in: query
+          description: Search by template name or tags
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Templates retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      summary: Create new template
+      description: Create a new resume template (Admin/Creator only)
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /templates/{id}:
+    get:
+      summary: Get template by ID
+      description: Retrieve detailed information about a specific template
+      tags: [Templates]
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '200':
+          description: Template retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update template
+      description: Update template information (Admin/Creator only)
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete template
+      description: Delete a template (Admin only)
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '204':
+          description: Template deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /templates/{id}/preview:
+    get:
+      summary: Get template preview
+      description: Get template preview image or HTML
+      tags: [Templates]
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '200':
+          description: Preview retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  previewUrl:
+                    type: string
+                    format: uri
+                  thumbnailUrl:
+                    type: string
+                    format: uri
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # REVIEWS
+  # ============================================
+  /templates/{id}/reviews:
+    get:
+      summary: Get template reviews
+      description: Get paginated list of reviews for a template
+      tags: [Reviews]
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [newest, oldest, helpful, rating_high, rating_low]
+            default: newest
+      responses:
+        '200':
+          description: Reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      summary: Create review
+      description: Add a review for a template
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: User already reviewed this template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /reviews/{id}:
+    patch:
+      summary: Update review
+      description: Update user's own review
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Review ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete review
+      description: Delete user's own review (or admin)
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Review ID
+      responses:
+        '204':
+          description: Review deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+# ============================================
+# COMPONENTS
+# ============================================
+components:
+  # ============================================
+  # SECURITY SCHEMES
+  # ============================================
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token received from /auth/login or /auth/register endpoint.
+        Format: Bearer {token}
+
+  # ============================================
+  # PARAMETERS
+  # ============================================
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+
+    Limit:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+
+    TemplateId:
+      name: id
+      in: path
+      required: true
+      description: Template ID
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+      example: "507f1f77bcf86cd799439011"
+
+  # ============================================
+  # SCHEMAS
+  # ============================================
+  schemas:
+    # Health
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [connected, disconnected]
+            redis:
+              type: string
+              enum: [connected, disconnected]
+        uptime:
+          type: number
+          description: Server uptime in seconds
+
+    # Authentication
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+          description: Must contain uppercase, lowercase, number and special character
+          example: "SecurePass123!"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          example: "SecurePass123!"
+
+    AuthResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Login successful"
+        data:
+          type: object
+          required:
+            - user
+            - tokens
+          properties:
+            user:
+              $ref: '#/components/schemas/UserProfile'
+            tokens:
+              $ref: '#/components/schemas/TokenResponse'
+
+    TokenResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expiresIn:
+          type: integer
+          description: Access token expiration time in seconds
+          example: 900
+
+    # User
+    UserProfile:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        phone:
+          type: string
+          example: "+8801712345678"
+        bio:
+          type: string
+          maxLength: 500
+          example: "Experienced software developer"
+        avatar:
+          type: string
+          format: uri
+          example: "https://cdn.resumeletterai.com/avatars/john-doe.jpg"
+        role:
+          type: string
+          enum: [user, admin, creator]
+          default: user
+        isEmailVerified:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+        bio:
+          type: string
+          maxLength: 500
+
+    # Template
+    Template:
+      type: object
+      required:
+        - id
+        - name
+        - category
+        - createdBy
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          example: "Modern Professional"
+        description:
+          type: string
+          example: "Clean and modern design perfect for professionals"
+        category:
+          type: string
+          enum: [professional, creative, academic, technical, modern]
+          example: "professional"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["modern", "clean", "ats-friendly"]
+        previewImage:
+          type: string
+          format: uri
+          example: "https://cdn.resumeletterai.com/templates/preview/modern-prof.jpg"
+        thumbnail:
+          type: string
+          format: uri
+          example: "https://cdn.resumeletterai.com/templates/thumbnails/modern-prof.jpg"
+        isPremium:
+          type: boolean
+          default: false
+        price:
+          type: number
+          minimum: 0
+          example: 0
+        downloadCount:
+          type: integer
+          minimum: 0
+          example: 1250
+        viewCount:
+          type: integer
+          minimum: 0
+          example: 5430
+        averageRating:
+          type: number
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        reviewCount:
+          type: integer
+          minimum: 0
+          example: 125
+        isActive:
+          type: boolean
+          default: true
+        createdBy:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - category
+        - description
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          minLength: 10
+          maxLength: 500
+        category:
+          type: string
+          enum: [professional, creative, academic, technical, modern]
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 10
+        isPremium:
+          type: boolean
+          default: false
+        price:
+          type: number
+          minimum: 0
+
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          minLength: 10
+          maxLength: 500
+        tags:
+          type: array
+          items:
+            type: string
+          maxItems: 10
+        isPremium:
+          type: boolean
+        price:
+          type: number
+          minimum: 0
+        isActive:
+          type: boolean
+
+    TemplateListResponse:
+      type: object
+      required:
+        - success
+        - data
+        - pagination
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Templates retrieved successfully"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Review
+    Review:
+      type: object
+      required:
+        - id
+        - templateId
+        - userId
+        - rating
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        templateId:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        userId:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            avatar:
+              type: string
+              format: uri
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          maxLength: 1000
+          example: "Excellent template! Very professional and easy to customize."
+        helpfulCount:
+          type: integer
+          minimum: 0
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 1000
+
+    UpdateReviewRequest:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 1000
+
+    ReviewListResponse:
+      type: object
+      required:
+        - success
+        - data
+        - pagination
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Reviews retrieved successfully"
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Common
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - totalPages
+        - totalItems
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 20
+        totalPages:
+          type: integer
+          minimum: 0
+          example: 10
+        totalItems:
+          type: integer
+          minimum: 0
+          example: 195
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation error"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  # ============================================
+  # RESPONSES
+  # ============================================
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Validation error"
+            errors:
+              - field: "email"
+                message: "Invalid email format"
+
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Please login to continue"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "You do not have permission to perform this action"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Resource not found"

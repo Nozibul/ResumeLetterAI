@@ -1,18 +1,25 @@
 /**
  * @file app.js
- * @author Nozibul Islams
+ * @description Express application configuration and middleware setup
+ * @author Nozibul Islam
  */
 
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
 const { requestLogger } = require('./shared/utils/logger');
 const routes = require('./routes');
 const { getHealthStatus } = require('./shared/health/health.controller');
-// const { rateLimiter } = require('./shared/middleware/rateLimiter');
 const corsOptions = require('./shared/config/cors.config');
-const errorHandler = require('./shared/middleware/errorHandler');const { notFoundHandler } = require('./shared/middleware/notFoundHandle');
+const errorHandler = require('./shared/middleware/errorHandler');
+const { notFoundHandler } = require('./shared/middleware/notFoundHandle');
+// const { rateLimiter } = require('./shared/middleware/rateLimiter');
+
+// Load Swagger documentation
+const swaggerDocument = YAML.load('./docs/api/openapi.yaml');
 
 // Initialize Express app
 const app = express();
@@ -20,7 +27,8 @@ const app = express();
 // ====================================
 // SECURITY MIDDLEWARE
 // ====================================
-// helmet: Sets various HTTP headers for security, Protects against: XSS, clickjacking, MIME sniffing, etc.
+// Helmet: Sets various HTTP headers for security
+// Protects against: XSS, clickjacking, MIME sniffing, etc.
 app.use(helmet());
 
 // ====================================
@@ -35,7 +43,7 @@ app.use(cors(corsOptions));
 // Parse JSON bodies (limit prevents DoS attacks)
 app.use(express.json({ limit: '5mb' }));
 
-//size logging middleware
+// Request size logging middleware (for debugging/monitoring)
 app.use((req, _, next) => {
   if (req.headers['content-length']) {
     const bytes = parseInt(req.headers['content-length']);
@@ -68,20 +76,31 @@ app.use(requestLogger);
 app.get('/health', getHealthStatus);
 
 // ====================================
+// API DOCUMENTATION (Swagger UI)
+// ====================================
+// Serves interactive API documentation at /api-docs endpoint
+// Access at: http://localhost:3000/api-docs
+// Only available in development/staging environments
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
+
+// ====================================
 // API ROUTES
 // ====================================
 app.use('/api', routes);
 
 // ====================================
-// ROOT ENDPOINT HELTH CHECK
+// ROOT ENDPOINT (API INFO)
 // ====================================
-// tech-level health info fordeveloper, monitoring systems
+// Provides basic API information for developers and monitoring systems
 app.get('/', (_, res) => {
   res.json({
     name: 'ResumeLetterAI API',
     version: process.env.APP_VERSION || '1.0.0',
     status: 'running',
-    docs: '/api/docs',
+    docs: process.env.NODE_ENV !== 'production' ? '/api-docs' : null,
+    health: '/health',
     timestamp: new Date().toISOString(),
   });
 });
@@ -92,7 +111,7 @@ app.get('/', (_, res) => {
 app.use(notFoundHandler);
 
 // ====================================
-// Global ERROR HANDLER (using shared middleware)
+// GLOBAL ERROR HANDLER (using shared middleware)
 // ====================================
 app.use(errorHandler);
 
