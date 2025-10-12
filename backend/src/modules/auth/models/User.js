@@ -144,6 +144,11 @@ const UserSchema = new mongoose.Schema(
     // ==========================================
     // ACCOUNT LOCKING (Security)
     // ==========================================
+    firstFailedAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
     loginAttempts: {
       type: Number,
       default: 0,
@@ -166,6 +171,12 @@ const UserSchema = new mongoose.Schema(
     lastLoginIP: {
       type: String,
       default: null,
+    },
+
+    lastActiveAt: {
+      type: Date,
+      default: Date.now,
+      index: true, // For TTL index and activity queries
     },
 
     // ==========================================
@@ -222,6 +233,16 @@ UserSchema.index({ email: 1, isActive: 1 });
 UserSchema.index({ role: 1, isActive: 1 });
 UserSchema.index({ createdAt: -1 }); // For sorting by registration date
 
+// TTL Index: Auto-delete users inactive for 30 days
+// MongoDB will automatically delete documents where lastActiveAt is older than 30 days
+UserSchema.index(
+  { lastActiveAt: 1 },
+  {
+    expireAfterSeconds: 30 * 24 * 60 * 60, // 30 days in seconds
+    name: 'ttl_inactive_users', // Custom index name
+  }
+);
+
 // ==========================================
 // VIRTUALS (Computed Properties)
 // ==========================================
@@ -243,7 +264,6 @@ UserSchema.virtual('profile').get(function () {
     email: this.email,
     role: this.role,
     isEmailVerified: this.isEmailVerified,
-    subscription: this.subscription?.plan || 'free',
     joinedAt: this.createdAt,
   };
 });
@@ -311,40 +331,72 @@ UserSchema.methods.changedPasswordAfter = function (jwtIat) {
 };
 
 /**
- * Increment login attempts and lock account if threshold exceeded
- * @returns {Promise<boolean>} - Returns true if account is locked
+ * Update last active timestamp
+ * Call this on every user activity (login, API calls, etc.)
+ * @returns {Promise<void>}
  */
-UserSchema.methods.incLoginAttempts = async function () {
-  // If we have a previous lock that has expired, restart at 1
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({
-      $set: { loginAttempts: 1 },
-      $unset: { lockUntil: 1 },
-    });
-  }
-
-  // Otherwise we're incrementing
-  const updates = { $inc: { loginAttempts: 1 } };
-
-  // Lock the account if we've reached max attempts (5 attempts)
-  const maxAttempts = 5;
-  const lockTime = 2 * 60 * 60 * 1000; // 2 hours
-
-  if (this.loginAttempts + 1 >= maxAttempts && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + lockTime };
-  }
-
-  await this.updateOne(updates);
-  return this.loginAttempts + 1 >= maxAttempts;
+UserSchema.methods.updateLastActive = async function () {
+  this.lastActiveAt = new Date();
+  return this.save({ validateBeforeSave: false });
 };
 
 /**
- * Reset login attempts
+ * Increment login attempts and lock account if threshold exceeded within time window
+ * @returns {Promise<boolean>} - Returns true if account is locked
+ */
+UserSchema.methods.incLoginAttempts = async function () {
+  const MAX_ATTEMPTS = 3;
+  const ATTEMPT_WINDOW = 2 * 60 * 1000; // 2 minutes in milliseconds
+  const LOCK_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+  const now = Date.now();
+
+  // If previous lock expired, reset counters and start fresh window
+  if (this.lockUntil && this.lockUntil < now) {
+    await this.updateOne({
+      $set: { loginAttempts: 1, firstFailedAt: now },
+      $unset: { lockUntil: 1 },
+    });
+    return false;
+  }
+
+  // If no window started or window expired, start a new window
+  if (!this.firstFailedAt || now - this.firstFailedAt > ATTEMPT_WINDOW) {
+    await this.updateOne({
+      $set: { loginAttempts: 1, firstFailedAt: now },
+    });
+    return false;
+  }
+
+  // We are inside the attempt window -> increment attempts
+  const currentAttempts = this.loginAttempts || 0;
+  const newAttempts = currentAttempts + 1;
+  const updates = { $inc: { loginAttempts: 1 } };
+
+  // If this increment reaches threshold, lock the account
+  if (newAttempts >= MAX_ATTEMPTS && !(this.lockUntil && this.lockUntil > now)) {
+    updates.$set = {
+      lockUntil: now + LOCK_TIME,
+      loginAttempts: 0, // Reset for next window
+    };
+    updates.$unset = { firstFailedAt: 1 };
+
+    await this.updateOne(updates);
+    return true; // Account is now locked
+  }
+
+  // Just increment attempts (not locked yet)
+  await this.updateOne(updates);
+  return false;
+};
+
+/**
+ * Reset login attempts after successful login
  */
 UserSchema.methods.resetLoginAttempts = function () {
   return this.updateOne({
     $set: { loginAttempts: 0 },
-    $unset: { lockUntil: 1 },
+    $unset: { lockUntil: 1, firstFailedAt: 1 },
   });
 };
 
