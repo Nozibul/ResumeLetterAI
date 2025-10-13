@@ -425,8 +425,8 @@ UserSchema.methods.createEmailVerificationToken = function () {
 
   this.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
-  // Token expires in 24 hours (timezone-safe Date object)
-  this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  // Token expires in 12 hours (timezone-safe Date object)
+  this.emailVerificationExpires = new Date(Date.now() + 24 * 30 * 60 * 1000);
 
   return verificationToken;
 };

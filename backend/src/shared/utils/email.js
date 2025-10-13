@@ -24,7 +24,7 @@ const templates = {
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #4f46e5; color: white; padding: 20px; text-align: center; }
+        .header { background: #3b33d1ff; color: white; padding: 20px; text-align: center; }
         .content { padding: 30px; background: #f9fafb; }
         .button { display: inline-block; padding: 12px 30px; background: #4f46e5; 
                   color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
@@ -43,7 +43,7 @@ const templates = {
             <a href="${data.verificationUrl}" class="button">Verify Email</a>
           </p>
           <p>Or copy and paste this link in your browser:</p>
-          <p style="word-break: break-all; color: #4f46e5;">${data.verificationUrl}</p>
+          <p style="word-break: break-all; color: #443dcdff;">${data.verificationUrl}</p>
           <p><strong>This link will expire in 24 hours.</strong></p>
           <p>If you didn't create an account, please ignore this email.</p>
         </div>
