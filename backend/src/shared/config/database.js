@@ -23,8 +23,8 @@ class Database {
 
       // Connection options from .env
       const options = {
-        maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE) || 10,
-        serverSelectionTimeoutMS: parseInt(process.env.MONGODB_SERVER_SELECTION_TIMEOUT) || 5000,
+        maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE) || 20,
+        serverSelectionTimeoutMS: parseInt(process.env.MONGODB_SERVER_SELECTION_TIMEOUT) || 10000,
         socketTimeoutMS: parseInt(process.env.MONGODB_SOCKET_TIMEOUT) || 45000,
         family: 4, // Use IPv4 (faster, skip IPv6 attempt)
       };
@@ -37,7 +37,7 @@ class Database {
       // Log successful connection
       logger.info({
         type: 'database_connection',
-        status: 'connected',
+        status: 'Successfully connected',
         duration: `${duration}ms`,
         host: mongoose.connection.host,
         database: mongoose.connection.name,

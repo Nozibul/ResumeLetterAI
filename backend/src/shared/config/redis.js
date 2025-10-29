@@ -22,8 +22,7 @@ const redisConfig = {
   // ================================================================
   // Retry Strategy: Exponential backoff with max delay
   // ================================================================
-  // কেন দরকার: Redis server temporarily down হলে automatic reconnect
-  retryStrategy: (times) => {
+  retryStrategy: (times = 0) => {
     // Exponential backoff: 50ms, 100ms, 200ms, 400ms... max 2000ms
     const delay = Math.min(times * 50, 2000);
 
@@ -50,7 +49,7 @@ const redisConfig = {
   // ================================================================
   // Reconnect on specific errors
   // ================================================================
-  // কেন দরকার: READONLY errors (master-slave switch) এ reconnect
+
   reconnectOnError: (err) => {
     const targetError = 'READONLY';
     if (err.message.includes(targetError)) {
@@ -134,7 +133,6 @@ redis.on('end', () => {
 // ====================================================================
 // Helper Functions (Essential Only)
 // ====================================================================
-
 const getCache = async (key) => {
   try {
     const value = await redis.get(key);
@@ -150,13 +148,10 @@ const getCache = async (key) => {
   }
 };
 
-
 //  Set cached data with TTL
 const setCache = async (key, value, ttl = 300) => {
   try {
-    // Redis এ data save করো (JSON string হিসেবে)
     await redis.setex(key, ttl, JSON.stringify(value));
-    // setex = SET with EXpiry (TTL সহ save করে)
     return true; // Success
   } catch (error) {
     logger.error({
@@ -165,14 +160,14 @@ const setCache = async (key, value, ttl = 300) => {
       key,
       error: error.message,
     });
-    return false; // Return false on error
+    return false;
   }
 };
 
- // Delete cached data
+// Delete cached data
 const deleteCache = async (key) => {
   try {
-    await redis.del(key); // Redis থেকে key delete করো
+    await redis.del(key);
     return true;
   } catch (error) {
     logger.error({
@@ -184,7 +179,6 @@ const deleteCache = async (key) => {
     return false;
   }
 };
-
 
 // Clear multiple cache keys by pattern
 const clearCacheByPattern = async (pattern) => {
@@ -210,7 +204,6 @@ const clearCacheByPattern = async (pattern) => {
   }
 };
 
-
 // Redis health check for monitoring
 const healthCheck = async () => {
   try {
@@ -231,7 +224,6 @@ const healthCheck = async () => {
     };
   }
 };
-
 
 // Graceful shutdown - close Redis connection cleanly
 const disconnect = async () => {
@@ -255,7 +247,6 @@ const disconnect = async () => {
 // ====================================================================
 // Graceful Shutdown Handlers
 // ====================================================================
-// কেন দরকার: Server shutdown হওয়ার আগে Redis connection close করা
 
 // SIGINT: Ctrl+C pressed
 process.on('SIGINT', async () => {
@@ -271,14 +262,9 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-
 // ====================================================================
 // Initialize Redis (for server.js compatibility)
 // ====================================================================
-/**
- * Initialize Redis connection
- * This is called from server.js during startup
- */
 const initRedis = async () => {
   // Redis already connects automatically (lazyConnect: false)
   // But we can wait for 'ready' event to ensure connection
@@ -288,7 +274,7 @@ const initRedis = async () => {
     } else {
       redis.once('ready', resolve);
       redis.once('error', reject);
-      
+
       // Timeout after 10 seconds
       setTimeout(() => {
         reject(new Error('Redis connection timeout'));
@@ -296,7 +282,6 @@ const initRedis = async () => {
     }
   });
 };
-
 
 // ====================================================================
 // Exports
