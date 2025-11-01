@@ -32,11 +32,11 @@ let memoryMonitorInterval;
 // ====================================
 async function startServer() {
   const startTime = Date.now();
-  
+
   try {
     logger.info('🚀 Starting server initialization...');
     logger.info(`📦 Environment: ${NODE_ENV}`);
-    logger.info(`🏷️  App Name: ${APP_NAME}`);
+    logger.info(`🏷️ App Name: ${APP_NAME}`);
     logger.info(`🔧 Node Version: ${process.version}`);
     logger.info(`💻 Platform: ${process.platform}`);
     logger.info(`🆔 Process ID: ${process.pid}`);
@@ -65,8 +65,8 @@ async function startServer() {
     logger.info('Starting HTTP server...');
     server = app.listen(PORT, () => {
       const startupTime = Date.now() - startTime;
-      
-      logger.info('='.repeat(50));
+
+      logger.info('='.repeat(40));
       logger.info(`✨ ${APP_NAME} is running!`);
       logger.info(`🌐 Server URL: http://localhost:${PORT}`);
       logger.info(`📝 Health Check: http://localhost:${PORT}/health`);
@@ -98,7 +98,6 @@ async function startServer() {
     if (NODE_ENV === 'production') {
       startMemoryMonitoring();
     }
-
   } catch (error) {
     logger.error('💥 Server startup failed:', error);
     logger.error('Stack trace:', error.stack);
@@ -172,7 +171,7 @@ function setupGracefulShutdown() {
 // ====================================
 // CLEANUP FUNCTION
 // ====================================
-async function cleanup() { 
+async function cleanup() {
   logger.info('🧹 Starting cleanup...');
 
   // Stop memory monitoring
@@ -191,7 +190,7 @@ async function cleanup() {
     {
       name: 'Redis',
       task: async () => {
-        await disconnect();    
+        await disconnect();
         logger.info('✅ Redis disconnected');
       },
     },
@@ -228,7 +227,9 @@ function startMemoryMonitoring() {
     // Alert if memory usage is high
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
     if (heapUsedMB > MEMORY_THRESHOLD) {
-      logger.warn(`⚠️ High memory usage: ${Math.round(heapUsedMB)}MB (threshold: ${MEMORY_THRESHOLD}MB)`);
+      logger.warn(
+        `⚠️ High memory usage: ${Math.round(heapUsedMB)}MB (threshold: ${MEMORY_THRESHOLD}MB)`
+      );
     }
   }, MEMORY_CHECK_INTERVAL);
 }
