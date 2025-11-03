@@ -50,11 +50,11 @@ tags:
     description: Template reviews and ratings
 
 # ============================================
-# PATHS
+# API ENDPOINTS
 # ============================================
 paths:
   # ============================================
-  # HEALTH CHECK
+  # HEALTH CHECK ENDPOINTS
   # ============================================
   /health:
     get:
@@ -77,7 +77,7 @@ paths:
                 uptime: 3600
 
   # ============================================
-  # AUTHENTICATION
+  # AUTHENTICATION ENDPOINTS
   # ============================================
   /auth/register:
     post:
@@ -180,8 +180,38 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /auth/google:
+    get:
+      summary: Google OAuth login
+      description: Redirect to Google OAuth consent screen
+      tags: [Authentication]
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      description: Handle Google OAuth callback and create/login user
+      tags: [Authentication]
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   # ============================================
-  # USERS
+  # USER PROFILE ENDPOINTS
   # ============================================
   /users/me:
     get:
@@ -196,7 +226,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -213,26 +249,56 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateUserRequest'
             example:
-              name: "John Smith"
-              phone: "+8801712345678"
-              bio: "Experienced software developer"
+              fullName: "John Smith"
+              preferences:
+                language: "bn"
+                notifications:
+                  email: false
       responses:
         '200':
           description: Profile updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Profile updated successfully"
+                  data:
+                    $ref: '#/components/schemas/UserProfile'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+    delete:
+      summary: Delete user account
+      description: Soft delete user account (sets isActive to false)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # PASSWORD MANAGEMENT ENDPOINTS
+  # ============================================
   /users/me/password:
     put:
       summary: Change password
-      description: Change user's password
-      tags: [Users]
+      description: Change authenticated user's password
+      tags: [Password]
       security:
         - bearerAuth: []
       requestBody:
@@ -240,18 +306,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - currentPassword
-                - newPassword
-              properties:
-                currentPassword:
-                  type: string
-                  format: password
-                newPassword:
-                  type: string
-                  format: password
-                  minLength: 8
+              $ref: '#/components/schemas/ChangePasswordRequest'
             example:
               currentPassword: "OldPass123!"
               newPassword: "NewSecurePass456!"
@@ -266,6 +321,102 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset
+      description: Send password reset email with token
+      tags: [Password]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: "john@example.com"
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/reset-password:
+    post:
+      summary: Reset password
+      description: Reset password using token from email
+      tags: [Password]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            example:
+              token: "a1b2c3d4e5f6..."
+              newPassword: "NewSecurePass789!"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ============================================
+  # EMAIL VERIFICATION ENDPOINTS
+  # ============================================
+  /auth/verify-email:
+    post:
+      summary: Verify email address
+      description: Verify user email using token from email
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+            example:
+              token: "a1b2c3d4e5f6..."
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/resend-verification:
+    post:
+      summary: Resend verification email
+      description: Resend email verification link
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+            example:
+              email: "john@example.com"
+      responses:
+        '200':
+          description: Verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   # ============================================
   # TEMPLATES
@@ -542,95 +693,21 @@ paths:
           $ref: '#/components/responses/NotFound'
 
 # ============================================
-# COMPONENTS
+# REUSABLE COMPONENTS
 # ============================================
 components:
-  # ============================================
-  # SECURITY SCHEMES
-  # ============================================
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |
-        JWT token received from /auth/login or /auth/register endpoint.
-        Format: Bearer {token}
-
-  # ============================================
-  # PARAMETERS
-  # ============================================
-  parameters:
-    Page:
-      name: page
-      in: query
-      description: Page number for pagination
-      schema:
-        type: integer
-        minimum: 1
-        default: 1
-      example: 1
-
-    Limit:
-      name: limit
-      in: query
-      description: Number of items per page
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 20
-      example: 20
-
-    TemplateId:
-      name: id
-      in: path
-      required: true
-      description: Template ID
-      schema:
-        type: string
-        pattern: '^[0-9a-fA-F]{24}$'
-      example: "507f1f77bcf86cd799439011"
-
-  # ============================================
-  # SCHEMAS
-  # ============================================
   schemas:
-    # Health
-    HealthResponse:
-      type: object
-      required:
-        - status
-        - timestamp
-      properties:
-        status:
-          type: string
-          enum: [healthy, unhealthy]
-        timestamp:
-          type: string
-          format: date-time
-        services:
-          type: object
-          properties:
-            database:
-              type: string
-              enum: [connected, disconnected]
-            redis:
-              type: string
-              enum: [connected, disconnected]
-        uptime:
-          type: number
-          description: Server uptime in seconds
-
-    # Authentication
+    # ============================================
+    # AUTHENTICATION SCHEMAS
+    # ============================================
     RegisterRequest:
       type: object
       required:
-        - name
+        - fullName
         - email
         - password
       properties:
-        name:
+        fullName:
           type: string
           minLength: 2
           maxLength: 50
@@ -643,10 +720,30 @@ components:
           type: string
           format: password
           minLength: 8
-          maxLength: 128
-          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
-          description: Must contain uppercase, lowercase, number and special character
           example: "SecurePass123!"
+        authProvider:
+          type: string
+          enum: [local, google]
+          default: local
+        preferences:
+          type: object
+          properties:
+            language:
+              type: string
+              enum: [en, bn]
+              default: en
+            timezone:
+              type: string
+              default: UTC
+            notifications:
+              type: object
+              properties:
+                email:
+                  type: boolean
+                  default: true
+                push:
+                  type: boolean
+                  default: false
 
     LoginRequest:
       type: object
@@ -665,22 +762,15 @@ components:
 
     AuthResponse:
       type: object
-      required:
-        - success
-        - message
-        - data
       properties:
         success:
           type: boolean
           example: true
         message:
           type: string
-          example: "Login successful"
+          example: "User registered successfully"
         data:
           type: object
-          required:
-            - user
-            - tokens
           properties:
             user:
               $ref: '#/components/schemas/UserProfile'
@@ -689,10 +779,6 @@ components:
 
     TokenResponse:
       type: object
-      required:
-        - accessToken
-        - refreshToken
-        - expiresIn
       properties:
         accessToken:
           type: string
@@ -701,422 +787,264 @@ components:
           type: string
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         expiresIn:
-          type: integer
-          description: Access token expiration time in seconds
-          example: 900
+          type: number
+          example: 3600
 
-    # User
+    # ============================================
+    # USER SCHEMAS
+    # ============================================
     UserProfile:
       type: object
-      required:
-        - id
-        - name
-        - email
-        - role
-        - createdAt
       properties:
         id:
           type: string
           example: "507f1f77bcf86cd799439011"
-        name:
+        fullName:
           type: string
           example: "John Doe"
         email:
           type: string
           format: email
           example: "john@example.com"
-        phone:
-          type: string
-          example: "+8801712345678"
-        bio:
-          type: string
-          maxLength: 500
-          example: "Experienced software developer"
-        avatar:
-          type: string
-          format: uri
-          example: "https://cdn.resumeletterai.com/avatars/john-doe.jpg"
         role:
           type: string
-          enum: [user, admin, creator]
-          default: user
+          enum: [user, admin, premium]
+          example: "user"
+        authProvider:
+          type: string
+          enum: [local, google]
+          example: "local"
+        isActive:
+          type: boolean
+          example: true
         isEmailVerified:
           type: boolean
-          default: false
+          example: false
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-15T10:30:00Z"
+        lastLoginIP:
+          type: string
+          nullable: true
+          example: "192.168.1.1"
+        lastActiveAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+        preferences:
+          type: object
+          properties:
+            language:
+              type: string
+              enum: [en, bn]
+              example: "en"
+            timezone:
+              type: string
+              example: "UTC"
+            notifications:
+              type: object
+              properties:
+                email:
+                  type: boolean
+                  example: true
+                push:
+                  type: boolean
+                  example: false
+        metadata:
+          type: object
+          additionalProperties: true
+          example:
+            aiPreferences: {}
+            customFields: {}
         createdAt:
           type: string
           format: date-time
+          example: "2024-01-01T00:00:00Z"
         updatedAt:
           type: string
           format: date-time
+          example: "2024-01-15T10:30:00Z"
 
     UpdateUserRequest:
       type: object
       properties:
-        name:
+        fullName:
           type: string
           minLength: 2
           maxLength: 50
-        phone:
-          type: string
-          pattern: '^\+?[1-9]\d{1,14}$'
-        bio:
-          type: string
-          maxLength: 500
-
-    # Template
-    Template:
-      type: object
-      required:
-        - id
-        - name
-        - category
-        - createdBy
-        - createdAt
-      properties:
-        id:
-          type: string
-          example: "507f1f77bcf86cd799439011"
-        name:
-          type: string
-          example: "Modern Professional"
-        description:
-          type: string
-          example: "Clean and modern design perfect for professionals"
-        category:
-          type: string
-          enum: [professional, creative, academic, technical, modern]
-          example: "professional"
-        tags:
-          type: array
-          items:
-            type: string
-          example: ["modern", "clean", "ats-friendly"]
-        previewImage:
-          type: string
-          format: uri
-          example: "https://cdn.resumeletterai.com/templates/preview/modern-prof.jpg"
-        thumbnail:
-          type: string
-          format: uri
-          example: "https://cdn.resumeletterai.com/templates/thumbnails/modern-prof.jpg"
-        isPremium:
-          type: boolean
-          default: false
-        price:
-          type: number
-          minimum: 0
-          example: 0
-        downloadCount:
-          type: integer
-          minimum: 0
-          example: 1250
-        viewCount:
-          type: integer
-          minimum: 0
-          example: 5430
-        averageRating:
-          type: number
-          minimum: 0
-          maximum: 5
-          example: 4.5
-        reviewCount:
-          type: integer
-          minimum: 0
-          example: 125
-        isActive:
-          type: boolean
-          default: true
-        createdBy:
+          example: "John Smith"
+        preferences:
           type: object
-          required:
-            - id
-            - name
           properties:
-            id:
+            language:
               type: string
-            name:
+              enum: [en, bn]
+            timezone:
               type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    CreateTemplateRequest:
-      type: object
-      required:
-        - name
-        - category
-        - description
-      properties:
-        name:
-          type: string
-          minLength: 3
-          maxLength: 100
-        description:
-          type: string
-          minLength: 10
-          maxLength: 500
-        category:
-          type: string
-          enum: [professional, creative, academic, technical, modern]
-        tags:
-          type: array
-          items:
-            type: string
-          maxItems: 10
-        isPremium:
-          type: boolean
-          default: false
-        price:
-          type: number
-          minimum: 0
-
-    UpdateTemplateRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 3
-          maxLength: 100
-        description:
-          type: string
-          minLength: 10
-          maxLength: 500
-        tags:
-          type: array
-          items:
-            type: string
-          maxItems: 10
-        isPremium:
-          type: boolean
-        price:
-          type: number
-          minimum: 0
-        isActive:
-          type: boolean
-
-    TemplateListResponse:
-      type: object
-      required:
-        - success
-        - data
-        - pagination
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: "Templates retrieved successfully"
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Template'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-
-    # Review
-    Review:
-      type: object
-      required:
-        - id
-        - templateId
-        - userId
-        - rating
-        - createdAt
-      properties:
-        id:
-          type: string
-          example: "507f1f77bcf86cd799439011"
-        templateId:
-          type: string
-          example: "507f1f77bcf86cd799439011"
-        userId:
+            notifications:
+              type: object
+              properties:
+                email:
+                  type: boolean
+                push:
+                  type: boolean
+        metadata:
           type: object
-          required:
-            - id
-            - name
-          properties:
-            id:
-              type: string
-            name:
-              type: string
-            avatar:
-              type: string
-              format: uri
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-          example: 5
-        comment:
-          type: string
-          maxLength: 1000
-          example: "Excellent template! Very professional and easy to customize."
-        helpfulCount:
-          type: integer
-          minimum: 0
-          default: 0
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+          additionalProperties: true
+          example:
+            customField: "value"
 
-    CreateReviewRequest:
+    ChangePasswordRequest:
       type: object
       required:
-        - rating
+        - currentPassword
+        - newPassword
       properties:
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        comment:
+        currentPassword:
           type: string
-          minLength: 10
-          maxLength: 1000
-
-    UpdateReviewRequest:
-      type: object
-      properties:
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        comment:
+          format: password
+          example: "OldPass123!"
+        newPassword:
           type: string
-          minLength: 10
-          maxLength: 1000
+          format: password
+          minLength: 8
+          example: "NewSecurePass456!"
 
-    ReviewListResponse:
+    # ============================================
+    # PASSWORD RESET SCHEMAS
+    # ============================================
+    ForgotPasswordRequest:
       type: object
       required:
-        - success
-        - data
-        - pagination
+        - email
       properties:
-        success:
-          type: boolean
-          example: true
-        message:
+        email:
           type: string
-          example: "Reviews retrieved successfully"
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Review'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+          format: email
+          example: "john@example.com"
 
-    # Common
-    Pagination:
+    ResetPasswordRequest:
       type: object
       required:
-        - page
-        - limit
-        - totalPages
-        - totalItems
+        - token
+        - newPassword
       properties:
-        page:
-          type: integer
-          minimum: 1
-          example: 1
-        limit:
-          type: integer
-          minimum: 1
-          maximum: 100
-          example: 20
-        totalPages:
-          type: integer
-          minimum: 0
-          example: 10
-        totalItems:
-          type: integer
-          minimum: 0
-          example: 195
-        hasNext:
-          type: boolean
-          example: true
-        hasPrev:
-          type: boolean
-          example: false
+        token:
+          type: string
+          example: "a1b2c3d4e5f6..."
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          example: "NewSecurePass789!"
 
+    # ============================================
+    # EMAIL VERIFICATION SCHEMAS
+    # ============================================
+    VerifyEmailRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "a1b2c3d4e5f6..."
+
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+
+    # ============================================
+    # COMMON RESPONSE SCHEMAS
+    # ============================================
     SuccessResponse:
       type: object
-      required:
-        - success
-        - message
       properties:
         success:
           type: boolean
           example: true
         message:
           type: string
-          example: "Operation completed successfully"
+          example: "Operation successful"
+        data:
+          type: object
+          nullable: true
 
     ErrorResponse:
       type: object
-      required:
-        - success
-        - message
       properties:
         success:
           type: boolean
           example: false
         message:
           type: string
-          example: "Validation error"
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              field:
-                type: string
-              message:
-                type: string
+          example: "Error message"
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
 
   # ============================================
-  # RESPONSES
+  # REUSABLE RESPONSES
   # ============================================
   responses:
     BadRequest:
-      description: Bad request - validation error
+      description: Bad request - Invalid input
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             success: false
-            message: "Validation error"
-            errors:
-              - field: "email"
-                message: "Invalid email format"
+            message: "Validation failed"
+            error:
+              code: "VALIDATION_ERROR"
+              details:
+                - field: "email"
+                  message: "Please provide a valid email address"
 
     Unauthorized:
-      description: Unauthorized - authentication required
+      description: Unauthorized - Invalid or missing token
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             success: false
-            message: "Please login to continue"
+            message: "Authentication failed"
+            error:
+              code: "UNAUTHORIZED"
 
     Forbidden:
-      description: Forbidden - insufficient permissions
+      description: Forbidden - Insufficient permissions
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             success: false
-            message: "You do not have permission to perform this action"
+            message: "You don't have permission to access this resource"
+            error:
+              code: "FORBIDDEN"
 
     NotFound:
       description: Resource not found
@@ -1127,3 +1055,51 @@ components:
           example:
             success: false
             message: "Resource not found"
+            error:
+              code: "NOT_FOUND"
+
+    Conflict:
+      description: Conflict - Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Email already exists"
+            error:
+              code: "CONFLICT"
+
+    TooManyRequests:
+      description: Too many requests - Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Too many login attempts. Account locked for 15 minutes"
+            error:
+              code: "ACCOUNT_LOCKED"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Something went wrong"
+            error:
+              code: "INTERNAL_ERROR"
+
+  # ============================================
+  # SECURITY SCHEMES
+  # ============================================
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT token for authentication. Format: Bearer {token}"
