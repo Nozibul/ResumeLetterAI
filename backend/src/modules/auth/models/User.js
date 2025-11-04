@@ -44,7 +44,7 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       minlength: [2, 'Full name must be at least 2 characters'],
       maxlength: [50, 'Full name cannot exceed 50 characters'],
-      index: true, // For search functionality
+      index: true,
     },
 
     email: {
@@ -57,7 +57,7 @@ const UserSchema = new mongoose.Schema(
         /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
         'Please provide a valid email address',
       ],
-      index: true, // Primary lookup field
+      index: true,
     },
 
     // ==========================================
@@ -187,22 +187,6 @@ const UserSchema = new mongoose.Schema(
       of: mongoose.Schema.Types.Mixed,
       default: {},
       // Example usage: { aiPreferences: {...}, customFields: {...} }
-    },
-
-    preferences: {
-      language: {
-        type: String,
-        default: 'en',
-        enum: ['en', 'bn'],
-      },
-      timezone: {
-        type: String,
-        default: 'UTC',
-      },
-      notifications: {
-        email: { type: Boolean, default: true },
-        push: { type: Boolean, default: false },
-      },
     },
   },
   {
@@ -500,7 +484,5 @@ UserSchema.pre(/^find/, function (next) {
 // ==========================================
 // MODEL EXPORT
 // ==========================================
-
 const User = mongoose.model('User', UserSchema);
-
 module.exports = User;

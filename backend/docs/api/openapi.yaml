@@ -725,25 +725,6 @@ components:
           type: string
           enum: [local, google]
           default: local
-        preferences:
-          type: object
-          properties:
-            language:
-              type: string
-              enum: [en, bn]
-              default: en
-            timezone:
-              type: string
-              default: UTC
-            notifications:
-              type: object
-              properties:
-                email:
-                  type: boolean
-                  default: true
-                push:
-                  type: boolean
-                  default: false
 
     LoginRequest:
       type: object
@@ -833,25 +814,6 @@ components:
           type: string
           format: date-time
           example: "2024-01-15T10:30:00Z"
-        preferences:
-          type: object
-          properties:
-            language:
-              type: string
-              enum: [en, bn]
-              example: "en"
-            timezone:
-              type: string
-              example: "UTC"
-            notifications:
-              type: object
-              properties:
-                email:
-                  type: boolean
-                  example: true
-                push:
-                  type: boolean
-                  example: false
         metadata:
           type: object
           additionalProperties: true
