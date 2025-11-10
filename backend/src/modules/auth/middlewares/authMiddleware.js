@@ -107,7 +107,7 @@ exports.restrictTo = (...roles) => {
  * Require email verification for certain routes
  * @example router.post('/premium-feature', protect, requireEmailVerification, handler)
  */
-exports.requireEmailVerification = catchAsync(async (req, res, next) => {
+exports.requireEmailVerification = catchAsync(async (req, _, next) => {
   if (!req.user.isEmailVerified) {
     return next(new AppError('Please verify your email to access this feature', 403));
   }
@@ -122,7 +122,7 @@ exports.requireEmailVerification = catchAsync(async (req, res, next) => {
  * Check if account is locked (can be used for sensitive operations)
  * @example router.delete('/account', protect, checkAccountLock, deleteAccount)
  */
-exports.checkAccountLock = catchAsync(async (req, res, next) => {
+exports.checkAccountLock = catchAsync(async (req, _, next) => {
   const user = await User.findById(req.user.id).select('+lockUntil');
 
   if (user.isLocked) {

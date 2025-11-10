@@ -2,7 +2,6 @@
  * @file tokenUtils.js
  * @description JWT Token utility functions
  * @module utils/tokenUtils
- * @author Nozibul Islam
  * @version 2.0.0
  *
  * Security Features:

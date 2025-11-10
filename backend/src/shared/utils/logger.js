@@ -43,16 +43,16 @@ const logger = winston.createLogger({
 // STEP 3: File Transports
 // ====================================================================
 
-// Environment variable দিয়ে control করা যাবে
+// Environment variable control
 if (process.env.LOG_TO_FILE !== 'false') {
-  // Error Log File - শুধু errors (important for debugging)
+  // Error Log File (important for debugging)
   logger.add(
     new winston.transports.File({
       filename: path.join(logsDir, 'error.log'),
       level: 'error',
-      maxsize: 20971520, // 20MB - এর বেশি হলে নতুন file create হবে
-      maxFiles: 5, // সর্বোচ্চ 5 টা file রাখবে (space save করে)
-      tailable: true, // Latest file সবসময় same name এ থাকবে
+      maxsize: 20971520,
+      maxFiles: 5,
+      tailable: true,
     })
   );
 
@@ -68,7 +68,7 @@ if (process.env.LOG_TO_FILE !== 'false') {
 }
 
 // ====================================================================
-// STEP 4: Console Transport (Development এর জন্য useful)
+// STEP 4: Console Transport for Development
 // ====================================================================
 if (process.env.LOG_TO_CONSOLE !== 'false') {
   logger.add(
@@ -110,18 +110,16 @@ if (process.env.LOG_TO_CONSOLE !== 'false') {
  * Usage: app.use(requestLogger);
  */
 const requestLogger = (req, res, next) => {
-  // Unique ID: same request এর all logs get combined
+  // Unique ID: same request all logs get combined
   req.traceId = crypto.randomUUID();
 
   // Request start time
   const startTime = Date.now();
 
-  // Response finished হলে log করবে
+  // Response finished then log the details
   res.on('finish', () => {
     const duration = Date.now() - startTime;
 
-    // Status code অনুযায়ী log level ঠিক করবে
-    // 500+ = error (red), 400+ = warn (yellow), 200+ = info (green)
     let logLevel = 'info';
     if (res.statusCode >= 500) {
       logLevel = 'error';

@@ -1,0 +1,41 @@
+/**
+ * @file validate.js
+ * @description Zod validation middleware
+ * @module middleware/validate
+ */
+
+const { ZodError } = require('zod');
+const AppError = require('../../shared/utils/AppError');
+
+/**
+ * Validate request using Zod schema
+ * @param {Object} schema - Zod schema
+ * @returns {Function} Express middleware
+ */
+exports.validate = (schema) => {
+  return (req, _, next) => {
+    try {
+      schema.parse({
+        body: req.body,
+        params: req.params,
+        query: req.query,
+        cookies: req.cookies,
+      });
+
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors = error.errors.map((err) => ({
+          field: err.path.join('.'),
+          message: err.message,
+        }));
+
+        return next(
+          new AppError(`Validation failed: ${errors.map((e) => e.message).join(', ')}`, 400)
+        );
+      }
+
+      next(error);
+    }
+  };
+};
