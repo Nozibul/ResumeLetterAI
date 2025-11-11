@@ -173,7 +173,7 @@ const logError = (error, context = {}) => {
 // STEP 7: Security Event Logger
 // ====================================================================
 /**
- * Authentication/Authorization events track করো
+ * Authentication/Authorization events track
  * Example:
  *   logSecurityEvent('failed_login', userId, { ip: req.ip });
  */

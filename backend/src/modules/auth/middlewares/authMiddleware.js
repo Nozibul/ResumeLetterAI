@@ -16,8 +16,8 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const AppError = require('../../../utils/AppError');
-const catchAsync = require('../../../utils/catchAsync');
+const AppError = require('../../../shared/utils/AppError');
+const catchAsync = require('../../../shared/utils/catchAsync');
 
 // ==========================================
 // AUTHENTICATION MIDDLEWARE
@@ -28,7 +28,7 @@ const catchAsync = require('../../../utils/catchAsync');
  * @route   All protected routes
  * @access  Private
  */
-exports.protect = catchAsync(async (req, res, next) => {
+exports.protect = catchAsync(async (req, _, next) => {
   // 1. Get token from cookies or authorization header
   let token;
 

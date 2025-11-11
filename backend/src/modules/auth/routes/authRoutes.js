@@ -1,31 +1,54 @@
 /**
  * @file authRoutes.js
+ * @description Authentication routes
+ * @module modules/auth/routes/authRoutes
  */
-const express = require('express');
-const AuthController = require('../controllers/AuthController');
-// const TokenController = require('../controllers/TokenController');
-const { protect } = require('../middlewares/authMiddleware');
 
+const express = require('express');
 const router = express.Router();
 
-// Auth Routes
-router.post('/register', AuthController.register);
-router.post('/login', AuthController.login);
+// Middleware
+const { protect } = require('../middlewares/authMiddleware');
+const { validate } = require('../../../middleware/validate');
 
-// // Token Routes (Public)
-// router.post('/verify-email/:token', TokenController.verifyEmail);
-// router.post('/forgot-password', TokenController.forgotPassword);
-// router.post('/reset-password/:token', TokenController.resetPassword);
-// router.post('/refresh-token', TokenController.refreshToken);
+// Validation schemas
+const {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  changePasswordSchema,
+  deactivateAccountSchema,
+} = require('../validations/authValidation');
 
-// Protected Routes
-router.use(protect);
+// Controller
+const authController = require('../controller/AuthController');
 
-router.post('/logout', AuthController.logout);
-router.get('/me', AuthController.getMe);
-router.put('/update-profile', AuthController.updateProfile);
-router.put('/change-password', AuthController.changePassword);
-// router.post('/resend-verification', TokenController.resendVerificationEmail);
-router.delete('/deactivate-account', AuthController.deactivateAccount);
+// ==========================================
+// PUBLIC ROUTES (No authentication needed)
+// ==========================================
+
+router.post('/register', validate(registerSchema), authController.register);
+router.post('/login', validate(loginSchema), authController.login);
+
+// ==========================================
+// PRIVATE ROUTES (Authentication required)
+// ==========================================
+
+router.post('/logout', protect, authController.logout);
+router.get('/me', protect, authController.getMe);
+router.put('/update-profile', protect, validate(updateProfileSchema), authController.updateProfile);
+router.put(
+  '/change-password',
+  protect,
+  validate(changePasswordSchema),
+  authController.changePassword
+);
+
+router.delete(
+  '/deactivate-account',
+  protect,
+  validate(deactivateAccountSchema),
+  authController.deactivateAccount
+);
 
 module.exports = router;
