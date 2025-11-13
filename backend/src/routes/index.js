@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 // Import route modules
-// const userRoutes = require('./userRoutes');
-// const authRoutes = require('./authRoutes');
+const authRoutes = require('../modules/auth/routes/authRoutes');
+const tokenRoutes = require('../modules/auth/routes/tokenRoutes');
 // const templateRoutes = require('./templateRoutes');
 
 /**
@@ -19,9 +19,9 @@ router.get('/', (_, res) => {
       users: '/api/v1/users',
       templates: '/api/v1/templates',
       health: '/healthz',
-      docs: '/api/v1/docs'
+      docs: '/api/v1/docs',
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -34,16 +34,18 @@ router.get('/docs', (_, res) => {
     message: 'API Documentation',
     documentation: {
       swagger: '/api/v1/swagger',
-      postman: '/api/v1/postman-collection'
-    }
+      postman: '/api/v1/postman-collection',
+    },
   });
 });
 
 /**
  * Register all route modules here
  */
-// router.use('/auth', authRoutes);
-// router.use('/users', userRoutes);
+// Register all route modules here
+router.use('/auth', authRoutes);
+router.use('/auth', tokenRoutes); // Same /auth base URL
+
 // router.use('/templates', templateRoutes);
 
 // Example route for testing
@@ -52,7 +54,7 @@ router.get('/test', (_, res) => {
     success: true,
     message: 'API is working!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
   });
 });
 

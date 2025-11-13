@@ -79,7 +79,16 @@ if (process.env.LOG_TO_CONSOLE !== 'false') {
 
         // Custom format: for readable logs
         winston.format.printf(({ level, message, timestamp, ...meta }) => {
-          let log = `${timestamp} [${level}]: ${message}`;
+          let log = `${timestamp} [${level}]: `;
+
+          // Handle message properly (object or string)
+          if (typeof message === 'string') {
+            log += message;
+          } else if (typeof message === 'object') {
+            log += JSON.stringify(message, null, 2);
+          } else {
+            log += String(message);
+          }
 
           // Extra metadata থাকলে pretty print করবে
           const metaKeys = Object.keys(meta).filter(

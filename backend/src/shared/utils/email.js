@@ -44,7 +44,7 @@ const templates = {
           </p>
           <p>Or copy and paste this link in your browser:</p>
           <p style="word-break: break-all; color: #443dcdff;">${data.verificationUrl}</p>
-          <p><strong>This link will expire in 24 hours.</strong></p>
+          <p><strong>This link will expire in 12 hours.</strong></p>
           <p>If you didn't create an account, please ignore this email.</p>
         </div>
         <div class="footer">

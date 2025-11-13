@@ -9,6 +9,7 @@ const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
 const swaggerUi = require('swagger-ui-express');
+const cookieParser = require('cookie-parser');
 const YAML = require('yamljs');
 const { requestLogger } = require('./shared/utils/logger');
 const routes = require('./routes');
@@ -36,6 +37,11 @@ app.use(helmet());
 // ====================================
 // Configure CORS properly for production
 app.use(cors(corsOptions));
+
+// ====================================
+// COOKIE PARSER MIDDLEWARE
+// ====================================
+app.use(cookieParser());
 
 // ====================================
 // BODY PARSING MIDDLEWARE

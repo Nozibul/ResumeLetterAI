@@ -31,6 +31,8 @@ const catchAsync = require('../../../shared/utils/catchAsync');
 exports.protect = catchAsync(async (req, _, next) => {
   // 1. Get token from cookies or authorization header
   let token;
+  console.log('🔍 Cookies:', req.cookies);
+  console.log('🔍 Headers:', req.headers.authorization);
 
   if (req.cookies.accessToken) {
     token = req.cookies.accessToken;

@@ -48,7 +48,7 @@ exports.resendVerificationEmail = async (userId) => {
   await user.save({ validateBeforeSave: false });
 
   try {
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+    const verificationUrl = `${process.env.BACKEND_URL}/api/auth/verify-email/${verificationToken}`;
     await sendEmail({
       to: user.email,
       subject: 'Email Verification - ResumeLetterAI',

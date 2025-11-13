@@ -14,7 +14,7 @@ const { logger } = require('./shared/utils/logger');
 // ====================================
 // ENVIRONMENT VARIABLES
 // ====================================
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const APP_NAME = process.env.APP_NAME || 'ResumeLetterAI API';
 

@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Middleware
 const { protect } = require('../middlewares/authMiddleware');
-const { validate } = require('../../../middleware/validate');
+const { validate } = require('../../../modules/middleware/validate');
 
 // Validation schemas
 const {
@@ -18,7 +18,7 @@ const {
   updateProfileSchema,
   changePasswordSchema,
   deactivateAccountSchema,
-} = require('../validations/authValidation');
+} = require('../validation/authValidation');
 
 // Controller
 const authController = require('../controller/AuthController');

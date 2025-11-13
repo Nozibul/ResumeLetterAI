@@ -9,20 +9,20 @@ const router = express.Router();
 
 // Middleware
 const { protect } = require('../middlewares/authMiddleware');
-const { validate } = require('../../../middleware/validate');
+const { validate } = require('../../../modules/middleware/validate');
 
 // Validation schemas
 const {
   verifyEmailSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} = require('../validations/tokenValidation');
+} = require('../validation/tokenValidation');
 
 // Controller
-const tokenController = require('../controllers/TokenController');
+const tokenController = require('../controller/TokenController');
 
 // PUBLIC ROUTES (No authentication needed)
-router.post('/verify-email/:token', validate(verifyEmailSchema), tokenController.verifyEmail);
+router.get('/verify-email/:token', validate(verifyEmailSchema), tokenController.verifyEmail);
 router.post('/forgot-password', validate(forgotPasswordSchema), tokenController.forgotPassword);
 router.post('/reset-password/:token', validate(resetPasswordSchema), tokenController.resetPassword);
 router.post('/refresh-token', tokenController.refreshToken);

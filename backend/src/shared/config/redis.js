@@ -75,6 +75,7 @@ const redis = new Redis(redisConfig);
 // Connect: Initial connection attempt
 redis.on('connect', () => {
   logger.info({
+    message: 'Connecting to Redis...',
     type: 'redis_connection',
     status: 'connecting',
     host: redisConfig.host,
@@ -86,9 +87,9 @@ redis.on('connect', () => {
 // Ready: Redis is ready to accept commands (most important event)
 redis.on('ready', () => {
   logger.info({
+    message: 'Redis is ready to accept commands',
     type: 'redis_connection',
     status: 'ready',
-    message: 'Redis is ready to accept commands',
     environment: process.env.NODE_ENV,
   });
 });
@@ -96,6 +97,7 @@ redis.on('ready', () => {
 // Error: Connection or command errors
 redis.on('error', (error) => {
   logger.error({
+    message: 'Redis connection error',
     type: 'redis_connection',
     status: 'error',
     error: error.message,
@@ -106,15 +108,16 @@ redis.on('error', (error) => {
 // Close: Connection closed (may reconnect)
 redis.on('close', () => {
   logger.warn({
+    message: 'Redis connection closed',
     type: 'redis_connection',
     status: 'closed',
-    message: 'Redis connection closed',
   });
 });
 
 // Reconnecting: Attempting to reconnect
 redis.on('reconnecting', (delay) => {
   logger.info({
+    message: `Reconnecting to Redis in ${delay}ms`,
     type: 'redis_connection',
     status: 'reconnecting',
     delay: `${delay}ms`,
@@ -124,9 +127,9 @@ redis.on('reconnecting', (delay) => {
 // End: Connection ended permanently (won't reconnect)
 redis.on('end', () => {
   logger.warn({
+    message: 'Redis connection ended permanently',
     type: 'redis_connection',
     status: 'ended',
-    message: 'Redis connection ended permanently',
   });
 });
 

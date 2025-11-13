@@ -44,7 +44,7 @@ exports.register = async (userData) => {
     template: 'emailVerification',
     data: {
       fullName: user.fullName,
-      verificationUrl: `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`,
+      verificationUrl: `${process.env.BACKEND_URL}/api/auth/verify-email/${verificationToken}`,
     },
   }).catch((err) => console.error('Verification email failed:', err));
 
