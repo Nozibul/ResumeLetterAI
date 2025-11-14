@@ -150,7 +150,7 @@ const requestLogger = (req, res, next) => {
     });
   });
 
-  // Response error হলে log করবে (network issues, etc.)
+  // Response error log (network issues, etc.)
   res.on('error', (error) => {
     logger.error({
       type: 'request_error',
