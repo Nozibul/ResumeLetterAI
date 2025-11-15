@@ -101,7 +101,8 @@ exports.resetPassword = catchAsync(async (req, res) => {
  * @access  Public (requires refresh token in cookie)
  */
 exports.refreshToken = catchAsync(async (req, res) => {
-  const newAccessToken = await tokenService.refreshAccessToken(req.cookies.refreshToken);
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+  const newAccessToken = await tokenService.refreshAccessToken(refreshToken);
 
   res.cookie('accessToken', newAccessToken, {
     httpOnly: true,

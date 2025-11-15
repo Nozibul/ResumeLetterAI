@@ -8,7 +8,7 @@ const express = require('express');
 const router = express.Router();
 
 // Middleware
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, requireEmailVerification } = require('../middlewares/authMiddleware');
 const { validate } = require('../../../modules/middleware/validate');
 
 // Validation schemas
@@ -17,7 +17,7 @@ const {
   loginSchema,
   updateProfileSchema,
   changePasswordSchema,
-  deactivateAccountSchema,
+  deleteAccountSchema,
 } = require('../validation/authValidation');
 
 // Controller
@@ -34,21 +34,29 @@ router.post('/login', validate(loginSchema), authController.login);
 // PRIVATE ROUTES (Authentication required)
 // ==========================================
 
-router.post('/logout', protect, authController.logout);
-router.get('/me', protect, authController.getMe);
-router.put('/update-profile', protect, validate(updateProfileSchema), authController.updateProfile);
+router.post('/logout', protect, requireEmailVerification, authController.logout);
+router.get('/me', protect, requireEmailVerification, authController.getMe);
+router.put(
+  '/update-profile',
+  protect,
+  requireEmailVerification,
+  validate(updateProfileSchema),
+  authController.updateProfile
+);
 router.put(
   '/change-password',
   protect,
+  requireEmailVerification,
   validate(changePasswordSchema),
   authController.changePassword
 );
 
 router.delete(
-  '/deactivate-account',
+  '/delete-account',
   protect,
-  validate(deactivateAccountSchema),
-  authController.deactivateAccount
+  requireEmailVerification,
+  validate(deleteAccountSchema),
+  authController.deleteAccount
 );
 
 module.exports = router;

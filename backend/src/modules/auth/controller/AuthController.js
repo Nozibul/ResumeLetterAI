@@ -173,8 +173,8 @@ exports.changePassword = catchAsync(async (req, res) => {
  * @route   DELETE /api/v1/auth/deactivate-account
  * @access  Private
  */
-exports.deactivateAccount = catchAsync(async (req, res) => {
-  await authService.deactivateAccount(req.user.id, req.body.password);
+exports.deleteAccount = catchAsync(async (req, res) => {
+  await authService.deleteAccount(req.user.id, req.body.password);
 
   // Clear cookies
   res.cookie('accessToken', 'none', {
@@ -189,6 +189,6 @@ exports.deactivateAccount = catchAsync(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'Account deactivated successfully',
+    message: 'Account deleted successfully',
   });
 });

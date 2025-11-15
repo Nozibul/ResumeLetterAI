@@ -111,13 +111,13 @@ exports.changePasswordSchema = z.object({
 });
 
 /**
- * Deactivate account validation
+ * Delete account validation
  */
-exports.deactivateAccountSchema = z.object({
+exports.deleteAccountSchema = z.object({
   body: z.object({
-    password: z.string().min(1, 'Password is required to confirm deactivation'),
+    password: z.string().min(1, 'Password is required to confirm deletetion'),
     confirmDeactivation: z.boolean().refine((val) => val === true, {
-      message: 'Please confirm account deactivation',
+      message: 'Please confirm account deleteion',
     }),
   }),
 });

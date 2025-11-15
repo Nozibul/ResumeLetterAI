@@ -204,7 +204,7 @@ exports.changePassword = async (userId, passwordData) => {
 /**
  * Deactivate user account
  */
-exports.deactivateAccount = async (userId, password) => {
+exports.deleteAccount = async (userId, password) => {
   // Get user with password
   const user = await User.findById(userId).select('+password');
 
@@ -218,9 +218,8 @@ exports.deactivateAccount = async (userId, password) => {
     throw new AppError('Incorrect password', 401);
   }
 
-  // Deactivate account
-  user.isActive = false;
-  await user.save({ validateBeforeSave: false });
+  // Hard delete
+  await User.findByIdAndDelete(userId);
 
   return true;
 };

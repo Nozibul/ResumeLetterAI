@@ -100,7 +100,7 @@ exports.restrictTo = (...roles) => {
 };
 
 // ==========================================
-// OPTIONAL: EMAIL VERIFICATION CHECK
+// EMAIL VERIFICATION CHECK
 // ==========================================
 
 /**
