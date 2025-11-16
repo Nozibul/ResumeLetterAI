@@ -129,9 +129,9 @@ export function Navigation() {
 
           {/* Desktop Auth Button */}
           <div className="hidden md:block">
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button variant="primary" size="md">
-                My Account
+                SIGN IN
               </Button>
             </Link>
           </div>
