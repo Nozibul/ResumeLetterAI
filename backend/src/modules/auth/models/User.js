@@ -126,6 +126,15 @@ const UserSchema = new mongoose.Schema(
       select: false,
     },
 
+    deleteUnverifiedAt: {
+      type: Date,
+      default: function () {
+        const TTL_HOURS = process.env.NODE_ENV === 'production' ? 6 : 0.0833; // 5 min dev
+        return new Date(Date.now() + TTL_HOURS * 60 * 60 * 1000);
+      },
+      select: false,
+    },
+
     passwordResetToken: {
       type: String,
       select: false,
@@ -224,6 +233,16 @@ UserSchema.index(
   {
     expireAfterSeconds: 30 * 24 * 60 * 60, // 30 days in seconds
     name: 'ttl_inactive_users', // Custom index name
+  }
+);
+
+// TTL Index - Auto-delete unverified users after 6 hours
+UserSchema.index(
+  { deleteUnverifiedAt: 1 },
+  {
+    expireAfterSeconds: 0,
+    partialFilterExpression: { isEmailVerified: false },
+    name: 'ttl_unverified_users', // Custom index name
   }
 );
 
@@ -409,10 +428,23 @@ UserSchema.methods.createEmailVerificationToken = function () {
 
   this.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
-  // Token expires in 12 hours (timezone-safe Date object)
-  this.emailVerificationExpires = new Date(Date.now() + 12 * 60 * 60 * 1000);
+  // Token expires in 6 hours (timezone-safe Date object)
+  this.emailVerificationExpires = new Date(Date.now() + 6 * 60 * 60 * 1000);
+  // Token expires in 6 hours (prod) or 5 minutes (dev)
+  const TTL_HOURS = process.env.NODE_ENV === 'production' ? 6 : 0.0833; // 5 min = 5/60 hr
+  this.emailVerificationExpires = new Date(Date.now() + TTL_HOURS * 60 * 60 * 1000);
 
   return verificationToken;
+};
+
+/**
+ * Mark email as verified and remove auto-delete
+ */
+UserSchema.methods.markEmailVerified = function () {
+  this.isEmailVerified = true;
+  this.emailVerificationToken = undefined;
+  this.emailVerificationExpires = undefined;
+  this.deleteUnverifiedAt = undefined; // 🔥 Remove auto-delete field
 };
 
 // ==========================================
