@@ -13,7 +13,6 @@ import Button from '@/shared/components/atoms/buttons/Button';
 import GoogleAuthButton from '@/shared/components/molecules/googleAuthButton/GoogleAuthButton.jsx';
 import AuthDivider from '@/shared/components/molecules/authDivider/AuthDivider';
 
-
 const RegistrationForm = ({ onSubmit }) => {
   const [formData, setFormData] = useState({
     fullName: '',

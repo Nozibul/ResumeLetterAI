@@ -50,6 +50,7 @@ next-env.d.ts
 # Environment Variables - DO NOT COMMIT SENSITIVE DATA
 # ===================================================================
 .env*
+.env.local
 !/.env.example
 !/.env.local.example
 
