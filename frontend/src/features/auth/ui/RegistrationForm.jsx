@@ -80,6 +80,7 @@ const RegistrationForm = ({ onSubmit }) => {
     
     if (!validateForm()) return;
 
+    if (isLoading) return; // Prevent multiple 
     setIsLoading(true);
 
     try {
@@ -92,8 +93,8 @@ const RegistrationForm = ({ onSubmit }) => {
   };
 
   return (
-    <div className="space-y-3">
-
+    <div className="space-y-5">
+    <form onSubmit={handleSubmit}>
       {/* Google Auth  */}
       <GoogleAuthButton text="Sign up with Google" />
       <AuthDivider />
@@ -164,7 +165,6 @@ const RegistrationForm = ({ onSubmit }) => {
       <Button 
         className="w-full mt-2"
         type="submit"
-        onClick={handleSubmit}
         variant="primary"
         size = 'md'
         loading={isLoading}
@@ -172,6 +172,7 @@ const RegistrationForm = ({ onSubmit }) => {
       >
         {isLoading ? 'Creating your account...' : 'Create Account'}
       </Button>
+      </form>
     </div>
   );
 };

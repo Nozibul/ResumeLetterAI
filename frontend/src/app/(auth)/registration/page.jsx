@@ -66,14 +66,12 @@ export default function RegistrationPage() {
           </div>
         </div>
       ), {
-        duration: 10000,
+        duration: 5000,
         position: 'top-center',
       });
-      
-      // Redirect to home after 2 seconds
-      setTimeout(() => {
+
+      // Redirect to home
         router.push('/');
-      }, 2000);
       
     } catch (error) {
       console.error('Registration error:', error);
