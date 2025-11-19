@@ -9,7 +9,7 @@ const Checkbox = ({
   ...props 
 }) => {
   return (
-    <div className="space-y-2">
+    <div className="mt-2">
       <label className="flex items-start gap-3 cursor-pointer group">
         <input
           type="checkbox"

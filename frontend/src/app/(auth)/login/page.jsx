@@ -6,8 +6,11 @@
 import { LogIn } from 'lucide-react';
 import LoginForm from '@/features/auth/ui/LoginForm';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const handleLogin = async (formData) => {
     // API call will go here
     console.log('Login data:', formData);
@@ -16,6 +19,18 @@ export default function LoginPage() {
     setTimeout(() => {
       alert('Login successful! Check console for data.');
     }, 1000);
+  };
+
+  // ✅ NEW: Handle signup navigation with validation token
+  const handleSignupClick = (e) => {
+    e.preventDefault(); // Link এর default behavior stop করো
+    
+    // Mark করো যে user valid process follow করছে
+    sessionStorage.setItem('nav_from_login', 'true');
+    sessionStorage.setItem('nav_timestamp', Date.now().toString());
+    
+    // এখন navigate করো
+    router.push('/registration');
   };
 
   return (
@@ -44,11 +59,12 @@ export default function LoginPage() {
           {/* Form */}
           <LoginForm onSubmit={handleLogin} />
 
-          {/* Sign Up Link */}
+          {/* Sign Up Link - ✅ MODIFIED */}
           <p className="text-center text-sm text-gray-600">
             New user?{' '}
             <Link 
               href="/registration" 
+              onClick={handleSignupClick}
               className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
             >
               Sign up here

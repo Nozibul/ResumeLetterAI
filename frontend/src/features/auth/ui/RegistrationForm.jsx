@@ -13,7 +13,7 @@ import Button from '@/shared/components/atoms/buttons/Button';
 import GoogleAuthButton from '@/shared/components/molecules/googleAuthButton/GoogleAuthButton.jsx';
 import AuthDivider from '@/shared/components/molecules/authDivider/AuthDivider';
 
-const RegistrationForm = ({ onSubmit }) => {
+const RegistrationForm = ({ onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -23,7 +23,6 @@ const RegistrationForm = ({ onSubmit }) => {
   });
 
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -75,103 +74,114 @@ const RegistrationForm = ({ onSubmit }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-
-    if (isLoading) return; // Prevent multiple 
-    setIsLoading(true);
-
-    try {
-      await onSubmit(formData);
-    } catch (error) {
-      console.error('Registration failed:', error);
-    } finally {
-      setIsLoading(false);
+    console.log('Form submitted, isSubmitting:', isSubmitting); // Debug log
+    
+    // Prevent submission if already submitting
+    if (isSubmitting) {
+      console.log('Already submitting, skipping...'); // Debug log
+      return;
     }
+    
+    // Validate form
+    if (!validateForm()) {
+      console.log('Validation failed'); // Debug log
+      return;
+    }
+
+    console.log('Calling onSubmit with data:', formData); // Debug log
+    
+    // Call parent's submit handler
+    onSubmit(formData);
   };
 
   return (
-    <div className="space-y-5">
-    <form onSubmit={handleSubmit}>
-      {/* Google Auth  */}
-      <GoogleAuthButton text="Sign up with Google" />
-      <AuthDivider />
+    <div className="">
+      <form onSubmit={handleSubmit}>
+        {/* Google Auth  */}
+        <GoogleAuthButton text="Sign up with Google" />
+        <AuthDivider />
 
-      <InputField
-        label="Full Name"
-        name="fullName"
-        value={formData.fullName}
-        onChange={handleChange}
-        placeholder="Enter your full name"
-        icon={User}
-        error={errors.fullName}
-      />
+        <InputField
+          label="Full Name"
+          name="fullName"
+          value={formData.fullName}
+          onChange={handleChange}
+          placeholder="Enter your full name"
+          icon={User}
+          error={errors.fullName}
+          disabled={isSubmitting}
+        />
 
-      <InputField
-        label="Email Address"
-        type="email"
-        name="email"
-        value={formData.email}
-        onChange={handleChange}
-        placeholder="Enter your email"
-        icon={Mail}
-        error={errors.email}
-      />
+        <InputField
+          label="Email Address"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Enter your email"
+          icon={Mail}
+          error={errors.email}
+          disabled={isSubmitting}
+        />
 
-      <PasswordField
-        label="Password"
-        name="password"
-        value={formData.password}
-        onChange={handleChange}
-        placeholder="Create a strong password"
-        icon={Lock}
-        showStrength={true}
-        error={errors.password}
-      />
+        <PasswordField
+          label="Password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          placeholder="Create a strong password"
+          icon={Lock}
+          showStrength={true}
+          error={errors.password}
+          disabled={isSubmitting}
+        />
 
-      <PasswordField
-        label="Confirm Password"
-        name="confirmPassword"
-        value={formData.confirmPassword}
-        onChange={handleChange}
-        placeholder="Confirm your password"
-        icon={Lock}
-        showMatch={true}
-        matchValue={formData.password}
-        error={errors.confirmPassword}
-      />
+        <PasswordField
+          label="Confirm Password"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          placeholder="Confirm your password"
+          icon={Lock}
+          showMatch={true}
+          matchValue={formData.password}
+          error={errors.confirmPassword}
+          disabled={isSubmitting}
+        />
 
-      <Checkbox
-        name="agreedToTerms"
-        checked={formData.agreedToTerms}
-        onChange={handleChange}
-        label={
-          <>
-            I agree to the{' '}
-            <span className=" text-blue-600 hover:text-blue-700 hover:underline">
-                Terms
-            </span>{' '}
-            and{' '}
-            <span className=" text-blue-600 hover:text-blue-700 hover:underline">
-                Privacy Policy
-            </span>
-          </>
-        }
-        error={errors.agreedToTerms}
-      />
+        <Checkbox
+          name="agreedToTerms"
+          checked={formData.agreedToTerms}
+          onChange={handleChange}
+          label={
+            <>
+              I agree to the{' '}
+              <span className=" text-blue-600 hover:text-blue-700 hover:underline">
+                  Terms
+              </span>{' '}
+              and{' '}
+              <span className=" text-blue-600 hover:text-blue-700 hover:underline">
+                  Privacy Policy
+              </span>
+            </>
+          }
+          error={errors.agreedToTerms}
+          disabled={isSubmitting}
+        />
 
-      <Button 
-        className="w-full mt-2"
-        type="submit"
-        variant="primary"
-        size = 'md'
-        loading={isLoading}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Creating your account...' : 'Create Account'}
-      </Button>
+        <Button 
+          className="w-full mt-6"
+          type="submit"
+          variant="primary"
+          size='md'
+          loading={isSubmitting}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Creating your account...' : 'Create Account'}
+        </Button>
       </form>
     </div>
   );

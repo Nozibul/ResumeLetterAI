@@ -48,7 +48,7 @@ const PasswordField = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1 mt-2">
       {label && (
         <label className="block text-sm font-medium text-gray-700">
           {label}
