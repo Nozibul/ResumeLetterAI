@@ -1,3 +1,9 @@
+/**
+ * @file routes/index.js
+ * @description Main route aggregator
+ * @module routes
+ */
+
 const express = require('express');
 const router = express.Router();
 
@@ -5,9 +11,15 @@ const router = express.Router();
 const authRoutes = require('../modules/auth/routes/authRoutes');
 const tokenRoutes = require('../modules/auth/routes/tokenRoutes');
 // const templateRoutes = require('./templateRoutes');
+// const userRoutes = require('./userRoutes');
+
+// ==========================================
+// API INFO ENDPOINTS
+// ==========================================
 
 /**
- * Root API endpoint
+ * GET /api/v1/
+ * @description API welcome message with available endpoints
  */
 router.get('/', (_, res) => {
   res.json({
@@ -16,17 +28,17 @@ router.get('/', (_, res) => {
     version: process.env.APP_VERSION || '1.0.0',
     endpoints: {
       auth: '/api/v1/auth',
+      token: '/api/v1/token',
       users: '/api/v1/users',
       templates: '/api/v1/templates',
-      health: '/healthz',
-      docs: '/api/v1/docs',
     },
     timestamp: new Date().toISOString(),
   });
 });
 
 /**
- * API Documentation endpoint
+ * GET /api/v1/docs
+ * @description API documentation links
  */
 router.get('/docs', (_, res) => {
   res.json({
@@ -40,22 +52,44 @@ router.get('/docs', (_, res) => {
 });
 
 /**
- * Register all route modules here
+ * GET /api/v1/health
+ * @description Health check endpoint
  */
-// Register all route modules here
-router.use('/auth', authRoutes);
-router.use('/auth', tokenRoutes); // Same /auth base URL
-
-// router.use('/templates', templateRoutes);
-
-// Example route for testing
-router.get('/test', (_, res) => {
+router.get('/health', (_, res) => {
   res.json({
     success: true,
-    message: 'API is working!',
+    status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
   });
 });
+
+// ==========================================
+// ROUTE MODULES
+// ==========================================
+
+/**
+ * Authentication routes
+ * @path /api/v1/auth
+ */
+router.use('/auth', authRoutes);
+
+/**
+ * Token management routes
+ * @path /api/v1/token
+ */
+router.use('/token', tokenRoutes);
+
+/**
+ * User routes
+ * @path /api/v1/users
+ */
+// router.use('/users', userRoutes);
+
+/**
+ * Template routes
+ * @path /api/v1/templates
+ */
+// router.use('/templates', templateRoutes);
 
 module.exports = router;

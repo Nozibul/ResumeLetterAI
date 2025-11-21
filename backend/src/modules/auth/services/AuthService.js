@@ -1,13 +1,17 @@
 /**
  * @file AuthService.js
- * @description Authentication business logic
+ * @description Authentication business logic (Multi-session support added)
  * @module modules/auth/services/AuthService
  */
 
 const User = require('../models/User');
+const UserSession = require('../models/UserSession');
 const { sendEmail } = require('../../../shared/utils/email');
 const AppError = require('../../../shared/utils/AppError');
 const { generateAccessToken, generateRefreshToken } = require('../../../shared/utils/tokenUtils');
+
+// Feature flag from environment
+const MULTI_SESSION_ENABLED = process.env.ENABLE_MULTI_SESSION === 'true';
 
 // ==========================================
 // AUTHENTICATION
@@ -52,6 +56,11 @@ exports.register = async (userData) => {
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
+  // 🆕 Multi-session support: Create session record
+  if (MULTI_SESSION_ENABLED) {
+    await UserSession.createSession(user._id, refreshToken, {}, null);
+  }
+
   // Remove sensitive data
   user.password = undefined;
 
@@ -63,7 +72,7 @@ exports.register = async (userData) => {
  */
 exports.login = async (credentials, loginMetadata) => {
   const { email, password } = credentials;
-  const { ip } = loginMetadata;
+  const { ip, userAgent } = loginMetadata;
 
   // Find user with password field
   const user = await User.findByEmail(email).select(
@@ -114,12 +123,70 @@ exports.login = async (credentials, loginMetadata) => {
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
+  // Multi-session support: Create session record
+  if (MULTI_SESSION_ENABLED) {
+    const deviceInfo = parseUserAgent(userAgent);
+    await UserSession.createSession(user._id, refreshToken, deviceInfo, ip);
+  }
+
   // Remove sensitive data
   user.password = undefined;
   user.loginAttempts = undefined;
   user.lockUntil = undefined;
 
   return { user, accessToken, refreshToken };
+};
+
+// ==========================================
+// MULTI-SESSION MANAGEMENT
+// ==========================================
+
+/**
+ * Get user's active sessions
+ */
+exports.getUserSessions = async (userId) => {
+  if (!MULTI_SESSION_ENABLED) {
+    throw new AppError('Multi-session feature is not enabled', 400);
+  }
+
+  return UserSession.getUserSessions(userId);
+};
+
+/**
+ * Revoke specific session (logout from one device)
+ */
+exports.revokeSession = async (userId, sessionId) => {
+  if (!MULTI_SESSION_ENABLED) {
+    throw new AppError('Multi-session feature is not enabled', 400);
+  }
+
+  const session = await UserSession.findById(sessionId);
+
+  if (!session || session.userId.toString() !== userId.toString()) {
+    throw new AppError('Session not found', 404);
+  }
+
+  await UserSession.revokeSession(sessionId);
+  return true;
+};
+
+/**
+ * Revoke all sessions except current (logout from all other devices)
+ */
+exports.revokeOtherSessions = async (userId, currentRefreshToken) => {
+  if (!MULTI_SESSION_ENABLED) {
+    throw new AppError('Multi-session feature is not enabled', 400);
+  }
+
+  const sessions = await UserSession.find({
+    userId,
+    isActive: true,
+    refreshToken: { $ne: currentRefreshToken },
+  });
+
+  await Promise.all(sessions.map((session) => UserSession.revokeSession(session._id)));
+
+  return sessions.length;
 };
 
 // ==========================================
@@ -191,9 +258,19 @@ exports.changePassword = async (userId, passwordData) => {
 
   await user.updateLastActive();
 
+  // Revoke all sessions on password change (security best practice)
+  if (MULTI_SESSION_ENABLED) {
+    await UserSession.revokeAllUserSessions(userId);
+  }
+
   // Generate new tokens (invalidate old ones)
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
+
+  // Create new session for current device
+  if (MULTI_SESSION_ENABLED) {
+    await UserSession.createSession(userId, refreshToken, {}, null);
+  }
 
   // Remove sensitive data
   user.password = undefined;
@@ -218,8 +295,56 @@ exports.deleteAccount = async (userId, password) => {
     throw new AppError('Incorrect password', 401);
   }
 
+  // Revoke all sessions before account deletion
+  if (MULTI_SESSION_ENABLED) {
+    await UserSession.revokeAllUserSessions(userId);
+  }
+
   // Hard delete
   await User.findByIdAndDelete(userId);
 
   return true;
 };
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+/**
+ * Parse user agent string (simple implementation)
+ */
+function parseUserAgent(userAgent) {
+  if (!userAgent) return {};
+
+  const ua = userAgent.toLowerCase();
+
+  return {
+    userAgent,
+    browser: getBrowser(ua),
+    os: getOS(ua),
+    device: getDevice(ua),
+  };
+}
+
+function getBrowser(ua) {
+  if (ua.includes('chrome')) return 'Chrome';
+  if (ua.includes('firefox')) return 'Firefox';
+  if (ua.includes('safari')) return 'Safari';
+  if (ua.includes('edge')) return 'Edge';
+  return 'Unknown';
+}
+
+function getOS(ua) {
+  if (ua.includes('windows')) return 'Windows';
+  if (ua.includes('mac')) return 'MacOS';
+  if (ua.includes('linux')) return 'Linux';
+  if (ua.includes('android')) return 'Android';
+  if (ua.includes('ios') || ua.includes('iphone')) return 'iOS';
+  return 'Unknown';
+}
+
+function getDevice(ua) {
+  if (ua.includes('mobile')) return 'Mobile';
+  if (ua.includes('tablet')) return 'Tablet';
+  return 'Desktop';
+}

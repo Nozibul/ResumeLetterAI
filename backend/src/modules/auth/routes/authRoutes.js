@@ -24,18 +24,50 @@ const {
 const authController = require('../controller/AuthController');
 
 // ==========================================
-// PUBLIC ROUTES (No authentication needed)
+// PUBLIC ROUTES
 // ==========================================
 
+/**
+ * POST /api/v1/auth/register
+ * @description Register a new user
+ * @body {string} email, {string} password, {string} name
+ * @returns {object} user, token
+ */
 router.post('/register', validate(registerSchema), authController.register);
+
+/**
+ * POST /api/v1/auth/login
+ * @description Login user
+ * @body {string} email, {string} password
+ * @returns {object} user, token
+ */
 router.post('/login', validate(loginSchema), authController.login);
 
 // ==========================================
-// PRIVATE ROUTES (Authentication required)
+// PROTECTED ROUTES
 // ==========================================
 
+/**
+ * POST /api/v1/auth/logout
+ * @description Logout user
+ * @auth required
+ */
 router.post('/logout', protect, requireEmailVerification, authController.logout);
+
+/**
+ * GET /api/v1/auth/me
+ * @description Get current user profile
+ * @auth required
+ * @returns {object} user
+ */
 router.get('/me', protect, requireEmailVerification, authController.getMe);
+
+/**
+ * PUT /api/v1/auth/update-profile
+ * @description Update user profile
+ * @auth required
+ * @body {string} name, {string} bio, {string} profilePicture
+ */
 router.put(
   '/update-profile',
   protect,
@@ -43,6 +75,13 @@ router.put(
   validate(updateProfileSchema),
   authController.updateProfile
 );
+
+/**
+ * PUT /api/v1/auth/change-password
+ * @description Change user password
+ * @auth required
+ * @body {string} currentPassword, {string} newPassword
+ */
 router.put(
   '/change-password',
   protect,
@@ -51,6 +90,12 @@ router.put(
   authController.changePassword
 );
 
+/**
+ * DELETE /api/v1/auth/delete-account
+ * @description Delete user account permanently
+ * @auth required
+ * @body {string} password
+ */
 router.delete(
   '/delete-account',
   protect,

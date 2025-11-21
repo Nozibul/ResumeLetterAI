@@ -94,7 +94,7 @@ if (process.env.NODE_ENV !== 'production') {
 // ====================================
 // API ROUTES
 // ====================================
-app.use('/api', routes);
+app.use('/api/v1', routes);
 
 // ====================================
 // ROOT ENDPOINT (API INFO)
