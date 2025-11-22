@@ -30,10 +30,10 @@ const LoginForm = ({ onSubmit }) => {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
-
+  
   const validateForm = () => {
     const newErrors = {};
-
+    
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
@@ -41,16 +41,16 @@ const LoginForm = ({ onSubmit }) => {
     } else if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-
+    
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     

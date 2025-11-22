@@ -23,20 +23,17 @@ export default function RegistrationPage() {
   const hasShownToast = useRef(false);
   const hasCheckedAccess = useRef(false);
 
-  // ✅ NEW: Check valid navigation on mount
+  // NEW: Check valid navigation on mount
   useEffect(() => {
-    // শুধু একবার check করবে
     if (hasCheckedAccess.current) return;
     hasCheckedAccess.current = true;
 
-    // Check করো user login থেকে এসেছে কিনা
+    // Check if user came from login
     const navFromLogin = sessionStorage.getItem('nav_from_login');
     const navTimestamp = sessionStorage.getItem('nav_timestamp');
 
     if (!navFromLogin || navFromLogin !== 'true') {
-      // Invalid access - login থেকে আসেনি
-      console.warn('⚠️ Unauthorized access attempt to registration page');
-      
+      // Invalid access
       toast.error('Please use the signup link from the login page', {
         duration: 3000,
         position: 'top-center',
@@ -84,12 +81,12 @@ export default function RegistrationPage() {
       }
     }
 
-    // ✅ Valid access
-    console.log('✅ Valid navigation detected');
+    // Valid access
+    console.log('Valid navigation detected');
     setIsValidAccess(true);
 
-    // Token use হয়ে গেছে, এখন clear করো
-    // (যাতে page refresh করলে আবার access না পায়)
+  // Token used — now clear it
+  // (so refresh won’t restore access)
     sessionStorage.removeItem('nav_from_login');
     sessionStorage.removeItem('nav_timestamp');
 
@@ -100,7 +97,7 @@ export default function RegistrationPage() {
 
     try {
       const response = await authApi.register(formData);
-      console.log('✅ Registration successful:', response);
+      console.log('Registration successful:', response);
       
       // Only show toast once
       if (!hasShownToast.current) {
@@ -115,7 +112,7 @@ export default function RegistrationPage() {
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
               <Clock className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="text-xs text-amber-800">
-                <strong>Important:</strong> Verify within <strong>6 hours</strong> or your account will be deleted
+                <strong>Important:</strong> Verify within <strong>30 minutes</strong> or your account will be deleted
               </div>
             </div>
           </div>,
@@ -166,7 +163,7 @@ export default function RegistrationPage() {
     }
   };
 
-  // ✅ Show nothing while checking access
+  // Show nothing while checking access
   if (!isValidAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">

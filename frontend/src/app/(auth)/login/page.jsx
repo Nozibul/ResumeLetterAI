@@ -7,29 +7,48 @@ import { LogIn } from 'lucide-react';
 import LoginForm from '@/features/auth/ui/LoginForm';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import authApi from '@/features/auth/api/authApi';
+
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const handleLogin = async (formData) => {
-    // API call will go here
-    console.log('Login data:', formData);
-    
-    // Simulate API call
-    setTimeout(() => {
-      alert('Login successful! Check console for data.');
-    }, 1000);
-  };
+const handleLogin = async (formData) => {
+  try {
+    await authApi.login({
+      email: formData.email,
+      password: formData.password,
+      rememberMe: formData.rememberMe
+    });
 
-  // ✅ NEW: Handle signup navigation with validation token
-  const handleSignupClick = (e) => {
-    e.preventDefault(); // Link এর default behavior stop করো
+    router.push('/');
+
+  } catch (error) {
+    const backendMessage = error.response?.data?.message;
     
-    // Mark করো যে user valid process follow করছে
+    // Fallback messages based on status code
+    const fallbackMessages = {
+      401: 'Invalid email or password',
+      403: 'Access denied. Please check your account status',
+      423: 'Account temporarily locked',
+      500: 'Server error. Please try again later'
+    };
+
+    const statusCode = error.response?.status;
+    const errorMessage = backendMessage || fallbackMessages[statusCode] || 'Login failed. Please try again.';
+
+    throw new Error(errorMessage);
+  }
+};
+
+  // Handle signup navigation with validation token
+  const handleSignupClick = (e) => {
+    e.preventDefault(); 
+    
+    // Mark user valid process follow
     sessionStorage.setItem('nav_from_login', 'true');
     sessionStorage.setItem('nav_timestamp', Date.now().toString());
     
-    // এখন navigate করো
     router.push('/registration');
   };
 
