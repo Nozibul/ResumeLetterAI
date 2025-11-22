@@ -129,7 +129,7 @@ const UserSchema = new mongoose.Schema(
     deleteUnverifiedAt: {
       type: Date,
       default: function () {
-        const TTL_HOURS = process.env.NODE_ENV === 'production' ? 6 : 0.0833; // 5 min dev
+        const TTL_HOURS = process.env.NODE_ENV === 'production' ? 0.5 : 0.0833; // 30 min production, 5 min dev
         return new Date(Date.now() + TTL_HOURS * 60 * 60 * 1000);
       },
       select: false,
@@ -350,7 +350,7 @@ UserSchema.methods.updateLastActive = async function () {
 UserSchema.methods.incLoginAttempts = async function () {
   const MAX_ATTEMPTS = 3;
   const ATTEMPT_WINDOW = 2 * 60 * 1000; // 2 minutes in milliseconds
-  const LOCK_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+  const LOCK_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   const now = Date.now();
 

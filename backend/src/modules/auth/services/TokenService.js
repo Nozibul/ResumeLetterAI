@@ -1,14 +1,18 @@
 /**
  * @file TokenService.js
- * @description Token management business logic
+ * @description Token management business logic (Multi-session support added)
  * @module modules/auth/services/TokenService
  */
 
 const User = require('../models/User');
+const UserSession = require('../models/UserSession'); // 🆕 NEW
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../../../shared/utils/email');
 const AppError = require('../../../shared/utils/AppError');
 const { generateAccessToken, generateRefreshToken } = require('../../../shared/utils/tokenUtils');
+
+// 🆕 Feature flag from environment
+const MULTI_SESSION_ENABLED = process.env.ENABLE_MULTI_SESSION === 'true';
 
 // ==========================================
 // EMAIL VERIFICATION
@@ -117,6 +121,11 @@ exports.resetPassword = async (token, newPassword) => {
   user.passwordResetExpires = undefined;
   await user.save();
 
+  // 🆕 Revoke all sessions on password reset (security best practice)
+  if (MULTI_SESSION_ENABLED) {
+    await UserSession.revokeAllUserSessions(user._id);
+  }
+
   // Send confirmation email (non-blocking)
   sendEmail({
     to: user.email,
@@ -127,6 +136,11 @@ exports.resetPassword = async (token, newPassword) => {
 
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
+
+  // 🆕 Create new session for current device
+  if (MULTI_SESSION_ENABLED) {
+    await UserSession.createSession(user._id, refreshToken, {}, null);
+  }
 
   user.password = undefined;
   user.loginAttempts = undefined;
@@ -150,6 +164,22 @@ exports.refreshAccessToken = async (refreshToken) => {
     throw new AppError('Invalid or expired refresh token', 401);
   }
 
+  // 🆕 Multi-session: Validate session if enabled
+  if (MULTI_SESSION_ENABLED) {
+    const session = await UserSession.findByToken(refreshToken);
+
+    if (!session) {
+      throw new AppError('Session not found or expired', 401);
+    }
+
+    if (!session.isValid()) {
+      throw new AppError('Session has been revoked', 401);
+    }
+
+    // Update session last used time
+    await UserSession.updateLastUsed(refreshToken);
+  }
+
   const user = await User.findById(decoded.id).select('+passwordChangedAt');
 
   if (!user) {
@@ -167,4 +197,27 @@ exports.refreshAccessToken = async (refreshToken) => {
   await user.updateLastActive();
 
   return generateAccessToken(user._id);
+};
+
+// ==========================================
+// 🆕 LOGOUT (Session Management)
+// ==========================================
+
+/**
+ * Logout user (revoke session if multi-session enabled)
+ */
+exports.logout = async (refreshToken) => {
+  if (!MULTI_SESSION_ENABLED) {
+    // Without multi-session: Just client-side token removal
+    return { message: 'Logged out successfully' };
+  }
+
+  // With multi-session: Revoke the session
+  const session = await UserSession.findByToken(refreshToken);
+
+  if (session) {
+    await UserSession.revokeSession(session._id);
+  }
+
+  return { message: 'Logged out successfully' };
 };

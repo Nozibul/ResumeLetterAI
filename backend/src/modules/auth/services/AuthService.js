@@ -48,7 +48,7 @@ exports.register = async (userData) => {
     template: 'emailVerification',
     data: {
       fullName: user.fullName,
-      verificationUrl: `${process.env.BACKEND_URL}/api/auth/verify-email/${verificationToken}`,
+      verificationUrl: `${process.env.BACKEND_URL}/api/v1/token/verify-email/${verificationToken}`,
     },
   }).catch((err) => console.error('Verification email failed:', err));
 
@@ -83,6 +83,11 @@ exports.login = async (credentials, loginMetadata) => {
     throw new AppError('Invalid email or password', 401);
   }
 
+  // Check if email is verified
+  if (!user.isEmailVerified) {
+    throw new AppError('Please verify your email before logging in', 403);
+  }
+
   // Check if account is locked
   if (user.isLocked) {
     const lockTimeRemaining = Math.ceil((user.lockUntil - Date.now()) / 60000);
@@ -99,15 +104,18 @@ exports.login = async (credentials, loginMetadata) => {
 
   if (!isPasswordCorrect) {
     // Increment failed login attempts
-    await user.incLoginAttempts();
+    const isNowLocked = await user.incLoginAttempts();
 
     // Check if account is now locked
-    const updatedUser = await User.findById(user._id).select('+lockUntil');
-    if (updatedUser.isLocked) {
-      throw new AppError('Too many failed attempts. Account locked for 15 minutes', 423);
+    if (isNowLocked) {
+      throw new AppError('Too many failed attempts. Account locked for 5 minutes', 423);
     }
+    // const updatedUser = await User.findById(user._id).select('+lockUntil');
+    // if (updatedUser.isLocked) {
+    //   throw new AppError('Too many failed attempts. Account locked for 15 minutes', 423);
+    // }
 
-    throw new AppError('Invalid email or password', 401);
+    throw new AppError('Invalid email or passworddd', 401);
   }
 
   // Login successful - reset attempts and update activity
