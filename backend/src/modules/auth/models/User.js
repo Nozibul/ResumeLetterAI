@@ -236,7 +236,7 @@ UserSchema.index(
   }
 );
 
-// TTL Index - Auto-delete unverified users after 6 hours
+// TTL Index - Auto-delete unverified users after 30 minutes
 UserSchema.index(
   { deleteUnverifiedAt: 1 },
   {
@@ -338,10 +338,10 @@ UserSchema.methods.changedPasswordAfter = function (jwtIat) {
  * Call this on every user activity (login, API calls, etc.)
  * @returns {Promise<void>}
  */
-UserSchema.methods.updateLastActive = async function () {
-  this.lastActiveAt = new Date();
-  return this.save({ validateBeforeSave: false });
-};
+// UserSchema.methods.updateLastActive = async function () {
+//   this.lastActiveAt = new Date();
+//   return this.save({ validateBeforeSave: false });
+// };
 
 /**
  * Increment login attempts and lock account if threshold exceeded within time window
@@ -349,8 +349,8 @@ UserSchema.methods.updateLastActive = async function () {
  */
 UserSchema.methods.incLoginAttempts = async function () {
   const MAX_ATTEMPTS = 3;
-  const ATTEMPT_WINDOW = 2 * 60 * 1000; // 2 minutes in milliseconds
-  const LOCK_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
+  const ATTEMPT_WINDOW = 1 * 60 * 1000; // 1 minute in milliseconds
+  const LOCK_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
 
   const now = Date.now();
 
@@ -360,7 +360,7 @@ UserSchema.methods.incLoginAttempts = async function () {
       $set: { loginAttempts: 1, firstFailedAt: now },
       $unset: { lockUntil: 1 },
     });
-    return false;
+    return { locked: false }; // Changed
   }
 
   // If no window started or window expired, start a new window
@@ -368,40 +368,46 @@ UserSchema.methods.incLoginAttempts = async function () {
     await this.updateOne({
       $set: { loginAttempts: 1, firstFailedAt: now },
     });
-    return false;
+    return { locked: false }; // Changed
   }
 
   // We are inside the attempt window -> increment attempts
   const currentAttempts = this.loginAttempts || 0;
   const newAttempts = currentAttempts + 1;
-  const updates = { $inc: { loginAttempts: 1 } };
 
-  // If this increment reaches threshold, lock the account
+  // Check if this increment reaches threshold
   if (newAttempts >= MAX_ATTEMPTS && !(this.lockUntil && this.lockUntil > now)) {
-    updates.$set = {
-      lockUntil: now + LOCK_TIME,
-      loginAttempts: 0, // Reset for next window
-    };
-    updates.$unset = { firstFailedAt: 1 };
+    const lockUntilTime = now + LOCK_TIME; // Store in variable
 
-    await this.updateOne(updates);
-    return true; // Account is now locked
+    // Lock the account - use only $set (no $inc)
+    await this.updateOne({
+      $set: {
+        lockUntil: lockUntilTime, // Use variable
+        loginAttempts: 0,
+      },
+      $unset: { firstFailedAt: 1 },
+    });
+
+    return { locked: true, lockUntil: lockUntilTime }; //  Return lockUntil
   }
 
-  // Just increment attempts (not locked yet)
-  await this.updateOne(updates);
-  return false;
+  // Just increment attempts (not locked yet) - use only $inc
+  await this.updateOne({
+    $inc: { loginAttempts: 1 },
+  });
+
+  return { locked: false }; // Changed
 };
 
 /**
  * Reset login attempts after successful login
  */
-UserSchema.methods.resetLoginAttempts = function () {
-  return this.updateOne({
-    $set: { loginAttempts: 0 },
-    $unset: { lockUntil: 1, firstFailedAt: 1 },
-  });
-};
+// UserSchema.methods.resetLoginAttempts = function () {
+//   return this.updateOne({
+//     $set: { loginAttempts: 0 },
+//     $unset: { lockUntil: 1, firstFailedAt: 1 },
+//   });
+// };
 
 /**
  * Generate password reset token (Timezone-safe)
@@ -444,7 +450,7 @@ UserSchema.methods.markEmailVerified = function () {
   this.isEmailVerified = true;
   this.emailVerificationToken = undefined;
   this.emailVerificationExpires = undefined;
-  this.deleteUnverifiedAt = undefined; // 🔥 Remove auto-delete field
+  this.deleteUnverifiedAt = undefined; // Remove auto-delete field
 };
 
 // ==========================================

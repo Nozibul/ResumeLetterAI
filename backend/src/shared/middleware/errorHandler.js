@@ -18,9 +18,9 @@ const errorHandler = (err, req, res, _) => {
   if (err.name === 'ValidationError') {
     statusCode = 400;
     message = 'Validation Error';
-    errors = Object.values(err.errors).map(e => ({
+    errors = Object.values(err.errors).map((e) => ({
       field: e.path,
-      message: e.message
+      message: e.message,
     }));
   }
 
@@ -68,6 +68,13 @@ const errorHandler = (err, req, res, _) => {
     }
   }
 
+  //  Account Locked Error
+  if (statusCode === 423 && err.data?.lockUntil) {
+    additionalData = {
+      lockUntil: err.data.lockUntil,
+    };
+  }
+
   // ==============================================
   // Log Error
   // ==============================================
@@ -79,7 +86,7 @@ const errorHandler = (err, req, res, _) => {
       url: req.originalUrl,
       method: req.method,
       ip: req.ip,
-      userId: req.user?.id
+      userId: req.user?.id,
     });
   } else {
     // Client errors - simple log
@@ -87,7 +94,7 @@ const errorHandler = (err, req, res, _) => {
       message: err.message,
       url: req.originalUrl,
       method: req.method,
-      statusCode
+      statusCode,
     });
   }
 
@@ -97,10 +104,11 @@ const errorHandler = (err, req, res, _) => {
   const response = {
     success: false,
     message,
-    ...(errors && { errors }), 
-    ...(process.env.NODE_ENV === 'development' && { 
-      stack: err.stack 
-    })
+    ...(errors && { errors }),
+    ...(err.data && { data: err.data }),
+    ...(process.env.NODE_ENV === 'development' && {
+      stack: err.stack,
+    }),
   };
 
   res.status(statusCode).json(response);

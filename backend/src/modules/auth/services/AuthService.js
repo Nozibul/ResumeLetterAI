@@ -103,26 +103,24 @@ exports.login = async (credentials, loginMetadata) => {
   const isPasswordCorrect = await user.comparePassword(password);
 
   if (!isPasswordCorrect) {
-    // Increment failed login attempts
-    const isNowLocked = await user.incLoginAttempts();
+    // Get result object from incLoginAttempts
+    const result = await user.incLoginAttempts();
 
     // Check if account is now locked
-    if (isNowLocked) {
-      throw new AppError('Too many failed attempts. Account locked for 5 minutes', 423);
+    if (result.locked) {
+      throw new AppError('Too many failed attempts. Account locked for 2 minutes', 423, {
+        lockUntil: result.lockUntil, //  Use returned lockUntil
+      });
     }
-    // const updatedUser = await User.findById(user._id).select('+lockUntil');
-    // if (updatedUser.isLocked) {
-    //   throw new AppError('Too many failed attempts. Account locked for 15 minutes', 423);
-    // }
 
-    throw new AppError('Invalid email or passworddd', 401);
+    throw new AppError('Invalid email or passwordd', 401);
   }
 
-  // Login successful - reset attempts and update activity
-  await user.resetLoginAttempts();
-  await user.updateLastActive();
-
-  // Update login metadata
+  // Login successful - update everything in one save
+  user.loginAttempts = 0;
+  user.lockUntil = undefined;
+  user.firstFailedAt = undefined;
+  user.lastActiveAt = new Date();
   user.lastLoginAt = new Date();
   user.lastLoginIP = ip;
   await user.save({ validateBeforeSave: false });
