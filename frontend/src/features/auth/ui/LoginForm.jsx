@@ -1,4 +1,8 @@
 "use client";
+/**
+ * @file LoginForm.jsx
+ * @author Nozibul Islams
+ */
 
 import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
@@ -8,9 +12,10 @@ import PasswordField from '@/shared/components/molecules/passwordField/PasswordF
 import InputField from '@/shared/components/molecules/inputField/InputField';
 import GoogleAuthButton from '@/shared/components/molecules/googleAuthButton/GoogleAuthButton.jsx';
 import AuthDivider from '@/shared/components/molecules/authDivider/AuthDivider';
+import toast from 'react-hot-toast';
 
 
-const LoginForm = ({ onSubmit }) => {
+const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => { 
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -57,12 +62,23 @@ const LoginForm = ({ onSubmit }) => {
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setErrors({});
 
     try {
       await onSubmit(formData);
     } catch (error) {
-      console.error('Login failed:', error);
-      setErrors({ general: 'Invalid email or password' });
+      const errorMessage = error.message || 'Invalid email or password';
+      
+      // Use toast instead of setErrors for lock message
+      if (errorMessage.includes('locked')) {
+        toast.error(errorMessage, {
+          duration: 5000, // 5 seconds
+          position: 'top-center',
+        });
+      } else {
+        // Normal errors - show in form
+        setErrors({ general: errorMessage });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -121,14 +137,26 @@ const LoginForm = ({ onSubmit }) => {
         </a>
       </div>
 
+      {/* Lock Timer - Show below button */}
+      {isLocked && timeRemaining > 0 && (
+        <div className="mt-6 p-3 bg-amber-50 border border-teal-300 rounded-lg">
+          <div className="flex items-center gap-2 text-amber-700">
+            <Lock className="w-4 h-4" />
+            <span className="font-semibold text-sm">
+              Account Locked - Try again in {formatTime(timeRemaining)} ({Math.ceil(timeRemaining / 60000)} minutes)
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Submit Button */}
       <Button
-      className="w-full mt-2"
+        className="w-full mt-2"
         type="submit"
         onClick={handleSubmit}
         variant="primary"
+        disabled={isLoading || isLocked}  //  isLocked from props
         loading={isLoading}
-        disabled={isLoading}
       >
         {isLoading ? 'Logging in...' : 'Login'}
       </Button>

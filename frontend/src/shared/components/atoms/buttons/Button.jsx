@@ -32,12 +32,12 @@ const Button = memo(
       [onClick, analytics]
     );
 
-    const baseClasses =
-      'inline-flex items-center justify-center font-semibold transition-all duration-300 cursor rounded-lg focus:outline-none focus:ring-4 disabled:opacity-50 relative overflow-hidden';
-
-    const variants = {
+  const baseClasses =
+    'inline-flex items-center justify-center font-semibold transition-all duration-300 cursor-pointer rounded-lg focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden';
+      
+  const variants = {
       primary:
-        'cursor-pointer bg-gradient-to-r from-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-400 text-white shadow-lg hover:shadow-xl focus:ring-teal-400 transform hover:scale-103',
+        'bg-gradient-to-r from-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-400 text-white shadow-lg hover:shadow-xl focus:ring-teal-400 transform hover:scale-103 disabled:hover:scale-100 disabled:shadow-lg',
       secondary:
         'bg-white cursor-pointer border-1 border-teal-600 text-teal-600 hover:bg-teal-50 focus:ring-teal-300 hover:border-teal-700 ',
       outline:

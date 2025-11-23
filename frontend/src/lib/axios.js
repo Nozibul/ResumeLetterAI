@@ -22,11 +22,11 @@ apiClient.interceptors.response.use(
     // Handle common errors
     if (error.response) {
       // Server responded with error
-      const message = error.response.data.message || 'Something went wrong';
-      return Promise.reject(new Error(message));
+      return Promise.reject(error);
     } else if (error.request) {
-      // Request made but no response
-      return Promise.reject(new Error('Network error. Please try again.'));
+        // Request made but no response
+        error.message = 'Network error. Please check your connection.';
+        return Promise.reject(error);
     } else {
       // Something else happened
       return Promise.reject(error);
