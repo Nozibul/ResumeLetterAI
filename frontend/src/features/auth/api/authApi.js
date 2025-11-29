@@ -84,7 +84,7 @@ const authService = {
    */
   forgotPassword: async (email) => {
     return deduplicateRequest(`forgot-password:${email}`, async () => {
-      const response = await apiClient.post('/auth/forgot-password', { email });
+      const response = await apiClient.post('/token/forgot-password', { email });
       return response.data;
     });
   },
@@ -98,7 +98,7 @@ const authService = {
    */
   resetPassword: async (token, passwordData) => {
     return deduplicateRequest(`reset-password:${token}`, async () => {
-      const response = await apiClient.post(`/auth/reset-password/${token}`, passwordData);
+      const response = await apiClient.post(`/token/reset-password/${token}`, passwordData);
       return response.data;
     });
   },
@@ -110,7 +110,7 @@ const authService = {
    * @returns {Promise}
    */
   verifyEmail: async (token) => {
-    const response = await apiClient.post(`/auth/verify-email/${token}`);
+    const response = await apiClient.get(`/token/verify-email/${token}`);
     return response.data;
   },
 

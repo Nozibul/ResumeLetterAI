@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Mail, Lock } from 'lucide-react';
 import Button from '@/shared/components/atoms/buttons/Button';
 import Checkbox from '@/shared/components/atoms/checkbox/Checkbox';
@@ -129,12 +130,12 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
           label="Remember me"
         />
         
-        <a 
-          href="#" 
+        <Link 
+          href="/forgot-password" 
           className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
         >
           Forgot password?
-        </a>
+        </Link>
       </div>
 
       {/* Lock Timer - Show below button */}

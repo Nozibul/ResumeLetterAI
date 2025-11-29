@@ -137,16 +137,19 @@ export default function LoginPage() {
           />
 
           {/* Sign Up Link */}
-          <p className="text-center text-sm text-gray-600">
-            New user?{' '}
-            <Link 
-              href="/registration" 
-              onClick={handleSignupClick}
-              className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
-            >
-              Sign up here
-            </Link>
-          </p>
+          {!isLocked && (
+            <p className="text-center text-sm text-gray-600">
+              New user?{' '}
+              <Link 
+                href="/registration" 
+                onClick={handleSignupClick}
+                className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
+              >
+                Sign up here
+              </Link>
+            </p>
+          )}
+         
         </div>
       </div>
     </div>

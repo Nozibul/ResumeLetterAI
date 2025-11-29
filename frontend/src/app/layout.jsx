@@ -10,6 +10,8 @@ import '@/styles/globals.css';
 import { Navigation } from '@/widgets/navigation/Navigation';
 import Footer from '@/widgets/footer/Footer';
 import { Toaster } from 'react-hot-toast';
+import FooterWrapper from '@/widgets/footer/footerWrapper/FooterWrapper';
+
 
 // 1. Font Configuration:
 // Optimized for performance using CSS variables.
@@ -120,16 +122,29 @@ export const viewport = {
 // 4. Root Layout Component:
 // The main shell wrapping every page in the application.
 export default function RootLayout({ children }) {
+  // Pages where footer should be hidden
+  const hideFooterPaths = [
+    '/login',
+    '/registration',
+    '/forgot-password',
+    '/reset-password',
+  ];
+
   return (
     <html lang="en" className={`${lora.variable} h-full`}>
       <body
         className={`${lora.className} tracking-wide flex min-h-full flex-col`}
       >
         <Navigation />
+        
         {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
-
         <main className="flex-1">{children}</main>
-        <Footer />
+
+        {/* Conditionally render footer based on current path */}
+        <FooterWrapper hideOn={hideFooterPaths}>
+          <Footer />
+        </FooterWrapper>
+
         {/* Toast Provider */}
         <Toaster 
           position="top-right"
