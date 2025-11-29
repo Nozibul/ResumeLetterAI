@@ -74,21 +74,59 @@ exports.resendVerificationEmail = async (userId) => {
 // PASSWORD RESET
 // ==========================================
 
+// Service function
 /**
- * Send password reset email
+ * Send password reset email with rate limiting
  */
 exports.forgotPassword = async (email) => {
-  const user = await User.findByEmail(email);
-
-  if (!user) {
-    return; // Don't reveal user existence
+  // 1. Validate email
+  if (!email || !email.trim()) {
+    throw new AppError('Email is required', 400);
   }
 
+  // 2. Find user by email
+  const user = await User.findByEmail(email).select('+passwordResetExpires');
+
+  // Security: Don't reveal if user exists or not
+  if (!user) {
+    return {
+      success: true,
+      message: 'If an account exists with this email, you will receive a password reset link.',
+    };
+  }
+
+  // 3. Check if user account is active
+  if (!user.isActive) {
+    throw new AppError('This account has been deleted. Please Sign Up Again.', 403);
+  }
+
+  // 4. RATE LIMITING: Check if user already has a valid token
+  if (user.passwordResetExpires && user.passwordResetExpires > Date.now()) {
+    const minutesLeft = Math.ceil((user.passwordResetExpires - Date.now()) / 60000);
+    throw new AppError(
+      `Password reset link already sent. Please check your email or wait ${minutesLeft} minute(s) before requesting again.`,
+      429
+    );
+  }
+
+  // 5. Generate reset token
   const resetToken = user.createPasswordResetToken();
+
+  if (!resetToken) {
+    throw new AppError('Failed to generate reset token', 500);
+  }
+
+  // 6. Save token to database
   await user.save({ validateBeforeSave: false });
 
+  // 7. Send email
   try {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    if (!process.env.FRONTEND_URL) {
+      throw new AppError('FRONTEND_URL is not configured', 500);
+    }
+
     await sendEmail({
       to: user.email,
       subject: 'Password Reset - ResumeLetterAI',
@@ -96,57 +134,111 @@ exports.forgotPassword = async (email) => {
       data: {
         fullName: user.fullName,
         resetUrl,
+        expiresIn: '10 minutes',
+        supportEmail: process.env.SUPPORT_EMAIL || 'support@resumeletterai.com',
       },
     });
+
+    return {
+      success: true,
+      message: 'Password reset link has been sent to your email address.',
+    };
   } catch (error) {
+    // Rollback: Remove token from database
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
-    throw new AppError('Email could not be sent. Please try again', 500);
+
+    console.error('Password reset email error:', error);
+    throw new AppError('Failed to send password reset email. Please try again later.', 500);
   }
 };
 
 /**
  * Reset password with token
  */
-exports.resetPassword = async (token, newPassword) => {
-  const user = await User.findByResetToken(token);
+/**
+ * Reset password with token (with enhanced security)
+ */
+exports.resetPassword = async (token, newPassword, confirmPassword) => {
+  // 1. Validate inputs
+  if (!token || !token.trim()) {
+    throw new AppError('Reset token is required', 400);
+  }
+
+  if (!newPassword || newPassword.length < 8) {
+    throw new AppError('Password must be at least 8 characters long', 400);
+  }
+
+  if (newPassword !== confirmPassword) {
+    throw new AppError('Passwords do not match', 400);
+  }
+
+  // 2. Find user with valid token
+  const user = await User.findByResetToken(token).select('+password');
 
   if (!user) {
     throw new AppError('Invalid or expired reset token', 400);
   }
 
+  if (!user.isActive) {
+    throw new AppError('This account has been deactivated', 403);
+  }
+
+  // 3. Update password
   user.password = newPassword;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  user.passwordChangedAt = Date.now();
+
+  // 4. Reset login attempts if any
+  user.loginAttempts = 0;
+  user.lockUntil = undefined;
+  user.firstFailedAt = undefined;
+
   await user.save();
 
-  // 🆕 Revoke all sessions on password reset (security best practice)
+  // 5. Revoke all sessions (security best practice)
   if (MULTI_SESSION_ENABLED) {
     await UserSession.revokeAllUserSessions(user._id);
   }
 
-  // Send confirmation email (non-blocking)
+  // 6. Send confirmation email (non-blocking)
   sendEmail({
     to: user.email,
     subject: 'Password Changed - ResumeLetterAI',
     template: 'passwordChanged',
-    data: { fullName: user.fullName },
+    data: {
+      fullName: user.fullName,
+      changedAt: new Date().toLocaleString('en-US', {
+        timeZone: 'Asia/Dhaka',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
+    },
   }).catch((err) => console.error('Password change email failed:', err));
 
+  // 7. Generate new tokens for current session
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  // 🆕 Create new session for current device
+  // 8. Create new session
   if (MULTI_SESSION_ENABLED) {
     await UserSession.createSession(user._id, refreshToken, {}, null);
   }
 
+  // Clean up sensitive data before returning
   user.password = undefined;
   user.loginAttempts = undefined;
   user.lockUntil = undefined;
 
-  return { user, accessToken, refreshToken };
+  return {
+    success: true,
+    message: 'Password has been reset successfully',
+    user,
+    accessToken,
+    refreshToken,
+  };
 };
 
 // ==========================================

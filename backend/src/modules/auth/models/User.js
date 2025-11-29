@@ -399,15 +399,6 @@ UserSchema.methods.incLoginAttempts = async function () {
   return { locked: false }; // Changed
 };
 
-/**
- * Reset login attempts after successful login
- */
-// UserSchema.methods.resetLoginAttempts = function () {
-//   return this.updateOne({
-//     $set: { loginAttempts: 0 },
-//     $unset: { lockUntil: 1, firstFailedAt: 1 },
-//   });
-// };
 
 /**
  * Generate password reset token (Timezone-safe)

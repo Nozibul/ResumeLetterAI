@@ -1,6 +1,6 @@
 /**
  * @file tokenValidation.js
- * @description Validation schemas for token operations
+ * @description Validation schemas for token operations (Fixed)
  * @module modules/auth/validations/tokenValidation
  */
 
@@ -9,6 +9,7 @@ const { z } = require('zod');
 // Reusable password schema (DRY principle)
 const passwordSchema = z
   .string()
+  .trim() // 🔥 ADD THIS - Remove spaces!
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password is too long')
   .regex(
@@ -43,7 +44,10 @@ exports.resetPasswordSchema = z.object({
   body: z
     .object({
       password: passwordSchema,
-      confirmPassword: z.string().min(1, 'Please confirm your password'),
+      confirmPassword: z
+        .string()
+        .trim()
+        .min(1, 'Please confirm your password'),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: 'Passwords do not match',

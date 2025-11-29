@@ -63,9 +63,14 @@ exports.forgotPassword = catchAsync(async (req, res) => {
  * @access  Public
  */
 exports.resetPassword = catchAsync(async (req, res) => {
+
+  const { password, confirmPassword } = req.body;
+
+  // Zod already validated, just pass both parameters
   const { user, accessToken, refreshToken } = await tokenService.resetPassword(
     req.params.token,
-    req.body.password
+    password,
+    confirmPassword 
   );
 
   // Set HTTP-only cookies
