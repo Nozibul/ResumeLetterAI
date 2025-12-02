@@ -5,7 +5,7 @@
  * Deduplication applied only to critical operations that could cause issues if duplicated
  */
 
-import apiClient from "@/lib/axios";
+import apiClient from "@/api/axios";
 
 // Request cache to prevent duplicate concurrent requests
 const pendingRequests = new Map();

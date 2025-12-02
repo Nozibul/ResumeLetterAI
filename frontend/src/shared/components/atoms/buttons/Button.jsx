@@ -48,6 +48,7 @@ const Button = memo(
       xs: 'px-2 py-1 text-xs gap-2',
       sm: 'px-4 py-2 text-sm gap-2',
       md: 'px-6 py-3 text-base gap-2',
+      loging_md: 'px-4 py-2 text-base gap-2',
       lg: 'px-8 py-4 text-lg gap-3',
       xl: 'px-10 py-5 text-xl gap-3',
     };
