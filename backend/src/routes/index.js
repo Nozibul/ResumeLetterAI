@@ -10,6 +10,8 @@ const router = express.Router();
 // Import route modules
 const authRoutes = require('../modules/auth/routes/authRoutes');
 const tokenRoutes = require('../modules/auth/routes/tokenRoutes');
+const dashboardRoutes = require('../modules/dashboard/routes/dashboardRoutes');
+
 // const templateRoutes = require('./templateRoutes');
 // const userRoutes = require('./userRoutes');
 
@@ -82,9 +84,9 @@ router.use('/token', tokenRoutes);
 
 /**
  * User routes
- * @path /api/v1/users
+ * @path /api/v1/dashboard
  */
-// router.use('/users', userRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 /**
  * Template routes

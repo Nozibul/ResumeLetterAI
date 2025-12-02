@@ -338,10 +338,10 @@ UserSchema.methods.changedPasswordAfter = function (jwtIat) {
  * Call this on every user activity (login, API calls, etc.)
  * @returns {Promise<void>}
  */
-// UserSchema.methods.updateLastActive = async function () {
-//   this.lastActiveAt = new Date();
-//   return this.save({ validateBeforeSave: false });
-// };
+UserSchema.methods.updateLastActive = async function () {
+  this.lastActiveAt = new Date();
+  return this.save({ validateBeforeSave: false });
+};
 
 /**
  * Increment login attempts and lock account if threshold exceeded within time window
