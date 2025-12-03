@@ -11,6 +11,7 @@ import { Navigation } from '@/widgets/navigation/Navigation';
 import Footer from '@/widgets/footer/Footer';
 import { Toaster } from 'react-hot-toast';
 import FooterWrapper from '@/widgets/footer/footerWrapper/FooterWrapper';
+import { Providers } from '@/providers/providers';
 
 
 // 1. Font Configuration:
@@ -132,45 +133,46 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" className={`${lora.variable} h-full`}>
-      <body
-        className={`${lora.className} tracking-wide flex min-h-full flex-col`}
-      >
-        <Navigation />
-        
-        {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
-        <main className="flex-1">{children}</main>
+      <body className={`${lora.className} tracking-wide flex min-h-full flex-col`} >
+        {/* Wrap everything with Providers */}
+        <Providers>
+          <Navigation />
+          
+          {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
+          <main className="flex-1">{children}</main>
 
-        {/* Conditionally render footer based on current path */}
-        <FooterWrapper hideOn={hideFooterPaths}>
-          <Footer />
-        </FooterWrapper>
+          {/* Conditionally render footer based on current path */}
+          <FooterWrapper hideOn={hideFooterPaths}>
+            <Footer />
+          </FooterWrapper>
 
-        {/* Toast Provider */}
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 5000,
-            style: {
-              background: '#fff',
-              color: '#363636',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-            },
-            success: {
-              duration: 6000,
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
-              },
-            },
-            error: {
+          {/* Toast Provider */}
+          <Toaster 
+            position="top-right"
+            toastOptions={{
               duration: 5000,
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
+              style: {
+                background: '#fff',
+                color: '#363636',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
               },
-            },
-          }}
-        />
+              success: {
+                duration: 6000,
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                duration: 5000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </Providers>
       </body>
     </html>
   );
