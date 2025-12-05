@@ -135,7 +135,7 @@ export default function RegistrationPage() {
       
       // Redirect after showing toast
       setTimeout(() => {
-        router.push('/');
+        router.push('/login');
       }, 1000);
       
     } catch (error) {

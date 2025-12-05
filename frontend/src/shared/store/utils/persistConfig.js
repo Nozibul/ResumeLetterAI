@@ -38,6 +38,7 @@ const persistConfig = {
   // Storage engine (localStorage)
   storage,
   whitelist: [
+    'auth',             // Authentication state (user, token)
     'resume',           // User's resume data (CRITICAL)
     'coverLetter',      // Cover letter data (CRITICAL)
     'template',         // Selected templates & preferences

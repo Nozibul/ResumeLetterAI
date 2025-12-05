@@ -11,7 +11,8 @@ import { Navigation } from '@/widgets/navigation/Navigation';
 import Footer from '@/widgets/footer/Footer';
 import { Toaster } from 'react-hot-toast';
 import FooterWrapper from '@/widgets/footer/footerWrapper/FooterWrapper';
-import { Providers } from '@/providers/providers';
+import { Providers } from './providers';
+
 
 
 // 1. Font Configuration:

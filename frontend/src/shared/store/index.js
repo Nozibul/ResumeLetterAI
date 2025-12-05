@@ -2,6 +2,12 @@
  * @file store/index.js
  * @description Main Redux store configuration for ResumeLetterAI
  * @author Nozibul Islam
+ * 
+ * Architecture:
+ * - Redux Toolkit for state management
+ * - Redux Persist for data persistence (user data, NOT token)
+ * - Token handled via httpOnly cookie (backend managed)
+ * - Optimized for production with proper middleware
  */
 
 import { configureStore } from '@reduxjs/toolkit';
@@ -59,6 +65,10 @@ export const persistor = persistStore(store, null, () => {
     console.log('✅ Redux store rehydrated successfully');
     checkStorageSize();
   }
+}, (error) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('❌ Redux persist error:', error);
+  }
 });
 
 /**
@@ -66,6 +76,9 @@ export const persistor = persistStore(store, null, () => {
  * Warns if approaching browser storage limits
  */
 function checkStorageSize() {
+  // ✅ Check if running in browser (not SSR)
+  if (typeof window === 'undefined') return;
+
   let total = 0;
   for (let key in localStorage) {
     if (localStorage.hasOwnProperty(key)) {
@@ -77,8 +90,11 @@ function checkStorageSize() {
   console.log(`📦 localStorage size: ${sizeInMB}MB`);
   
   // Warn if approaching 5MB limit (most browsers)
-  if (parseFloat(sizeInMB) > 5) {
+  if (parseFloat(sizeInMB) > 4) {
     console.warn('⚠️ localStorage approaching 5MB limit!');
-    console.warn('Consider cleaning up old data or using IndexedDB for large files');
+    console.warn('💡 Consider cleaning up old data:');
+    console.warn('   - Delete old resumes/cover letters');
+    console.warn('   - Clear browser cache');
+    console.warn('   - Or migrate to IndexedDB for large files');
   }
 }
