@@ -8,12 +8,14 @@ import { LogIn } from 'lucide-react';
 import LoginForm from '@/features/auth/ui/LoginForm';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import authApi from '@/features/auth/api/authApi';
+import { useAppDispatch } from '@/shared/store/hooks';
+import { loginUser } from '@/shared/store/slices/authSlice';
 import toast from 'react-hot-toast';
 
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   // Lock state management
   const [isLocked, setIsLocked] = useState(false);
@@ -50,18 +52,19 @@ export default function LoginPage() {
 
   const handleLogin = async (formData) => {
     try {
-      const response = await authApi.login({
+      const response = await dispatch(loginUser({ 
         email: formData.email,
         password: formData.password,
         rememberMe: formData.rememberMe
-      });
+       })).unwrap();
 
       // Show success message
       toast.success(`Welcome back, ${response.data.user.fullName}!`, {
         position: 'top-center',
       });
       
-      router.push('/');
+      if (response.data.user.isEmailVerified) router.push('/dashboard'); 
+      else router.push('/');
 
     } catch (error) {
       const backendMessage = error.response?.data?.message;

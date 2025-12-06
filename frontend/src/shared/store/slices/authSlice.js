@@ -61,8 +61,10 @@ export const loginUser = createAsyncThunk(
       const response = await authService.login(credentials);
       
       if (response.success) {
-        // ✅ NO localStorage - cookie set by backend
-        return response.data; // { user }
+        console.log("RES", response)
+        return response;
+      } else {
+        throw new Error('Login failed'); 
       }
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Login failed';
@@ -70,7 +72,6 @@ export const loginUser = createAsyncThunk(
     }
   }
 );
-
 
 /**
  * Fetch current user profile
@@ -201,8 +202,8 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         // ✅ Store user data in Redux (Redux Persist will save to localStorage)
-        state.user = action.payload.user;
-        state.isAuthenticated = action.payload.user.isEmailVerified;
+        state.user = action.payload.data.user;
+        state.isAuthenticated = action.payload.data.user.isEmailVerified;
         state.error = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
