@@ -72,9 +72,6 @@ export default function LoginPage() {
       
       // Check if account is locked (423)
       if (statusCode === 423) {
-          console.log('Full error response:', error.response);
-          console.log('error.response.data:', error.response?.data);
-          console.log('lockUntil:', error.response?.data?.data?.lockUntil);
         const lockUntilTime = error.response?.data?.data?.lockUntil;
         
         if (lockUntilTime) {

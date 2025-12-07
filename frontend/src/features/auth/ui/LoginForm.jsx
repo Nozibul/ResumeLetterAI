@@ -96,7 +96,7 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
 
       {/* Google Auth Button */}
       <GoogleAuthButton text="Sign up with Google" />
-      <AuthDivider />
+      <AuthDivider text='Or with email and password' />
 
       {/* Email Field */}
       <InputField

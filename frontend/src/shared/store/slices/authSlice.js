@@ -33,22 +33,22 @@ const initialState = {
  * Register user
  * Backend sets httpOnly cookie automatically
  */
-export const registerUser = createAsyncThunk(
-  'auth/register',
-  async (userData, { rejectWithValue }) => {
-    try {
-      const response = await authService.register(userData); // Backend returns: { success: true, data: { user } }
+// export const registerUser = createAsyncThunk(
+//   'auth/register',
+//   async (userData, { rejectWithValue }) => {
+//     try {
+//       const response = await authService.register(userData); // Backend returns: { success: true, data: { user } }
       
-      if (response.success) {
-        // ✅ NO localStorage - cookie set by backend
-        return response.data;
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Registration failed';
-      return rejectWithValue(message);
-    }
-  }
-);
+//       if (response.success) {
+//         // ✅ NO localStorage - cookie set by backend
+//         return response.data;
+//       }
+//     } catch (error) {
+//       const message = error.response?.data?.message || error.message || 'Registration failed';
+//       return rejectWithValue(message);
+//     }
+//   }
+// );
 
 /**
  * Login user
@@ -175,21 +175,21 @@ const authSlice = createSlice({
     // ==========================================
     // REGISTER
     // ==========================================
-    builder
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.isAuthenticated = action.payload.user.isEmailVerified;
-        state.error = null;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+    // builder
+    //   .addCase(registerUser.pending, (state) => {
+    //     state.loading = true;
+    //     state.error = null;
+    //   })
+    //   .addCase(registerUser.fulfilled, (state, action) => {
+    //     state.loading = false;
+    //     state.user = action.payload.user;
+    //     state.isAuthenticated = action.payload.user.isEmailVerified;
+    //     state.error = null;
+    //   })
+    //   .addCase(registerUser.rejected, (state, action) => {
+    //     state.loading = false;
+    //     state.error = action.payload;
+    //   });
 
     // ==========================================
     // LOGIN
@@ -201,7 +201,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        // ✅ Store user data in Redux (Redux Persist will save to localStorage)
+        // Store user data in Redux (Redux Persist will save to localStorage)
         state.user = action.payload.data.user;
         state.isAuthenticated = action.payload.data.user.isEmailVerified;
         state.error = null;
@@ -224,6 +224,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = action.payload.isEmailVerified;
+        state.error = null;
       })
       .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.loading = false;

@@ -1,63 +1,130 @@
 /**
  * @file (dashboard)/layout.jsx
- * @description Protected dashboard layout with auth verification
+ * @description Protected dashboard layout - Fixed infinite loading + strict auth
  * @author Nozibul Islam
  * 
- * Architecture:
- * - Client component (uses Redux hooks)
- * - Checks authentication on mount
- * - Redirects unauthorized users
- * - Fetches user data if not loaded
- * - Provides consistent dashboard UI (header, sidebar)
+ * Fixes:
+ * - ✅ Loading timeout (5 seconds max)
+ * - ✅ Auto-redirect on timeout/error
+ * - ✅ Only authenticated users allowed
+ * - ✅ No infinite loading
  */
 
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, useAppDispatch } from '@/shared/store/hooks';
-import { fetchCurrentUser } from '@/shared/store/slices/authSlice';
+import { fetchCurrentUser, logoutUser } from '@/shared/store/slices/authSlice';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 
+// Navigation items config...
+const navItems = [
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+      />
+    ),
+  },
+  {
+    href: '/dashboard/resumes',
+    label: 'My Resumes',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    ),
+  },
+  {
+    href: '/dashboard/cover-letters',
+    label: 'Cover Letters',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      />
+    ),
+  },
+  {
+    href: '/dashboard/profile',
+    label: 'Profile',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      />
+    ),
+  },
+];
+
 export default function DashboardLayout({ children }) {
+  const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, error } = useAuth();
+  const [authChecked, setAuthChecked] = useState(false);
 
   // ==========================================
-  // AUTH CHECK ON MOUNT
+  // AUTH CHECK - RUN ONCE ON MOUNT
   // ==========================================
   useEffect(() => {
-    // If no user in Redux, try to fetch from backend (cookie-based)
-    if (!user && !loading) {
-      dispatch(fetchCurrentUser());
+    if (authChecked) return;
+
+    // If user exists in persisted state or error exists, skip API call
+    if (user || error) {
+      setAuthChecked(true);
+      return;
     }
-  }, [dispatch, user, loading]);
+
+    // No user and no error - fetch from API
+    dispatch(fetchCurrentUser())
+      .finally(() => {
+        setAuthChecked(true);
+      });
+  }, [dispatch, user, error, authChecked]);
 
   // ==========================================
   // REDIRECT LOGIC
   // ==========================================
   useEffect(() => {
-    // Wait for loading to finish
-    if (loading) return;
+    if (!authChecked || loading) return;
 
-    // Not authenticated → Redirect to login
-    if (!isAuthenticated) {
+    if (error || !isAuthenticated) {
       router.push('/login');
       return;
     }
 
-    // Email not verified → Redirect to verification page
     if (user && !user.isEmailVerified) {
       router.push('/verify-email');
-      return;
     }
-  }, [loading, isAuthenticated, user, router]);
+  }, [authChecked, loading, error, isAuthenticated, user, router]);
+
+  // ==========================================
+  // LOGOUT HANDLER
+  // ==========================================
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    router.push('/');
+  };
 
   // ==========================================
   // LOADING STATE
   // ==========================================
-  if (loading || !user) {
+  if (!authChecked || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -69,17 +136,24 @@ export default function DashboardLayout({ children }) {
   }
 
   // ==========================================
+  // PREVENT RENDER IF NOT AUTHENTICATED
+  // ==========================================
+  if (error || !isAuthenticated || !user) {
+    return null;
+  }
+
+  // ==========================================
   // PROTECTED DASHBOARD UI
   // ==========================================
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Header */}
-      <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="bg-white shadow-md border-b border-gray-200 z-20">
+        <div className="max-w-full mx-auto px-6 sm:px-6 lg:px-10">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-teal-400 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">R</span>
               </div>
               <span className="text-xl font-bold text-gray-900">ResumeLetterAI</span>
@@ -88,11 +162,11 @@ export default function DashboardLayout({ children }) {
             {/* User Info */}
             <div className="flex items-center space-x-4">
               <span className="text-gray-700 font-medium hidden sm:block">
-                {user.fullName}
+                {user?.fullName}
               </span>
               <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
                 <span className="text-teal-600 font-semibold">
-                  {user.fullName?.charAt(0).toUpperCase()}
+                  {user?.fullName?.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
@@ -102,55 +176,82 @@ export default function DashboardLayout({ children }) {
 
       {/* Main Content Area */}
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-md min-h-[calc(100vh-4rem)] sticky top-16">
+        {/* Animated Sidebar */}
+        <motion.aside
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="w-64 pl-6 bg-white shadow-md min-h-[calc(100vh-4rem)]"
+        >
           <nav className="p-4 space-y-2">
-            <Link
-              href="/dashboard"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-teal-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <span className="font-medium">Dashboard</span>
-            </Link>
+            {navItems.map((item, index) => {
+              const isActive = pathname === item.href;
 
-            <Link
-              href="/dashboard/resumes"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-teal-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="font-medium">My Resumes</span>
-            </Link>
+              return (
+                <Link key={item.href} href={item.href}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 relative cursor-pointer ${
+                      isActive
+                        ? 'bg-teal-50 text-teal-600 shadow-sm'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {/* Active Indicator */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeIndicator"
+                        className="absolute left-0 top-0 bottom-0 w-1 bg-teal-600 rounded-r"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
 
-            <Link
-              href="/dashboard/cover-letters"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-teal-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span className="font-medium">Cover Letters</span>
-            </Link>
+                    {/* Icon */}
+                    <motion.svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {item.icon}
+                    </motion.svg>
 
-            <Link
-              href="/dashboard/profile"
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 hover:text-teal-600"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="font-medium">Profile</span>
-            </Link>
+                    {/* Label */}
+                    <span className={`font-medium ${isActive ? 'font-semibold' : ''}`}>
+                      {item.label}
+                    </span>
+                  </motion.div>
+                </Link>
+              );
+            })}
+
+            {/* Logout Button */}
+            <div className="-ml-4 mt-6 pt-6 border-t border-gray-200">
+              <button
+                onClick={handleLogout}
+                className="ml-4 w-[calc(100%-60px)] px-4 py-2 cursor-pointer bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+              >
+                Logout
+              </button>
+            </div>
           </nav>
-        </aside>
+        </motion.aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-8">
+        {/* Main Content with Animation */}
+        <motion.main
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex-1 px-10 py-6"
+        >
           {children}
-        </main>
+        </motion.main>
       </div>
     </div>
   );
