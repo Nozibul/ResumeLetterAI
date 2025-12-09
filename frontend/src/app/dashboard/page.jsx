@@ -42,6 +42,42 @@ const userInfoConfig = [
     label: 'Email Status',
     getValue: (user) => user?.isEmailVerified,
     isStatus: true,
+    statusType: 'verified',
+  },
+  {
+    id: '05',
+    label: 'Account Status',
+    getValue: (user) => user?.isActive,
+    isStatus: true,
+    statusType: 'active',
+  },
+  {
+    id: '07',
+    label: 'Last Login',
+    getValue: (user) => {
+      if (!user?.lastLoginAt) return 'N/A';
+      const date = new Date(user.lastLoginAt);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+  },
+  {
+    id: '08',
+    label: 'Member Since',
+    getValue: (user) => {
+      if (!user?.createdAt) return 'N/A';
+      const date = new Date(user.createdAt);
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    },
   },
 ];
 
@@ -173,10 +209,19 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-500 mb-1">{info.label}</p>
 
               {info.isStatus ? (
-                info.getValue(user) && (
+                info.getValue(user) ? (
                   <div className="flex items-center space-x-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="text-green-600 font-medium">Verified</span>
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span className="text-green-600 font-medium">
+                      {info.statusType === 'verified' ? 'Verified' : 'Active'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span className="text-red-600 font-medium">
+                      {info.statusType === 'verified' ? 'Not Verified' : 'Inactive'}
+                    </span>
                   </div>
                 )
               ) : (

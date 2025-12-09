@@ -3,11 +3,6 @@
  * @description Protected dashboard layout - Fixed infinite loading + strict auth
  * @author Nozibul Islam
  * 
- * Fixes:
- * - ✅ Loading timeout (5 seconds max)
- * - ✅ Auto-redirect on timeout/error
- * - ✅ Only authenticated users allowed
- * - ✅ No infinite loading
  */
 
 'use client';
