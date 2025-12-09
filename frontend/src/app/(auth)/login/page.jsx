@@ -50,50 +50,49 @@ export default function LoginPage() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleLogin = async (formData) => {
-    try {
-      const response = await dispatch(loginUser({ 
-        email: formData.email,
-        password: formData.password,
-        rememberMe: formData.rememberMe
-       })).unwrap();
+ const handleLogin = async (formData) => {
+  try {
+    const response = await dispatch(loginUser({
+      email: formData.email,
+      password: formData.password,
+      rememberMe: formData.rememberMe
+    })).unwrap();
 
-      // Show success message
-      toast.success(`Welcome back, ${response.data.user.fullName}!`, {
-        position: 'top-center',
-      });
-      
-      if (response.data.user.isEmailVerified) router.push('/dashboard'); 
-      else router.push('/');
+    toast.success(`Welcome back, ${response.data.user.fullName}!`, {
+      position: 'top-center',
+    });
 
-    } catch (error) {
-      const backendMessage = error.response?.data?.message;
-      const statusCode = error.response?.status;
-      
-      // Check if account is locked (423)
-      if (statusCode === 423) {
-        const lockUntilTime = error.response?.data?.data?.lockUntil;
-        
-        if (lockUntilTime) {
-          setLockUntil(new Date(lockUntilTime).getTime());
-          setIsLocked(true);
-        }
+    if (response.data.user.isEmailVerified) 
+      router.push('/dashboard');
+    else 
+      router.push('/');
+
+  } catch (error) {
+    const statusCode = error.status;
+    const backendMessage = error.message;
+
+    // Check if account is locked (423)
+    if (statusCode === 423) {
+      const lockUntilTime = error.data?.data?.lockUntil;
+      if (lockUntilTime) {
+        setLockUntil(new Date(lockUntilTime).getTime());
+        setIsLocked(true);
       }
-      
-      const fallbackMessages = {
-        401: 'Invalid email or password',
-        403: 'Access denied. Please verify your email or contact support',
-        423: 'Account temporarily locked due to multiple failed attempts',
-        500: 'Server error. Please try again later',
-        503: 'Service temporarily unavailable'
-      };
-
-      const errorMessage = backendMessage || fallbackMessages[statusCode] || 'Login failed. Please try again.';
-
-      throw new Error(errorMessage);
     }
-  };
 
+    const fallbackMessages = {
+      401: 'Invalid email or password',
+      403: 'Access denied. Please verify your email or contact support',
+      423: 'Account temporarily locked due to multiple failed attempts',
+      500: 'Server error. Please try again later',
+      503: 'Service temporarily unavailable'
+    };
+
+    const errorMessage = backendMessage || fallbackMessages[statusCode] || 'Login failed. Please try again.';
+    
+    toast.error(errorMessage, { position: 'top-center' });
+  }
+};
   // Handle signup navigation with validation token
   const handleSignupClick = (e) => {
     e.preventDefault(); 

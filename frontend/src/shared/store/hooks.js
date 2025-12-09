@@ -6,6 +6,7 @@
  * Architecture:
  * - Wraps authSlice selectors in hooks for convenience
  * - Provides both hook-based and selector-based approaches
+ * - Separates authError and operationError
  * - Reduces boilerplate in components
  */
 
@@ -16,6 +17,7 @@ import {
   selectIsAuthenticated,
   selectAuthLoading,
   selectAuthError,
+  selectOperationError,
 } from './slices/authSlice';
 
 // ==========================================
@@ -38,7 +40,7 @@ export const useAppSelector = useSelector;
 
 /**
  * Get entire auth state
- * @returns {Object} { user, isAuthenticated, loading, error }
+ * @returns {Object} { user, isAuthenticated, loading, authError, operationError }
  */
 export const useAuth = () => {
   return useAppSelector(selectAuth);
@@ -69,9 +71,17 @@ export const useAuthLoading = () => {
 };
 
 /**
- * Get auth error
+ * Get authentication error (login, session, fetch user failures)
  * @returns {string|null} Error message or null
  */
 export const useAuthError = () => {
   return useAppSelector(selectAuthError);
+};
+
+/**
+ * Get operation error (update profile, delete account failures)
+ * @returns {string|null} Error message or null
+ */
+export const useOperationError = () => {
+  return useAppSelector(selectOperationError);
 };

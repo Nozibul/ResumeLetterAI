@@ -1,8 +1,7 @@
 /**
- * @file (dashboard)/layout.jsx
- * @description Protected dashboard layout - Fixed infinite loading + strict auth
+ * @file dashboard/layout.jsx
+ * @description Protected dashboard layout - Only redirects on AUTH errors
  * @author Nozibul Islam
- * 
  */
 
 'use client';
@@ -14,7 +13,6 @@ import { fetchCurrentUser, logoutUser } from '@/shared/store/slices/authSlice';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-// Navigation items config...
 const navItems = [
   {
     href: '/dashboard',
@@ -70,7 +68,7 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { user, isAuthenticated, loading, error } = useAuth();
+  const { user, isAuthenticated, loading, authError } = useAuth();
   const [authChecked, setAuthChecked] = useState(false);
 
   // ==========================================
@@ -79,26 +77,27 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     if (authChecked) return;
 
-    // If user exists in persisted state or error exists, skip API call
-    if (user || error) {
+    // If user exists in persisted state, skip API call
+    if (user) {
       setAuthChecked(true);
       return;
     }
 
-    // No user and no error - fetch from API
+    // No user - fetch from API
     dispatch(fetchCurrentUser())
       .finally(() => {
         setAuthChecked(true);
       });
-  }, [dispatch, user, error, authChecked]);
+  }, [dispatch, user, authChecked]);
 
   // ==========================================
-  // REDIRECT LOGIC
+  // REDIRECT LOGIC - ONLY ON AUTH ERRORS
   // ==========================================
   useEffect(() => {
     if (!authChecked || loading) return;
 
-    if (error || !isAuthenticated) {
+    // Only redirect on authentication failures
+    if (!isAuthenticated || authError) {
       router.push('/login');
       return;
     }
@@ -106,7 +105,7 @@ export default function DashboardLayout({ children }) {
     if (user && !user.isEmailVerified) {
       router.push('/verify-email');
     }
-  }, [authChecked, loading, error, isAuthenticated, user, router]);
+  }, [authChecked, loading, authError, isAuthenticated, user, router]);
 
   // ==========================================
   // LOGOUT HANDLER
@@ -133,7 +132,7 @@ export default function DashboardLayout({ children }) {
   // ==========================================
   // PREVENT RENDER IF NOT AUTHENTICATED
   // ==========================================
-  if (error || !isAuthenticated || !user) {
+  if (!isAuthenticated || !user) {
     return null;
   }
 
@@ -196,7 +195,6 @@ export default function DashboardLayout({ children }) {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {/* Active Indicator */}
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
@@ -205,7 +203,6 @@ export default function DashboardLayout({ children }) {
                       />
                     )}
 
-                    {/* Icon */}
                     <motion.svg
                       className="w-5 h-5"
                       fill="none"
@@ -217,7 +214,6 @@ export default function DashboardLayout({ children }) {
                       {item.icon}
                     </motion.svg>
 
-                    {/* Label */}
                     <span className={`font-medium ${isActive ? 'font-semibold' : ''}`}>
                       {item.label}
                     </span>

@@ -19,10 +19,11 @@ import authService from '@/features/auth/api/authApi';
 // ==========================================
 
 const initialState = {
-  user: null,                 // User object from backend
-  isAuthenticated: false,     // true if logged in AND email verified
-  loading: false,             // API call in progress
-  error: null,                // Error message from API
+  user: null,
+  isAuthenticated: false,
+  loading: false,
+  authError: null,        // ✅ Authentication errors (login, session, fetch user)
+  operationError: null,   // ✅ Operation errors (update profile, delete account)
 };
 
 // ==========================================
@@ -61,14 +62,16 @@ export const loginUser = createAsyncThunk(
       const response = await authService.login(credentials);
       
       if (response.success) {
-        console.log("RES", response)
         return response;
       } else {
         throw new Error('Login failed'); 
       }
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Login failed';
-      return rejectWithValue(message);
+      return rejectWithValue({
+        message: error.response?.data?.message || error.message || 'Login failed',
+        status: error.response?.status,
+        type: 'auth'  // Indicate authentication error 
+      });
     }
   }
 );
@@ -87,8 +90,10 @@ export const fetchCurrentUser = createAsyncThunk(
         return response.data.user;
       }
     } catch (error) {
-      // ✅ NO localStorage removal - backend handles cookie
-      return rejectWithValue('Session expired');
+       return rejectWithValue({
+        message: 'Session expired',
+        type: 'auth' // Mark as auth error
+      });
     }
   }
 );
@@ -102,11 +107,9 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
-      // ✅ NO localStorage - backend clears cookie
+      // NO localStorage - backend clears cookie
       return null;
     } catch (error) {
-      // ✅ Even if API fails, just clear Redux state
-      // Backend should handle cookie expiry
       return null;
     }
   }
@@ -126,8 +129,35 @@ export const updateUserProfile = createAsyncThunk(
         return response.data.user;
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Update failed';
-      return rejectWithValue(message);
+       return rejectWithValue({
+         message: error.response?.data?.message || 'Update failed',
+         type: 'operation' // Mark as operation error
+      });
+    }
+  }
+);
+
+/**
+ * Delete user account permanently
+ * Backend clears httpOnly cookie and deletes user from DB
+ */
+export const deleteAccountUser = createAsyncThunk(
+  'auth/deleteAccount',
+  async (passwordData, { rejectWithValue }) => {
+    try {
+      const response = await authService.deleteAccount(passwordData.password);
+      
+      if (response.success) {
+        return response; 
+      } else {
+        throw new Error(response.message || 'Failed to delete account');
+      }
+    } catch (error) {
+      return rejectWithValue({
+        message: error.response?.data?.message || error.message || 'Failed to delete account',
+        status: error.response?.status,
+        type: 'operation'
+      });
     }
   }
 );
@@ -149,17 +179,21 @@ const authSlice = createSlice({
     clearAuth: (state) => {
       state.user = null;
       state.isAuthenticated = false;
-      state.error = null;
+      state.authError = null;
+      state.operationError = null;
       state.loading = false;
     },
-    
     
     /**
      * Clear error message
      */
-    clearError: (state) => {
-      state.error = null;
-    },
+      clearAuthError: (state) => {
+       state.authError = null;
+      },
+      
+      clearOperationError: (state) => {
+        state.operationError = null;
+      },
     
     /**
      * Set user manually (for SSR or external auth)
@@ -197,18 +231,19 @@ const authSlice = createSlice({
     builder
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        state.authError = null;
+        state.operationError = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         // Store user data in Redux (Redux Persist will save to localStorage)
         state.user = action.payload.data.user;
         state.isAuthenticated = action.payload.data.user.isEmailVerified;
-        state.error = null;
+        state.authError = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.authError = action.payload?.message || action.payload;;
         state.isAuthenticated = false;
       });
 
@@ -218,19 +253,19 @@ const authSlice = createSlice({
     builder
       .addCase(fetchCurrentUser.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        state.authError = null;
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = action.payload.isEmailVerified;
-        state.error = null;
+        state.authError = null;
       })
       .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
-        state.error = action.payload;
+        state.authError  = action.payload;
       });
 
     // ==========================================
@@ -244,7 +279,8 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
-        state.error = null;
+        state.authError = null;
+        state.operationError = null;
       })
       .addCase(logoutUser.rejected, (state) => {
         // Even on error, clear state
@@ -259,16 +295,35 @@ const authSlice = createSlice({
     builder
       .addCase(updateUserProfile.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        state.operationError = null;
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
-        state.error = null;
+        state.operationError = null;
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.operationError = action.payload?.message || action.payload;
+      });
+
+    // ==========================================
+    // DELETE ACCOUNT
+    // ==========================================  
+    builder
+      .addCase(deleteAccountUser.pending, (state) => {
+        state.loading = true;
+        state.operationError = null;
+      })
+      .addCase(deleteAccountUser.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.operationError = null;
+      })
+      .addCase(deleteAccountUser.rejected, (state, action) => {
+        state.loading = false;
+        state.operationError = action.payload?.message || action.payload; 
       });
   },
 });
@@ -278,14 +333,15 @@ const authSlice = createSlice({
 // ==========================================
 
 // Actions
-export const { clearAuth, clearError, setUser } = authSlice.actions;
+export const { clearAuth, clearAuthError, clearOperationError, setUser } = authSlice.actions;
 
 // Reducer
 export default authSlice.reducer;
 
-// Selectors (for convenience)
+// Selectors
 export const selectAuth = (state) => state.auth;
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.loading;
-export const selectAuthError = (state) => state.auth.error;
+export const selectAuthError = (state) => state.auth.authError;
+export const selectOperationError = (state) => state.auth.operationError;

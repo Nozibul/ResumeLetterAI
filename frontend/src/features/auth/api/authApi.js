@@ -155,6 +155,28 @@ const authService = {
     const response = await apiClient.get('/auth/me');
     return response.data;
   },
+
+  /**
+   * Delete user account permanently
+   * @param {string} password - User's current password for confirmation
+   * @returns {Promise}
+   */
+  deleteAccount: async (password) => {
+  return deduplicateRequest(`delete-account:${Date.now()}`, async () => {
+    try {
+      const response = await apiClient.delete('/auth/delete-account', {
+        data: { password }
+      });
+      console.log('🟢 Backend SUCCESS:', response.data);
+      return response.data;
+    } catch (error) {
+      console.log('🔴 Backend ERROR:', error);
+      console.log('🔴 Error status:', error.response?.status);
+      console.log('🔴 Error message:', error.response?.data?.message);
+      throw error; // Must throw
+    }
+  });
+},
 };
 
 export default authService;

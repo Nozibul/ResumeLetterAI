@@ -82,7 +82,6 @@ export default function RegistrationPage() {
     }
 
     // Valid access
-    console.log('Valid navigation detected');
     setIsValidAccess(true);
 
   // Token used — now clear it
@@ -96,8 +95,7 @@ export default function RegistrationPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await authApi.register(formData);
-      console.log('Registration successful:', response);
+      await authApi.register(formData);
       
       // Only show toast once
       if (!hasShownToast.current) {
@@ -135,11 +133,10 @@ export default function RegistrationPage() {
       
       // Redirect after showing toast
       setTimeout(() => {
-        router.push('/');
+        router.push('/login');
       }, 1000);
       
     } catch (error) {
-      console.error('❌ Registration error:', error);
       
       toast.error(
         error.message || 'Registration failed. Please try again.',

@@ -18,6 +18,7 @@ import clsx from 'clsx';
 import Typography from '@/shared/components/atoms/typography/Typography';
 import Image from 'next/image';
 import { COMPANY_INFO } from '@/local-data/footer-data';
+import { useIsAuthenticated } from '@/shared/store/hooks';
 
 const components = [
   {
@@ -38,8 +39,8 @@ const components = [
 ];
 
 export function Navigation() {
+  const isAuthenticated = useIsAuthenticated();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
   return (
     <nav className="sticky top-0 z-50 w-full bg-white shadow-md">
       <div className="mx-auto">
@@ -127,14 +128,26 @@ export function Navigation() {
             </NavigationMenu>
           </div>
 
-          {/* Desktop Auth Button */}
-          <div className="hidden md:block">
-            <Link href="/login">
-              <Button  variant="primary" size="loging_md">
-                SIGN IN 
-              </Button>
-            </Link>
-          </div>
+        {/* Desktop Auth Button */}
+          {
+            isAuthenticated ? (
+              <div className="hidden md:block">
+                <Link href="/dashboard">
+                  <Button variant="primary" size="loging_md">
+                   Profile
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="hidden md:block">
+                <Link href="/login">
+                  <Button variant="primary" size="loging_md">
+                    SIGN IN 
+                  </Button>
+                </Link>
+              </div>
+            )
+          }
 
           {/* Mobile menu button */}
           <div className="md:hidden">
