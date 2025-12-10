@@ -66,13 +66,10 @@ const persistConfig = {
    * WriteFailHandler - Handle storage errors
    */
   writeFailHandler: (err) => {
-    console.error('❌ Redux Persist Write Error:', err);
     // Check if storage is full
     if (err.name === 'QuotaExceededError' || 
         err.message?.includes('quota') ||
         err.message?.includes('QuotaExceededError')) {
-      console.error('💾 localStorage is full! Consider clearing old data.');
-      console.warn('💡 Tip: Clear browser cache or old resumes');
     }
     // Optional: Send to error tracking service
     // logErrorToService(err);

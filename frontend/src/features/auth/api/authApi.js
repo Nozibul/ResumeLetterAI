@@ -170,9 +170,6 @@ const authService = {
       console.log('🟢 Backend SUCCESS:', response.data);
       return response.data;
     } catch (error) {
-      console.log('🔴 Backend ERROR:', error);
-      console.log('🔴 Error status:', error.response?.status);
-      console.log('🔴 Error message:', error.response?.data?.message);
       throw error; // Must throw
     }
   });

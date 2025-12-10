@@ -202,6 +202,17 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.isAuthenticated = action.payload?.isEmailVerified || false;
     },
+
+    /**
+     * Handle session expiry (called by axios interceptor)
+     */
+    handleSessionExpiry: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.loading = false;
+      state.authError = 'Session expired. Please login again';
+      state.operationError = null;
+    },
   },
   
   extraReducers: (builder) => {
@@ -333,7 +344,7 @@ const authSlice = createSlice({
 // ==========================================
 
 // Actions
-export const { clearAuth, clearAuthError, clearOperationError, setUser } = authSlice.actions;
+export const { clearAuth, clearAuthError, clearOperationError, setUser, handleSessionExpiry } = authSlice.actions;
 
 // Reducer
 export default authSlice.reducer;
