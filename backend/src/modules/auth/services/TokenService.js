@@ -5,7 +5,7 @@
  */
 
 const User = require('../models/User');
-const UserSession = require('../models/UserSession'); // 🆕 NEW
+const UserSession = require('../models/UserSession'); 
 const jwt = require('jsonwebtoken');
 const { sendEmail } = require('../../../shared/utils/email');
 const AppError = require('../../../shared/utils/AppError');

@@ -421,6 +421,9 @@ paths:
   # ============================================
   # TEMPLATES
   # ============================================
+  # ============================================
+  # TEMPLATES
+  # ============================================
   /templates:
     get:
       summary: List all templates
@@ -434,7 +437,7 @@ paths:
           description: Filter by template category
           schema:
             type: string
-            enum: [professional, creative, academic, technical, modern]
+            enum: [ats-friendly, corporate, executive, creative, it]
         - name: sort
           in: query
           description: Sort order
@@ -442,18 +445,85 @@ paths:
             type: string
             enum: [newest, oldest, popular, rating]
             default: newest
-        - name: search
-          in: query
-          description: Search by template name or tags
-          schema:
-            type: string
       responses:
         '200':
           description: Templates retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TemplateListResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      templates:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: "template_001"
+                            templateName:
+                              type: string
+                              example: "Modern Professional"
+                            category:
+                              type: string
+                              enum: [ats-friendly, corporate, executive, creative, it]
+                            previewUrl:
+                              type: string
+                              format: uri
+                              example: "https://cdn.example.com/previews/template_001.png"
+                            thumbnailUrl:
+                              type: string
+                              format: uri
+                              example: "https://cdn.example.com/thumbnails/template_001.png"
+                            tags:
+                              type: array
+                              items:
+                                type: string
+                              example: ["modern", "minimalist", "professional"]
+                            rating:
+                              type: number
+                              format: float
+                              example: 4.5
+                            usageCount:
+                              type: integer
+                              example: 1523
+                            isPremium:
+                              type: boolean
+                              example: false
+                            createdAt:
+                              type: string
+                              format: date-time
+                            updatedAt:
+                              type: string
+                              format: date-time
+                      pagination:
+                        type: object
+                        properties:
+                          currentPage:
+                            type: integer
+                            example: 1
+                          totalPages:
+                            type: integer
+                            example: 5
+                          totalItems:
+                            type: integer
+                            example: 42
+                          itemsPerPage:
+                            type: integer
+                            example: 10
+                          hasMore:
+                            type: boolean
+                            example: true
+                          remaining:
+                            type: integer
+                            example: 8
+                            description: Number of templates remaining to load
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -468,14 +538,207 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTemplateRequest'
+              type: object
+              required:
+                - templateName
+                - category
+                - structure
+              properties:
+                templateName:
+                  type: string
+                  example: "Modern Professional"
+                category:
+                  type: string
+                  enum: [ats-friendly, corporate, executive, creative, it]
+                description:
+                  type: string
+                  example: "A clean and modern template for professionals"
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  example: ["modern", "minimalist"]
+                isPremium:
+                  type: boolean
+                  default: false
+                structure:
+                  type: object
+                  description: Template structure defining available sections
+                  properties:
+                    sections:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          sectionId:
+                            type: string
+                            enum: [header, profile, experience, skills, education, projects, achievements, references, technologies]
+                          sectionName:
+                            type: string
+                            example: "Professional Experience"
+                          isRequired:
+                            type: boolean
+                            default: false
+                          order:
+                            type: integer
+                            example: 1
+                          fields:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                fieldName:
+                                  type: string
+                                  example: "companyName"
+                                fieldType:
+                                  type: string
+                                  enum: [text, email, url, phone, textarea, date, array]
+                                isRequired:
+                                  type: boolean
+                                placeholder:
+                                  type: string
+                  example:
+                    sections:
+                      - sectionId: "header"
+                        sectionName: "Header"
+                        isRequired: true
+                        order: 1
+                        fields:
+                          - fieldName: "fullName"
+                            fieldType: "text"
+                            isRequired: true
+                          - fieldName: "position"
+                            fieldType: "text"
+                            isRequired: true
+                          - fieldName: "email"
+                            fieldType: "email"
+                            isRequired: true
+                          - fieldName: "phone"
+                            fieldType: "phone"
+                            isRequired: true
+                          - fieldName: "linkedin"
+                            fieldType: "url"
+                            isRequired: false
+                          - fieldName: "github"
+                            fieldType: "url"
+                            isRequired: false
+                          - fieldName: "portfolio"
+                            fieldType: "url"
+                            isRequired: false
+                          - fieldName: "location"
+                            fieldType: "text"
+                            isRequired: false
+                      - sectionId: "profile"
+                        sectionName: "Professional Summary"
+                        isRequired: false
+                        order: 2
+                        fields:
+                          - fieldName: "summary"
+                            fieldType: "textarea"
+                            isRequired: false
+                      - sectionId: "experience"
+                        sectionName: "Professional Experience"
+                        isRequired: false
+                        order: 3
+                        fields:
+                          - fieldName: "companyName"
+                            fieldType: "text"
+                          - fieldName: "position"
+                            fieldType: "text"
+                          - fieldName: "startDate"
+                            fieldType: "date"
+                          - fieldName: "endDate"
+                            fieldType: "date"
+                          - fieldName: "description"
+                            fieldType: "textarea"
+                          - fieldName: "responsibilities"
+                            fieldType: "array"
+                      - sectionId: "skills"
+                        sectionName: "Skills"
+                        isRequired: false
+                        order: 4
+                        fields:
+                          - fieldName: "skillName"
+                            fieldType: "text"
+                          - fieldName: "proficiency"
+                            fieldType: "text"
+                      - sectionId: "education"
+                        sectionName: "Education"
+                        isRequired: false
+                        order: 5
+                        fields:
+                          - fieldName: "degree"
+                            fieldType: "text"
+                          - fieldName: "institution"
+                            fieldType: "text"
+                          - fieldName: "graduationYear"
+                            fieldType: "date"
+                          - fieldName: "cgpa"
+                            fieldType: "text"
+                      - sectionId: "projects"
+                        sectionName: "Projects"
+                        isRequired: false
+                        order: 6
+                        fields:
+                          - fieldName: "projectName"
+                            fieldType: "text"
+                          - fieldName: "description"
+                            fieldType: "textarea"
+                          - fieldName: "technologies"
+                            fieldType: "array"
+                          - fieldName: "projectUrl"
+                            fieldType: "url"
+                      - sectionId: "achievements"
+                        sectionName: "Achievements"
+                        isRequired: false
+                        order: 7
+                        fields:
+                          - fieldName: "title"
+                            fieldType: "text"
+                          - fieldName: "description"
+                            fieldType: "textarea"
+                          - fieldName: "date"
+                            fieldType: "date"
+                      - sectionId: "references"
+                        sectionName: "References"
+                        isRequired: false
+                        order: 8
+                        fields:
+                          - fieldName: "name"
+                            fieldType: "text"
+                          - fieldName: "position"
+                            fieldType: "text"
+                          - fieldName: "company"
+                            fieldType: "text"
+                          - fieldName: "email"
+                            fieldType: "email"
+                          - fieldName: "phone"
+                            fieldType: "phone"
+                      - sectionId: "technologies"
+                        sectionName: "Technologies"
+                        isRequired: false
+                        order: 9
+                        fields:
+                          - fieldName: "category"
+                            fieldType: "text"
+                          - fieldName: "techStack"
+                            fieldType: "array"
       responses:
         '201':
           description: Template created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Template'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Template created successfully"
+                  data:
+                    $ref: '#/components/schemas/Template'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -486,7 +749,7 @@ paths:
   /templates/{id}:
     get:
       summary: Get template by ID
-      description: Retrieve detailed information about a specific template
+      description: Retrieve detailed information about a specific template including full structure
       tags: [Templates]
       parameters:
         - $ref: '#/components/parameters/TemplateId'
@@ -496,7 +759,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Template'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Template'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -513,14 +782,40 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateTemplateRequest'
+              type: object
+              properties:
+                templateName:
+                  type: string
+                category:
+                  type: string
+                  enum: [ats-friendly, corporate, executive, creative, it]
+                description:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                isPremium:
+                  type: boolean
+                structure:
+                  type: object
+                  description: Updated template structure
       responses:
         '200':
           description: Template updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Template'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Template updated successfully"
+                  data:
+                    $ref: '#/components/schemas/Template'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -551,7 +846,7 @@ paths:
   /templates/{id}/preview:
     get:
       summary: Get template preview
-      description: Get template preview image or HTML
+      description: Get template preview image URLs and sample data
       tags: [Templates]
       parameters:
         - $ref: '#/components/parameters/TemplateId'
@@ -563,15 +858,88 @@ paths:
               schema:
                 type: object
                 properties:
-                  previewUrl:
-                    type: string
-                    format: uri
-                  thumbnailUrl:
-                    type: string
-                    format: uri
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      previewUrl:
+                        type: string
+                        format: uri
+                        example: "https://cdn.example.com/previews/template_001.png"
+                        description: Full-size preview image
+                      thumbnailUrl:
+                        type: string
+                        format: uri
+                        example: "https://cdn.example.com/thumbnails/template_001.png"
+                        description: Thumbnail preview image
+                      sampleData:
+                        type: object
+                        description: Sample resume data for preview
+                        properties:
+                          header:
+                            type: object
+                            properties:
+                              fullName:
+                                type: string
+                                example: "ANNA COEHLO"
+                              position:
+                                type: string
+                                example: "UI/UX Designer"
+                          profile:
+                            type: object
+                            properties:
+                              summary:
+                                type: string
+                                example: "Passionate designer with 5+ years experience..."
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /templates/{id}/duplicate:
+    post:
+      summary: Duplicate template
+      description: Create a copy of an existing template (Admin/Creator only)
+      tags: [Templates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newTemplateName:
+                  type: string
+                  example: "Modern Professional - Copy"
+      responses:
+        '201':
+          description: Template duplicated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Template duplicated successfully"
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
   # ============================================
   # REVIEWS
   # ============================================

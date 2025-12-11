@@ -80,7 +80,7 @@ exports.login = async (credentials, loginMetadata) => {
   );
 
   if (!user) {
-    throw new AppError('Invalid email or password', 401);
+    throw new AppError('Invalid email or password', 400);
   }
 
   // Check if email is verified
@@ -109,11 +109,11 @@ exports.login = async (credentials, loginMetadata) => {
     // Check if account is now locked
     if (result.locked) {
       throw new AppError('Too many failed attempts. Account locked for 2 minutes', 423, {
-        lockUntil: result.lockUntil, //  Use returned lockUntil
+        lockUntil: result.lockUntil,
       });
     }
 
-    throw new AppError('Invalid email or passwordd', 401);
+    throw new AppError('Invalid email or password', 400); 
   }
 
   // Login successful - update everything in one save
@@ -285,7 +285,7 @@ exports.changePassword = async (userId, passwordData) => {
 };
 
 /**
- * Deactivate user account
+ * Deleted user account
  */
 exports.deleteAccount = async (userId, password) => {
   // Get user with password
@@ -298,7 +298,7 @@ exports.deleteAccount = async (userId, password) => {
   // Verify password
   const isPasswordCorrect = await user.comparePassword(password);
   if (!isPasswordCorrect) {
-    throw new AppError('Incorrect password', 401);
+    throw new AppError('Incorrect password', 400);
   }
 
   // Revoke all sessions before account deletion
