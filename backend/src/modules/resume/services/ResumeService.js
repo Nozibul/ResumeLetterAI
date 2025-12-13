@@ -1,14 +1,46 @@
 /**
  * @file ResumeService.js
- * @description Resume business logic
+ * @description Resume business logic (Optimized & Production-ready)
  * @module modules/resume/services/ResumeService
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 2.0.0
  */
 
+const mongoose = require('mongoose');
 const Resume = require('../models/Resume');
 const Template = require('../../templates/models/Template');
 const AppError = require('../../../shared/utils/AppError');
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+/**
+ * Validate MongoDB ObjectId
+ * @param {string} id - ID to validate
+ * @throws {AppError} If invalid ID
+ */
+const validateObjectId = (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError('Invalid resume ID format', 400);
+  }
+};
+
+/**
+ * Verify resume ownership
+ * @param {Object} resume - Resume document
+ * @param {string} userId - User ID
+ * @throws {AppError} If user doesn't own the resume
+ */
+const verifyOwnership = (resume, userId) => {
+  if (!resume) {
+    throw new AppError('Resume not found', 404);
+  }
+
+  if (resume.userId.toString() !== userId.toString()) {
+    throw new AppError('You do not have permission to access this resume', 403);
+  }
+};
 
 // ==========================================
 // RESUME CRUD OPERATIONS
@@ -23,8 +55,11 @@ const AppError = require('../../../shared/utils/AppError');
 exports.createResume = async (userId, resumeData) => {
   const { templateId, resumeTitle, content } = resumeData;
 
+  // Validate template ID format
+  validateObjectId(templateId);
+
   // Verify template exists and is active
-  const template = await Template.findOne({ _id: templateId, isActive: true });
+  const template = await Template.findOne({ _id: templateId, isActive: true }).lean();
 
   if (!template) {
     throw new AppError('Template not found or inactive', 404);
@@ -38,7 +73,7 @@ exports.createResume = async (userId, resumeData) => {
     content: content || {},
   });
 
-  // Populate template details for response
+  // Populate template details
   await resume.populate('templateId', 'category thumbnailUrl isPremium');
 
   return resume;
@@ -52,6 +87,7 @@ exports.createResume = async (userId, resumeData) => {
 exports.getAllResumes = async (userId) => {
   const resumes = await Resume.find({ userId })
     .populate('templateId', 'category thumbnailUrl isPremium')
+    .select('-__v')
     .sort('-updatedAt')
     .lean();
 
@@ -66,6 +102,7 @@ exports.getAllResumes = async (userId) => {
 exports.getDraftResumes = async (userId) => {
   const drafts = await Resume.find({ userId, isCompleted: false })
     .populate('templateId', 'category thumbnailUrl isPremium')
+    .select('-__v')
     .sort('-updatedAt')
     .lean();
 
@@ -80,6 +117,7 @@ exports.getDraftResumes = async (userId) => {
 exports.getCompletedResumes = async (userId) => {
   const completed = await Resume.find({ userId, isCompleted: true })
     .populate('templateId', 'category thumbnailUrl isPremium')
+    .select('-__v')
     .sort('-updatedAt')
     .lean();
 
@@ -93,48 +131,45 @@ exports.getCompletedResumes = async (userId) => {
  * @returns {Promise<Object>} Resume details
  */
 exports.getResumeById = async (id, userId) => {
-  const resume = await Resume.findOne({ _id: id, userId }).populate(
-    'templateId',
-    'category thumbnailUrl previewUrl structure isPremium'
-  );
+  validateObjectId(id);
 
-  if (!resume) {
-    throw new AppError('Resume not found or you do not have access', 404);
-  }
+  const resume = await Resume.findById(id)
+    .populate('templateId', 'category thumbnailUrl previewUrl structure isPremium')
+    .select('-__v');
+
+  verifyOwnership(resume, userId);
 
   return resume;
 };
 
 /**
- * Update resume content
+ * Update resume content (with whitelist)
  * @param {string} id - Resume ID
  * @param {string} userId - User ID (for ownership validation)
  * @param {Object} updateData - Data to update
  * @returns {Promise<Object>} Updated resume
  */
 exports.updateResume = async (id, userId, updateData) => {
-  const resume = await Resume.findOne({ _id: id, userId });
+  validateObjectId(id);
 
-  if (!resume) {
-    throw new AppError('Resume not found or you do not have access', 404);
-  }
+  const resume = await Resume.findById(id);
 
-  // Update content
+  verifyOwnership(resume, userId);
+
+  // Whitelist allowed fields
+  const allowedFields = ['content', 'isCompleted'];
+
+  // Update allowed fields
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined) {
+      resume[field] = updateData[field];
+    }
+  });
+
+  // Mark content as modified (for nested objects)
   if (updateData.content) {
-    Object.keys(updateData.content).forEach((key) => {
-      if (updateData.content[key] !== undefined) {
-        resume.content[key] = updateData.content[key];
-      }
-    });
+    resume.markModified('content');
   }
-
-  // Update isCompleted if provided
-  if (updateData.isCompleted !== undefined) {
-    resume.isCompleted = updateData.isCompleted;
-  }
-
-  // Mark as modified (important for nested objects)
-  resume.markModified('content');
 
   await resume.save();
 
@@ -152,11 +187,11 @@ exports.updateResume = async (id, userId, updateData) => {
  * @returns {Promise<Object>} Updated resume
  */
 exports.updateResumeTitle = async (id, userId, resumeTitle) => {
-  const resume = await Resume.findOne({ _id: id, userId });
+  validateObjectId(id);
 
-  if (!resume) {
-    throw new AppError('Resume not found or you do not have access', 404);
-  }
+  const resume = await Resume.findById(id);
+
+  verifyOwnership(resume, userId);
 
   resume.resumeTitle = resumeTitle;
   await resume.save();
@@ -171,11 +206,11 @@ exports.updateResumeTitle = async (id, userId, resumeTitle) => {
  * @returns {Promise<void>}
  */
 exports.deleteResume = async (id, userId) => {
-  const resume = await Resume.findOne({ _id: id, userId });
+  validateObjectId(id);
 
-  if (!resume) {
-    throw new AppError('Resume not found or you do not have access', 404);
-  }
+  const resume = await Resume.findById(id);
+
+  verifyOwnership(resume, userId);
 
   await resume.deleteOne();
 };
@@ -187,20 +222,21 @@ exports.deleteResume = async (id, userId) => {
  * @returns {Promise<Object>} Duplicated resume
  */
 exports.duplicateResume = async (id, userId) => {
-  const originalResume = await Resume.findOne({ _id: id, userId }).lean();
+  validateObjectId(id);
 
-  if (!originalResume) {
-    throw new AppError('Resume not found or you do not have access', 404);
-  }
+  const originalResume = await Resume.findById(id).lean();
 
-  // Remove _id and timestamps from original
-  const { _id, createdAt, updatedAt, viewCount, downloadCount, ...resumeData } = originalResume;
+  verifyOwnership(originalResume, userId);
 
-  // Create duplicate
+  // Remove metadata
+  const { _id, createdAt, updatedAt, viewCount, downloadCount, __v, ...resumeData } =
+    originalResume;
+
+  // Create duplicate with reset metrics
   const duplicatedResume = await Resume.create({
     ...resumeData,
     resumeTitle: `${originalResume.resumeTitle} (Copy)`,
-    isCompleted: false, // Reset completion status
+    isCompleted: false,
     viewCount: 0,
     downloadCount: 0,
   });
@@ -219,11 +255,16 @@ exports.duplicateResume = async (id, userId) => {
  * @returns {Promise<Object>} Updated resume
  */
 exports.toggleVisibility = async (id, userId, isPublic) => {
-  const resume = await Resume.findOne({ _id: id, userId });
+  validateObjectId(id);
 
-  if (!resume) {
-    throw new AppError('Resume not found or you do not have access', 404);
+  // Validate isPublic is boolean
+  if (typeof isPublic !== 'boolean') {
+    throw new AppError('isPublic must be a boolean value', 400);
   }
+
+  const resume = await Resume.findById(id);
+
+  verifyOwnership(resume, userId);
 
   resume.isPublic = isPublic;
   await resume.save();
@@ -238,11 +279,11 @@ exports.toggleVisibility = async (id, userId, isPublic) => {
  * @returns {Promise<void>}
  */
 exports.trackDownload = async (id, userId) => {
-  const resume = await Resume.findOne({ _id: id, userId });
+  validateObjectId(id);
 
-  if (!resume) {
-    throw new AppError('Resume not found or you do not have access', 404);
-  }
+  const resume = await Resume.findById(id);
+
+  verifyOwnership(resume, userId);
 
   await resume.incrementDownload();
 };

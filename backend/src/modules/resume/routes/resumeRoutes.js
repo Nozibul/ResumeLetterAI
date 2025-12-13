@@ -19,6 +19,7 @@ const {
   updateResumeSchema,
   getResumeByIdSchema,
   updateResumeTitleSchema,
+  toggleVisibilitySchema,
 } = require('../validation/resumeValidation');
 
 // Controller
@@ -129,7 +130,7 @@ router.post(
 router.patch(
   '/:id/visibility',
   protect,
-  validate(getResumeByIdSchema),
+  validate(toggleVisibilitySchema),
   resumeController.toggleVisibility
 );
 

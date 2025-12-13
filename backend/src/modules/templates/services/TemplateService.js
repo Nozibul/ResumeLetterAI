@@ -1,13 +1,29 @@
 /**
  * @file TemplateService.js
- * @description Template business logic
+ * @description Template business logic (Optimized & Production-ready)
  * @module modules/template/services/TemplateService
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 2.0.0
  */
 
+const mongoose = require('mongoose');
 const Template = require('../models/Template');
 const AppError = require('../../../shared/utils/AppError');
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+/**
+ * Validate MongoDB ObjectId
+ * @param {string} id - ID to validate
+ * @throws {AppError} If invalid ID
+ */
+const validateObjectId = (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError('Invalid template ID format', 400);
+  }
+};
 
 // ==========================================
 // PUBLIC SERVICES
@@ -21,13 +37,12 @@ const AppError = require('../../../shared/utils/AppError');
 exports.getAllTemplates = async (category) => {
   const query = { isActive: true };
 
-  // Apply category filter if provided
   if (category) {
     query.category = category;
   }
 
   const templates = await Template.find(query)
-    .select('-structure') // Exclude structure for list view (lighter payload)
+    .select('-structure -__v') // Exclude heavy fields
     .sort({ usageCount: -1, rating: -1, createdAt: -1 })
     .lean();
 
@@ -57,10 +72,10 @@ exports.getCategoryStats = async () => {
   ]);
 
   // Transform to object format: { "corporate": 5, "ats-friendly": 3, ... }
-  const result = {};
-  stats.forEach((item) => {
-    result[item.category] = item.count;
-  });
+  const result = stats.reduce((acc, item) => {
+    acc[item.category] = item.count;
+    return acc;
+  }, {});
 
   return result;
 };
@@ -71,7 +86,9 @@ exports.getCategoryStats = async () => {
  * @returns {Promise<Object>} Template details
  */
 exports.getTemplateById = async (id) => {
-  const template = await Template.findOne({ _id: id, isActive: true }).lean();
+  validateObjectId(id);
+
+  const template = await Template.findOne({ _id: id, isActive: true }).select('-__v').lean();
 
   if (!template) {
     throw new AppError('Template not found', 404);
@@ -86,15 +103,17 @@ exports.getTemplateById = async (id) => {
  * @returns {Promise<Object>} Preview URLs and sample data
  */
 exports.getTemplatePreview = async (id) => {
+  validateObjectId(id);
+
   const template = await Template.findOne({ _id: id, isActive: true })
-    .select('previewUrl thumbnailUrl')
+    .select('previewUrl thumbnailUrl category')
     .lean();
 
   if (!template) {
     throw new AppError('Template not found', 404);
   }
 
-  // Sample data for preview (you can customize this based on template)
+  // Sample data for preview
   const sampleData = {
     header: {
       fullName: 'ANNA COEHLO',
@@ -112,6 +131,7 @@ exports.getTemplatePreview = async (id) => {
   return {
     previewUrl: template.previewUrl,
     thumbnailUrl: template.thumbnailUrl,
+    category: template.category,
     sampleData,
   };
 };
@@ -127,7 +147,6 @@ exports.getTemplatePreview = async (id) => {
  * @returns {Promise<Object>} Created template
  */
 exports.createTemplate = async (templateData, createdBy) => {
-  // Create template with createdBy reference
   const template = await Template.create({
     ...templateData,
     createdBy,
@@ -137,21 +156,37 @@ exports.createTemplate = async (templateData, createdBy) => {
 };
 
 /**
- * Update template
+ * Update template (with whitelist approach)
  * @param {string} id - Template ID
  * @param {Object} updateData - Data to update
  * @returns {Promise<Object>} Updated template
  */
 exports.updateTemplate = async (id, updateData) => {
+  validateObjectId(id);
+
   const template = await Template.findOne({ _id: id, isActive: true });
 
   if (!template) {
     throw new AppError('Template not found', 404);
   }
 
-  // Update fields
-  Object.keys(updateData).forEach((key) => {
-    template[key] = updateData[key];
+  // Whitelist allowed fields for update
+  const allowedFields = [
+    'category',
+    'description',
+    'previewUrl',
+    'thumbnailUrl',
+    'tags',
+    'isPremium',
+    'structure',
+    'isActive',
+  ];
+
+  // Filter and update only allowed fields
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined) {
+      template[field] = updateData[field];
+    }
   });
 
   await template.save();
@@ -165,6 +200,8 @@ exports.updateTemplate = async (id, updateData) => {
  * @returns {Promise<void>}
  */
 exports.deleteTemplate = async (id) => {
+  validateObjectId(id);
+
   const template = await Template.findOne({ _id: id, isActive: true });
 
   if (!template) {
@@ -184,16 +221,20 @@ exports.deleteTemplate = async (id) => {
  * @returns {Promise<Object>} Duplicated template
  */
 exports.duplicateTemplate = async (id, description, createdBy) => {
-  const originalTemplate = await Template.findOne({ _id: id, isActive: true }).lean();
+  validateObjectId(id);
+
+  const originalTemplate = await Template.findOne({ _id: id, isActive: true })
+    .select('-__v')
+    .lean();
 
   if (!originalTemplate) {
     throw new AppError('Template not found', 404);
   }
 
-  // Remove _id and timestamps from original
+  // Remove _id and metadata from original
   const { _id, createdAt, updatedAt, usageCount, rating, ...templateData } = originalTemplate;
 
-  // Create duplicate with reset metrics and optional new description
+  // Create duplicate with reset metrics
   const duplicatedTemplate = await Template.create({
     ...templateData,
     description: description || `${templateData.description || 'Template'} (Copy)`,
