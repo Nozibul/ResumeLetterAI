@@ -57,7 +57,7 @@ const Typography = memo(
             key={i}
             className={
               isHighlight
-                ? 'bg-gradient-to-r from-teal-600 to-gray-800 bg-clip-text text-transparent'
+                ? 'bg-gradient-to-r from-teal-800 to-gray-800 bg-clip-text text-transparent'
                 : ''
             }
           >

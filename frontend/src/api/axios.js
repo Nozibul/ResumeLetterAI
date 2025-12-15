@@ -97,7 +97,6 @@ apiClient.interceptors.response.use(
     // CASE 2: 401 on refresh endpoint - logout
     // ==========================================
     if (originalRequest.url?.includes('/token/refresh-token')) {
-      console.error('🔴 Refresh token expired - logging out');
       
       // Lazy import to avoid circular dependency
       const { store } = await import('@/shared/store');
@@ -116,9 +115,7 @@ apiClient.interceptors.response.use(
     // ==========================================
     // CASE 3: Already retried - logout
     // ==========================================
-    if (originalRequest._retry) {
-      console.error('🔴 Request retry failed - logging out');
-      
+    if (originalRequest._retry) {      
       // Lazy import to avoid circular dependency
       const { store } = await import('@/shared/store');
       const { handleSessionExpiry } = await import('@/shared/store/slices/authSlice');
@@ -156,23 +153,17 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      console.log('🔄 Access token expired - refreshing...');
-
       // Call refresh token endpoint
       const response = await apiClient.post('/token/refresh-token');
 
-      if (response.data.success) {
-        console.log('✅ Token refreshed successfully');
-        
+      if (response.data.success) {        
         // Process queued requests
         processQueue(null, response.data.data.accessToken);
         
         // Retry original request
         return apiClient(originalRequest);
       }
-    } catch (refreshError) {
-      console.error('🔴 Token refresh failed:', refreshError);
-      
+    } catch (refreshError) {      
       // Process queue with error
       processQueue(refreshError, null);
       

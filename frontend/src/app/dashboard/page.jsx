@@ -14,11 +14,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuthUser, useIsAuthenticated } from '@/shared/store/hooks';
 import { useRouter } from 'next/navigation';
 import { QuickAction } from '@/widgets/dashboard/quickAction/QuickAction';
 import { statsConfig } from '@/local-data/statsConfig';
 import { DeleteAccountModal } from '@/widgets/dashboard/deleteAccountModal/DeleteAccountModal';
+import { useAuthUser, useIsAuthenticated } from '@/shared/store/hooks/useAuth';
 
 // ==========================================
 // USER INFO CONFIGURATION

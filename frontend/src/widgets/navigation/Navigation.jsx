@@ -18,7 +18,8 @@ import clsx from 'clsx';
 import Typography from '@/shared/components/atoms/typography/Typography';
 import Image from 'next/image';
 import { COMPANY_INFO } from '@/local-data/footer-data';
-import { useIsAuthenticated } from '@/shared/store/hooks';
+import { useIsAuthenticated } from '@/shared/store/hooks/useAuth';
+
 
 const components = [
   {

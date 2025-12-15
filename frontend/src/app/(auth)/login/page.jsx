@@ -8,9 +8,9 @@ import { LogIn } from 'lucide-react';
 import LoginForm from '@/features/auth/ui/LoginForm';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAppDispatch } from '@/shared/store/hooks';
-import { loginUser } from '@/shared/store/slices/authSlice';
 import toast from 'react-hot-toast';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
+import { loginUser } from '@/shared/store/actions/authActions';
 
 
 export default function LoginPage() {
@@ -58,11 +58,11 @@ export default function LoginPage() {
       rememberMe: formData.rememberMe
     })).unwrap();
 
-    toast.success(`Welcome back, ${response.data.user.fullName}!`, {
+    toast.success(`Welcome back, ${response.fullName}!`, {
       position: 'top-center',
     });
 
-    if (response.data.user.isEmailVerified) 
+    if (response.isEmailVerified) 
       router.push('/dashboard');
     else 
       router.push('/');

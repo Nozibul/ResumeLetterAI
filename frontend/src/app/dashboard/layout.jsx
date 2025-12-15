@@ -8,11 +8,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth, useAppDispatch } from '@/shared/store/hooks';
-import { fetchCurrentUser, logoutUser } from '@/shared/store/slices/authSlice';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { navItems } from '@/local-data/navItems';
+import { useAppDispatch, useAuth } from '@/shared/store/hooks/useAuth';
+import { fetchCurrentUser, logoutUser } from '@/shared/store/actions/authActions';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -35,9 +35,8 @@ export default function DashboardLayout({ children }) {
         // Token valid - user data refreshed
         setAuthChecked(true);
       })
-      .catch((error) => {
+      .catch(() => {
         // Token invalid/expired - will redirect via useEffect below
-        console.log('Auth validation failed:', error);
         setAuthChecked(true);
       });
   }, [dispatch, authChecked]);

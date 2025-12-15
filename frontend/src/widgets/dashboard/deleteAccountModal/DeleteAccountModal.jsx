@@ -8,10 +8,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppDispatch } from '@/shared/store/hooks';
-import { deleteAccountUser, clearOperationError } from '@/shared/store/slices/authSlice';
 import { persistor } from '@/shared/store/index';
 import toast from 'react-hot-toast';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
+import { clearOperationError } from '@/shared/store/slices/authSlice';
+import { deleteAccountUser } from '@/shared/store/actions/authActions';
 
 export function DeleteAccountModal({ isOpen, onClose }) {
   const router = useRouter();
