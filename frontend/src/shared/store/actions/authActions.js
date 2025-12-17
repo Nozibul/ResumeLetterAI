@@ -42,10 +42,16 @@ export const loginUser = createAsyncThunk(
       } else {
         throw new Error('Login failed');
       }
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Login failed';
-      dispatch(setAuthError(message));
-      return rejectWithValue(message);
+   } catch (error) {
+      // Full error object return করুন
+      const errorPayload = {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message || 'Login failed',
+        data: error.response?.data?.data || null
+      };
+      
+      dispatch(setAuthError(errorPayload.message));
+      return rejectWithValue(errorPayload); // ⭐ এটাই main fix
     } finally {
       dispatch(setAuthLoading(false));
     }

@@ -25,7 +25,7 @@ export const HeroSection = () => {
         {/* <div className="relative z-10"> */}
         <div className="grid grid-cols-1 md:grid-cols-5 w-full min-h-screen p-8 gap-6">
           {/* Left Section */}
-          <div className="md:col-span-3 space-y-10 my-2">
+          <div className="md:col-span-3 space-y-10 my-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full">
               <TrustIndicator text="Users trust us" value="1.1k+" />
               <RatingDisplay rating={4.9} totalReviews="1.1k" />
@@ -42,7 +42,7 @@ export const HeroSection = () => {
               </Typography>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-16 gap-6 w-full">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center pt-20 gap-6 w-full">
               <Button
                 variant="primary"
                 size="md"
@@ -66,13 +66,13 @@ export const HeroSection = () => {
             </div>
 
             <div className="flex flex-wrap gap-4">
+              <FeatureBadge text="ATS-friendly" icon="edit" color="blue" />
               <FeatureBadge text="30-min build" icon="zap" />
               <FeatureBadge
                 text="Free download"
                 icon="download"
                 color="purple"
               />
-              <FeatureBadge text="ATS-friendly" icon="edit" color="blue" />
             </div>
           </div>
 

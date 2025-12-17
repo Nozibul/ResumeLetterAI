@@ -8,10 +8,9 @@ import { combineReducers } from '@reduxjs/toolkit';
 
 // Import all slice reducers
 import authReducer from './slices/authSlice';
-// import resumeReducer from './slices/resumeSlice';
+import templateReducer from './slices/templateSlice';
+import resumeReducer from './slices/resumeSlice';
 // import coverLetterReducer from './slices/coverLetterSlice';
-// import templateReducer from './slices/templateSlice';
-// import userPreferencesReducer from './slices/userPreferencesSlice';
 // import uiReducer from './slices/uiSlice';
 
 /**
@@ -21,10 +20,9 @@ import authReducer from './slices/authSlice';
 const appReducer = combineReducers({
   // ✅ These will be persisted (as per persistConfig whitelist)
   auth: authReducer,                        // Authentication state
-  // resume: resumeReducer,                    // User's resume data
+  template: templateReducer,                // Templates & preferences
+  resume: resumeReducer,                    // User's resume data
   // coverLetter: coverLetterReducer,          // Cover letter data
-  // template: templateReducer,                // Templates & preferences
-  //userPreferences: userPreferencesReducer,  // User settings (theme, language)
   
   // ❌ These will NOT be persisted (as per persistConfig blacklist)
   // ui: uiReducer,                            // UI state (modals, loading)
@@ -46,40 +44,3 @@ const rootReducer = (state, action) => {
 };
 
 export default rootReducer;
-
-
-/**
- * ========================================
- * STATE SHAPE (After combining reducers)
- * ========================================
- * 
- * store = {
- *   resume: {
- *     resumes: [],
- *     currentResume: null,
- *     loading: false,
- *     error: null,
- *   },
- *   coverLetter: {
- *     coverLetters: [],
- *     currentCoverLetter: null,
- *     loading: false,
- *   },
- *   template: {
- *     templates: [],
- *     selectedTemplate: null,
- *   },
- *   userPreferences: {
- *     theme: 'light',
- *     language: 'en',
- *   },
- *   export: {
- *     status: 'idle',
- *     format: 'pdf',
- *   },
- *   ui: {
- *     sidebarOpen: true,
- *     modals: {},
- *   }
- * }
- */

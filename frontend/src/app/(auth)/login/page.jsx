@@ -73,7 +73,7 @@ export default function LoginPage() {
 
     // Check if account is locked (423)
     if (statusCode === 423) {
-      const lockUntilTime = error.data?.data?.lockUntil;
+      const lockUntilTime = error.data?.lockUntil;
       if (lockUntilTime) {
         setLockUntil(new Date(lockUntilTime).getTime());
         setIsLocked(true);
