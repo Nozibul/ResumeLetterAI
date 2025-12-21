@@ -170,8 +170,7 @@ exports.createResumeSchema = z.object({
       .min(1, 'Resume title is required')
       .max(100, 'Resume title cannot exceed 100 characters')
       .trim()
-      .optional()
-      .default('Untitled Resume'),
+      .optional(),
     content: contentSchema,
   }),
 });

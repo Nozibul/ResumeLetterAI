@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "seed:templates": "node src/database/seeders/templateSeeder.js",
     "test": "jest --watchAll --verbose",
     "test:coverage": "jest --coverage",
     "build": "echo 'Backend build completed'",
@@ -26,6 +27,7 @@
     "logs:error": "tail -f logs/error.log"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.1.0",
     "axios": "^1.12.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
