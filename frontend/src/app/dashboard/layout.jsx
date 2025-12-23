@@ -22,24 +22,22 @@ export default function DashboardLayout({ children }) {
   const [authChecked, setAuthChecked] = useState(false);
 
   // ==========================================
-  // AUTH CHECK - RUN ONCE ON MOUNT
+  // AUTH CHECK 
   // ==========================================
   useEffect(() => {
-    if (authChecked) return;
 
-    // Always validate token on mount (even if user exists in Redux)
-    // This ensures token hasn't expired while user was away
-    dispatch(fetchCurrentUser())
-      .unwrap()
-      .then(() => {
-        // Token valid - user data refreshed
-        setAuthChecked(true);
-      })
-      .catch(() => {
-        // Token invalid/expired - will redirect via useEffect below
-        setAuthChecked(true);
-      });
-  }, [dispatch, authChecked]);
+    if (!user) {
+      dispatch(fetchCurrentUser())
+        .unwrap()
+        .then(() => setAuthChecked(true))
+        .catch(() => {
+          // Token invalid - interceptor already handled logout
+          router.push('/login');
+        });
+    } else {
+      setAuthChecked(true);
+    }
+  }, [user, dispatch]);
 
   // ==========================================
   // REDIRECT LOGIC - ONLY ON AUTH ERRORS

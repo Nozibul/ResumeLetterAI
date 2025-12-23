@@ -20,12 +20,12 @@ const TemplateCard = ({ template, onUseTemplate }) => {
 
   return (
     <div
-      className="relative w-64 h-[360px] group cursor-pointer"
+      className="relative w-64 h-[360px] group cursor-pointer mb-8"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Card Container */}
-      <div className="relative w-full h-full rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]">
+      <div className="relative w-full h-full rounded-lg overflow-hidden shadow-lg transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
         {/* Template Image */}
         <Image
           src={template.thumbnailUrl}
@@ -38,7 +38,7 @@ const TemplateCard = ({ template, onUseTemplate }) => {
 
         {/* Premium Badge */}
         {template.isPremium && (
-          <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 z-10">
+          <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
             <Crown size={12} />
             Premium
           </div>
@@ -46,7 +46,7 @@ const TemplateCard = ({ template, onUseTemplate }) => {
 
         {/* Rating Badge */}
         {template.rating > 0 && (
-          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 z-10">
+          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
             <Star size={12} className="fill-yellow-500 text-yellow-500" />
             {template.rating.toFixed(1)}
           </div>
@@ -54,10 +54,10 @@ const TemplateCard = ({ template, onUseTemplate }) => {
 
         {/* Hover Overlay */}
         {isHovered && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center transition-all duration-300 z-20">
+          <div className="absolute inset-0 backdrop-blur-xs flex items-center justify-center transition-all duration-300">
             <Button
               variant="primary"
-              size="md"
+              size="sm"
               onClick={() => onUseTemplate(template._id)}
               className="transform hover:scale-105 transition-transform"
             >
@@ -68,11 +68,11 @@ const TemplateCard = ({ template, onUseTemplate }) => {
       </div>
 
       {/* Template Info (Below Card) */}
-      <div className="mt-3 text-center">
+      <div className="mt-2 text-center">
         <p className="text-sm text-gray-600 capitalize">
           {template.category.replace(/-/g, ' ')}
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
           Used by {template.usageCount.toLocaleString()}+ people
         </p>
       </div>

@@ -135,7 +135,7 @@ export function Navigation() {
               <div className="hidden md:block">
                 <Link href="/dashboard">
                   <Button variant="primary" size="loging_md">
-                   Profile
+                   Dashboard
                   </Button>
                 </Link>
               </div>
@@ -255,7 +255,7 @@ export function Navigation() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <Button variant="primary" size="md" className="w-full">
-                    My Account
+                    Dashboard
                   </Button>
                 </Link>
               </div>
