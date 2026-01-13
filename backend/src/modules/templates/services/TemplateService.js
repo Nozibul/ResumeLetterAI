@@ -1,14 +1,11 @@
 /**
- * @file TemplateService.js
- * @description Template business logic (Optimized & Production-ready)
- * @module modules/template/services/TemplateService
- * @author Nozibul Islam
- * @version 2.0.0
+ * @file TemplateService.js (Updated with Redis Cache)
  */
 
 const mongoose = require('mongoose');
 const Template = require('../models/Template');
 const AppError = require('../../../shared/utils/AppError');
+const cacheHelper = require('../../../shared/config/cacheHelper');
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -26,15 +23,20 @@ const validateObjectId = (id) => {
 };
 
 // ==========================================
-// PUBLIC SERVICES
+// PUBLIC SERVICES (WITH CACHE)
 // ==========================================
 
 /**
- * Get all templates (with optional category filter)
- * @param {string} category - Optional category filter
- * @returns {Promise<Array>} List of templates
+ * Get all templates (with Redis cache)
  */
 exports.getAllTemplates = async (category) => {
+  // Try cache first
+  const cached = await cacheHelper.getCachedTemplates(category);
+  if (cached) {
+    return cached;
+  }
+
+  // If not in cache, fetch from DB
   const query = { isActive: true };
 
   if (category) {
@@ -42,18 +44,27 @@ exports.getAllTemplates = async (category) => {
   }
 
   const templates = await Template.find(query)
-    .select('-structure -__v') // Exclude heavy fields
+    .select('-structure -__v')
     .sort({ usageCount: -1, rating: -1, createdAt: -1 })
     .lean();
+
+  // Store in cache for future requests
+  await cacheHelper.setCachedTemplates(templates, category);
 
   return templates;
 };
 
 /**
- * Get template count by category (for home page stats)
- * @returns {Promise<Object>} Category-wise template count
+ * Get category stats (with Redis cache)
  */
 exports.getCategoryStats = async () => {
+  // Try cache first
+  const cached = await cacheHelper.getCachedCategoryStats();
+  if (cached) {
+    return cached;
+  }
+
+  // If not in cache, fetch from DB
   const stats = await Template.aggregate([
     { $match: { isActive: true } },
     {
@@ -77,34 +88,52 @@ exports.getCategoryStats = async () => {
     return acc;
   }, {});
 
+  // Store in cache
+  await cacheHelper.setCachedCategoryStats(result);
+
   return result;
 };
 
 /**
- * Get single template by ID (with full structure)
- * @param {string} id - Template ID
- * @returns {Promise<Object>} Template details
+ * Get template by ID (with Redis cache)
  */
 exports.getTemplateById = async (id) => {
   validateObjectId(id);
 
-  const template = await Template.findOne({ _id: id, isActive: true }).select('-__v').lean();
+  // Try cache first
+  const cached = await cacheHelper.getCachedTemplate(id);
+  if (cached) {
+    return cached;
+  }
+
+  // If not in cache, fetch from DB
+  const template = await Template.findOne({ _id: id, isActive: true })
+    .select('-__v')
+    .lean();
 
   if (!template) {
     throw new AppError('Template not found', 404);
   }
 
+  // Store in cache
+  await cacheHelper.setCachedTemplate(template);
+
   return template;
 };
 
 /**
- * Get template preview data
- * @param {string} id - Template ID
- * @returns {Promise<Object>} Preview URLs and sample data
+ * Get template preview (with Redis cache)
  */
 exports.getTemplatePreview = async (id) => {
   validateObjectId(id);
 
+  // Try cache first
+  const cached = await cacheHelper.getCachedTemplatePreview(id);
+  if (cached) {
+    return cached;
+  }
+
+  // If not in cache, fetch from DB
   const template = await Template.findOne({ _id: id, isActive: true })
     .select('previewUrl thumbnailUrl category')
     .lean();
@@ -123,28 +152,29 @@ exports.getTemplatePreview = async (id) => {
       location: 'New York, USA',
     },
     profile: {
-      summary:
-        'Passionate UI/UX designer with 5+ years of experience creating user-centered digital experiences.',
+      summary: 'Passionate UI/UX designer with 5+ years of experience.',
     },
   };
 
-  return {
+  const preview = {
     previewUrl: template.previewUrl,
     thumbnailUrl: template.thumbnailUrl,
     category: template.category,
     sampleData,
   };
+
+  // Store in cache
+  await cacheHelper.setCachedTemplatePreview(id, preview);
+
+  return preview;
 };
 
 // ==========================================
-// PROTECTED SERVICES (Admin/Creator)
+// PROTECTED SERVICES (WITH CACHE INVALIDATION)
 // ==========================================
 
 /**
- * Create new template
- * @param {Object} templateData - Template data
- * @param {string} createdBy - User ID who created the template
- * @returns {Promise<Object>} Created template
+ * Create template (clear cache after)
  */
 exports.createTemplate = async (templateData, createdBy) => {
   const template = await Template.create({
@@ -152,14 +182,14 @@ exports.createTemplate = async (templateData, createdBy) => {
     createdBy,
   });
 
+  // Clear templates list cache
+  await cacheHelper.clearTemplatesListCache();
+
   return template;
 };
 
 /**
- * Update template (with whitelist approach)
- * @param {string} id - Template ID
- * @param {Object} updateData - Data to update
- * @returns {Promise<Object>} Updated template
+ * Update template (clear cache after)
  */
 exports.updateTemplate = async (id, updateData) => {
   validateObjectId(id);
@@ -191,13 +221,15 @@ exports.updateTemplate = async (id, updateData) => {
 
   await template.save();
 
+  // Clear cache for this template
+  await cacheHelper.clearTemplateCache(id);
+  await cacheHelper.clearTemplatesListCache();
+
   return template;
 };
 
 /**
- * Delete template (soft delete - set isActive: false)
- * @param {string} id - Template ID
- * @returns {Promise<void>}
+ * Delete template (clear cache after)
  */
 exports.deleteTemplate = async (id) => {
   validateObjectId(id);
@@ -211,14 +243,14 @@ exports.deleteTemplate = async (id) => {
   // Soft delete
   template.isActive = false;
   await template.save();
+
+  // Clear cache
+  await cacheHelper.clearTemplateCache(id);
+  await cacheHelper.clearTemplatesListCache();
 };
 
 /**
- * Duplicate existing template
- * @param {string} id - Template ID to duplicate
- * @param {string} description - Optional new description
- * @param {string} createdBy - User ID who duplicated the template
- * @returns {Promise<Object>} Duplicated template
+ * Duplicate template (clear cache after)
  */
 exports.duplicateTemplate = async (id, description, createdBy) => {
   validateObjectId(id);
@@ -242,6 +274,9 @@ exports.duplicateTemplate = async (id, description, createdBy) => {
     rating: 0,
     createdBy,
   });
+
+  // Clear templates list cache
+  await cacheHelper.clearTemplatesListCache();
 
   return duplicatedTemplate;
 };
