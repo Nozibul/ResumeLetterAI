@@ -20,7 +20,7 @@ export default function ReviewSection(props) {
     console.error('ReviewSection Error:', error);
     return (
       <section
-        className="py-20 bg-gray-50 text-center"
+        className="bg-gray-50 text-center"
         data-testid="section-reviews-error"
       >
         <div className="max-w-md mx-auto">

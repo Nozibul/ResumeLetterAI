@@ -66,7 +66,7 @@ const UserSuccessSection = ({
   return (
     <div className="min-h-screen">
       <section
-        className={` py-20 px-4 overflow-hidden ${className}`}
+        className={`py-16 px-4 overflow-hidden ${className}`}
         role="region"
         aria-label="User success stories"
       >

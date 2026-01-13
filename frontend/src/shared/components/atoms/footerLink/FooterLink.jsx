@@ -13,7 +13,7 @@ import PropTypes from 'prop-types';
 const FooterLink = React.memo(({ href, children, testId, className = '' }) => (
   <Link
     href={href}
-    className={`block text-slate-300 hover:text-blue-400 text-sm transition-all duration-200 hover:translate-x-1 focus:outline-none focus:text-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 rounded-sm ${className}`}
+    className={`block text-slate-300 hover:text-teal-500 text-sm transition-all duration-200 hover:translate-x-1 focus:outline-none focus:text-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 rounded-sm ${className}`}
     data-testid={testId}
   >
     {children}

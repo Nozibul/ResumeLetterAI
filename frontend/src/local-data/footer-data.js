@@ -17,11 +17,10 @@ export const FOOTER_LINKS = {
   ],
   company: [
     { label: 'About Us', href: '/about' },
+    { label: 'Blog', href: '/blog' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Contact', href: '/contact' },
     { label: 'Help Center', href: '/help' },
-    { label: 'Blog', href: '/blog' },
-    { label: 'Careers', href: '/careers' },
   ],
   legal: [
     { label: 'Privacy Policy', href: '/privacy-policy' },

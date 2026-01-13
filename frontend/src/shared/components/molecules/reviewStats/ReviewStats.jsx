@@ -9,7 +9,7 @@ export const ReviewStats = () => {
   ];
 
   return (
-    <section className="py-12">
+    <section>
       {/* Header */}
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-blue-100 px-4 py-2 rounded-full mb-4">

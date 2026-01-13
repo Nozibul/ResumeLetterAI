@@ -41,11 +41,10 @@ const persistConfig = {
     'auth',             // Authentication state (user, token)
     'resume',           // User's resume data (CRITICAL)
     'coverLetter',      // Cover letter data (CRITICAL)
-    'template',         // Selected templates & preferences
     'userPreferences',  // Theme, language, settings
   ],
 
-  blacklist: ['ui', 'export', 'notifications', 'api', 'cache'],
+  blacklist: ['ui', 'export', 'notifications', 'template', 'api', 'cache'],
 
   // Transforms - Modify data before/after persistence
   transforms: [excludeSensitiveDataTransform],

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-
+import { usePathname } from 'next/navigation';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -41,7 +41,12 @@ const components = [
 
 export function Navigation() {
   const isAuthenticated = useIsAuthenticated();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Check if current route is dashboard
+  const isDashboardRoute = pathname === '/dashboard';
+
   return (
     <nav className="sticky top-0 z-50 w-full bg-white shadow-md">
       <div className="mx-auto">
@@ -132,13 +137,15 @@ export function Navigation() {
         {/* Desktop Auth Button */}
           {
             isAuthenticated ? (
-              <div className="hidden md:block">
-                <Link href="/dashboard">
-                  <Button variant="primary" size="loging_md">
-                   Dashboard
-                  </Button>
-                </Link>
-              </div>
+              !isDashboardRoute && (
+                <div className="hidden md:block">
+                  <Link href="/dashboard">
+                    <Button variant="primary" size="loging_md">
+                    Dashboard
+                    </Button>
+                  </Link>
+                </div>
+              )
             ) : (
               <div className="hidden md:block">
                 <Link href="/login">
