@@ -4,14 +4,20 @@
  * @module config/cacheHelper
  */
 
-const { getCache, setCache, deleteCache, clearCacheByPattern } = require('./redis');
+const {
+  getCache,
+  setCache,
+  deleteCache,
+  clearCacheByPattern,
+} = require('./redis');
 const { logger } = require('../utils/logger');
 
 // ==========================================
 // CACHE KEY PATTERNS
 // ==========================================
 const CACHE_KEYS = {
-  ALL_TEMPLATES: (category) => category ? `templates:all:${category}` : 'templates:all',
+  ALL_TEMPLATES: (category) =>
+    category ? `templates:all:${category}` : 'templates:all',
   TEMPLATE_BY_ID: (id) => `templates:id:${id}`,
   CATEGORY_STATS: 'templates:stats:categories',
   TEMPLATE_PREVIEW: (id) => `templates:preview:${id}`,
@@ -21,10 +27,10 @@ const CACHE_KEYS = {
 // TTL CONFIGURATION (in seconds)
 // ==========================================
 const CACHE_TTL = {
-  TEMPLATES_LIST: 200,      // 5 minutes
-  SINGLE_TEMPLATE: 600,     // 10 minutes
-  CATEGORY_STATS: 86400,    // 24 hours
-  TEMPLATE_PREVIEW: 600,    // 10 minutes
+  TEMPLATES_LIST: 200, // 3+ minutes
+  SINGLE_TEMPLATE: 200, // 5 minutes
+  CATEGORY_STATS: 200, // 3+ minutes
+  TEMPLATE_PREVIEW: 200, // 5 minutes
 };
 
 // ==========================================
@@ -88,7 +94,11 @@ exports.getCachedCategoryStats = async () => {
   try {
     return await getCache(CACHE_KEYS.CATEGORY_STATS);
   } catch (error) {
-    logger.error({ type: 'cache_get_error', key: 'category_stats', error: error.message });
+    logger.error({
+      type: 'cache_get_error',
+      key: 'category_stats',
+      error: error.message,
+    });
     return null;
   }
 };
@@ -100,7 +110,11 @@ exports.setCachedCategoryStats = async (stats) => {
   try {
     await setCache(CACHE_KEYS.CATEGORY_STATS, stats, CACHE_TTL.CATEGORY_STATS);
   } catch (error) {
-    logger.error({ type: 'cache_set_error', key: 'category_stats', error: error.message });
+    logger.error({
+      type: 'cache_set_error',
+      key: 'category_stats',
+      error: error.message,
+    });
   }
 };
 
@@ -154,7 +168,11 @@ exports.clearTemplateCache = async (id) => {
     await deleteCache(CACHE_KEYS.TEMPLATE_PREVIEW(id));
     logger.info({ type: 'cache_cleared', templateId: id });
   } catch (error) {
-    logger.error({ type: 'cache_clear_error', templateId: id, error: error.message });
+    logger.error({
+      type: 'cache_clear_error',
+      templateId: id,
+      error: error.message,
+    });
   }
 };
 

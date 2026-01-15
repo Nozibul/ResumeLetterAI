@@ -264,12 +264,14 @@ exports.duplicateTemplate = async (id, description, createdBy) => {
   }
 
   // Remove _id and metadata from original
-  const { _id, createdAt, updatedAt, usageCount, rating, ...templateData } = originalTemplate;
+  const { _id, createdAt, updatedAt, usageCount, rating, ...templateData } =
+    originalTemplate;
 
   // Create duplicate with reset metrics
   const duplicatedTemplate = await Template.create({
     ...templateData,
-    description: description || `${templateData.description || 'Template'} (Copy)`,
+    description:
+      description || `${templateData.description || 'Template'} (Copy)`,
     usageCount: 0,
     rating: 0,
     createdBy,
