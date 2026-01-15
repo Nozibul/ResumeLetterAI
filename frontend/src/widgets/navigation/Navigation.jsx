@@ -20,25 +20,6 @@ import Image from 'next/image';
 import { COMPANY_INFO } from '@/local-data/footer-data';
 import { useIsAuthenticated } from '@/shared/store/hooks/useAuth';
 
-
-const components = [
-  {
-    title: 'Alert Dialog',
-    href: '#',
-    description: 'A modal dialog that interrupts the user.',
-  },
-  {
-    title: 'Hover Card',
-    href: '#',
-    description: 'Preview content available behind a link.',
-  },
-  {
-    title: 'Progress',
-    href: '#',
-    description: 'Show progress of a task with a bar.',
-  },
-];
-
 export function Navigation() {
   const isAuthenticated = useIsAuthenticated();
   const pathname = usePathname();
@@ -111,51 +92,39 @@ export function Navigation() {
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
-                {/* Career Craft Dropdown */}
+                {/* Consultant */}
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-sm">
-                    Career Craft
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="z-50 bg-white shadow-lg border-none rounded-md p-2">
-                    <ul className="w-[300px]">
-                      {components.map((component) => (
-                        <ListItem
-                          key={component.title}
-                          title={component.title}
-                          href={component.href}
-                        >
-                          {component.description}
-                        </ListItem>
-                      ))}
-                    </ul>
-                  </NavigationMenuContent>
+                  <NavigationMenuLink
+                    asChild
+                    className={clsx(navigationMenuTriggerStyle(), 'text-sm')}
+                  >
+                    <Link href="/contact">Contact</Link>
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>
 
-        {/* Desktop Auth Button */}
-          {
-            isAuthenticated ? (
-              !isDashboardRoute && (
-                <div className="hidden md:block">
-                  <Link href="/dashboard">
-                    <Button variant="primary" size="loging_md">
-                    Dashboard
-                    </Button>
-                  </Link>
-                </div>
-              )
-            ) : (
+          {/* Desktop Auth Button */}
+          {isAuthenticated ? (
+            !isDashboardRoute && (
               <div className="hidden md:block">
-                <Link href="/login">
+                <Link href="/dashboard">
                   <Button variant="primary" size="loging_md">
-                    SIGN IN 
+                    Dashboard
                   </Button>
                 </Link>
               </div>
             )
-          }
+          ) : (
+            <div className="hidden md:block">
+              <Link href="/login">
+                <Button variant="primary" size="loging_md">
+                  SIGN IN
+                </Button>
+              </Link>
+            </div>
+          )}
 
           {/* Mobile menu button */}
           <div className="md:hidden">

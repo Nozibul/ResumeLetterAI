@@ -15,7 +15,10 @@ import Typography from '@/shared/components/atoms/typography/Typography';
 import ResumeCategoryCard from '@/shared/components/molecules/resumeCategoryCard/ResumeCategoryCard';
 // import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 import { useAppDispatch } from '@/shared/store/hooks/useTemplates';
-import { useCategoryStats, useTemplateLoading } from '@/shared/store/hooks/useTemplates';
+import {
+  useCategoryStats,
+  useTemplateLoading,
+} from '@/shared/store/hooks/useTemplates';
 import { fetchCategoryStats } from '@/shared/store/actions/templateActions';
 
 // Category metadata (static info)
@@ -29,16 +32,21 @@ const CATEGORY_METADATA = {
     color: 'from-blue-500 to-blue-600',
     icon: '📋',
   },
-  'corporate': {
+  corporate: {
     id: 2,
     category: 'corporate',
     displayName: 'Corporate Resume',
     description: 'Perfect for corporate and business roles',
-    features: ['Professional', 'Business-Focused', 'Executive Style', 'Elegant'],
+    features: [
+      'Professional',
+      'Business-Focused',
+      'Executive Style',
+      'Elegant',
+    ],
     color: 'from-red-500 to-red-600',
     icon: '💼',
   },
-  'executive': {
+  executive: {
     id: 3,
     category: 'executive',
     displayName: 'Executive Resume',
@@ -47,7 +55,7 @@ const CATEGORY_METADATA = {
     color: 'from-green-500 to-green-600',
     icon: '👔',
   },
-  'creative': {
+  creative: {
     id: 4,
     category: 'creative',
     displayName: 'Creative Resume',
@@ -56,12 +64,17 @@ const CATEGORY_METADATA = {
     color: 'from-orange-500 to-orange-600',
     icon: '🎨',
   },
-  'it': {
+  it: {
     id: 5,
     category: 'it',
     displayName: 'IT Resume',
     description: 'Tailored for tech professionals',
-    features: ['Tech-Focused', 'Skills Highlight', 'Project Showcase', 'GitHub Ready'],
+    features: [
+      'Tech-Focused',
+      'Skills Highlight',
+      'Project Showcase',
+      'GitHub Ready',
+    ],
     color: 'from-purple-500 to-purple-600',
     icon: '💻',
   },
@@ -79,10 +92,12 @@ const CategoryCard = () => {
   }, [dispatch]);
 
   // Merge metadata with stats
-  const categories = Object.entries(CATEGORY_METADATA).map(([key, metadata]) => ({
-    ...metadata,
-    count: categoryStats[key] || 0,
-  }));
+  const categories = Object.entries(CATEGORY_METADATA).map(
+    ([key, metadata]) => ({
+      ...metadata,
+      count: categoryStats[key] || 0,
+    })
+  );
 
   // Get hovered category details
   const hoveredCategory = categories.find((cat) => cat.id === hoveredTemplate);
@@ -95,7 +110,8 @@ const CategoryCard = () => {
           Choose Your Preferred Template Category
         </Typography>
         <Typography variant="body" className="text-gray-500">
-          Select from our professionally designed templates to create a resume that stands out
+          Select from our professionally designed templates to create a resume
+          that stands out
         </Typography>
       </div>
 
@@ -118,7 +134,7 @@ const CategoryCard = () => {
         <>
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-wrap justify-center gap-6">
-              {categories.map((category, index) => (
+              {categories?.map((category, index) => (
                 <Link
                   key={category.id}
                   href={{
@@ -164,7 +180,7 @@ const CategoryCard = () => {
                     >
                       {hoveredCategory.displayName}
                       <span className="ml-2 text-teal-600 font-semibold">
-                        ({hoveredCategory.count} templates)
+                        ({hoveredCategory?.count ?? 0} templates)
                       </span>
                     </Typography>
                     <div className="flex flex-wrap items-center justify-center gap-2 min-w-[500px] max-w-[600px] mx-auto">
