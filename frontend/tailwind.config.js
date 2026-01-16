@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 const { fontFamily } = require('tailwindcss/defaultTheme');
+
 module.exports = {
   content: [
     './src/**/*.{js,jsx,ts,tsx}',
@@ -22,6 +23,7 @@ module.exports = {
         'pulse-glow': 'pulseGlow 5s infinite',
         shimmer: 'shimmer 2s infinite linear',
         blob: 'blob 7s infinite',
+        'modal-enter': 'modalEnter 0.2s ease-out',
       },
       keyframes: {
         fadeInUp: {
@@ -59,6 +61,11 @@ module.exports = {
           '0%, 100%': { transform: 'translate(0,0) scale(1)' },
           '33%': { transform: 'translate(30px,-50px) scale(1.1)' },
           '66%': { transform: 'translate(-20px,20px) scale(0.9)' },
+        },
+        modalEnter: {
+          // ✅ Keyframes এ definition থাকবে
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
     },
