@@ -31,7 +31,7 @@ const TemplateCard = ({ template }) => {
   return (
     <>
       <div
-        className="relative w-64 h-[360px] group cursor-pointer mb-8"
+        className="relative w-[295px] h-[460px] group cursor-pointer mb-10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
