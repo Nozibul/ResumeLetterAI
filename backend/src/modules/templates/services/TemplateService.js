@@ -1,5 +1,9 @@
 /**
- * @file TemplateService.js (Updated with Redis Cache)
+ * @file TemplateService.js
+ * @description Template service with Redis cache and IT/ATS support
+ * @module modules/template/services/TemplateService
+ * @author Nozibul Islam
+ * @version 2.0.0
  */
 
 const mongoose = require('mongoose');
@@ -28,6 +32,8 @@ const validateObjectId = (id) => {
 
 /**
  * Get all templates (with Redis cache)
+ * @param {string} category - Optional category filter
+ * @returns {Promise<Array>} Templates list
  */
 exports.getAllTemplates = async (category) => {
   // Try cache first
@@ -56,6 +62,7 @@ exports.getAllTemplates = async (category) => {
 
 /**
  * Get category stats (with Redis cache)
+ * @returns {Promise<Object>} Category statistics
  */
 exports.getCategoryStats = async () => {
   // Try cache first
@@ -82,7 +89,7 @@ exports.getCategoryStats = async () => {
     },
   ]);
 
-  // Transform to object format: { "corporate": 5, "ats-friendly": 3, ... }
+  // Transform to object format: { "corporate": 5, "it": 3, ... }
   const result = stats.reduce((acc, item) => {
     acc[item.category] = item.count;
     return acc;
@@ -95,7 +102,9 @@ exports.getCategoryStats = async () => {
 };
 
 /**
- * Get template by ID (with Redis cache)
+ * Get template by ID (with Redis cache and applied defaults)
+ * @param {string} id - Template ID
+ * @returns {Promise<Object>} Template with defaults applied
  */
 exports.getTemplateById = async (id) => {
   validateObjectId(id);
@@ -123,6 +132,8 @@ exports.getTemplateById = async (id) => {
 
 /**
  * Get template preview (with Redis cache)
+ * @param {string} id - Template ID
+ * @returns {Promise<Object>} Preview data with sample content
  */
 exports.getTemplatePreview = async (id) => {
   validateObjectId(id);
@@ -135,31 +146,56 @@ exports.getTemplatePreview = async (id) => {
 
   // If not in cache, fetch from DB
   const template = await Template.findOne({ _id: id, isActive: true })
-    .select('previewUrl thumbnailUrl category')
+    .select('previewUrl thumbnailUrl category settings')
     .lean();
 
   if (!template) {
     throw new AppError('Template not found', 404);
   }
 
-  // Sample data for preview
-  const sampleData = {
-    header: {
-      fullName: 'ANNA COEHLO',
-      position: 'UI/UX Designer',
-      email: 'anna.coehlo@example.com',
-      phone: '+1 234 567 8900',
-      location: 'New York, USA',
-    },
-    profile: {
-      summary: 'Passionate UI/UX designer with 5+ years of experience.',
-    },
-  };
+  // Sample data based on category
+  const isITTemplate =
+    template.category === 'it' || template.category === 'ats-friendly';
+
+  const sampleData = isITTemplate
+    ? {
+        header: {
+          fullName: 'MD. NOZIBUL ISLAM',
+          position: 'Full-Stack Developer',
+          email: 'developer@example.com',
+          phone: '+8801234567890',
+          location: 'Dhaka, Bangladesh',
+          linkedin: 'linkedin.com/in/developer',
+          github: 'github.com/developer',
+          portfolio: 'portfolio.dev',
+        },
+        summary: {
+          text: 'Software Engineer with 3+ years of experience in designing, developing, and deploying scalable full-stack web applications.',
+        },
+        skills: {
+          programmingLanguages: ['JavaScript', 'TypeScript', 'Python'],
+          frontend: ['React.js', 'Next.js', 'Tailwind CSS'],
+          backend: ['Node.js', 'Express.js', 'MongoDB'],
+        },
+      }
+    : {
+        header: {
+          fullName: 'ANNA COEHLO',
+          position: 'UI/UX Designer',
+          email: 'anna.coehlo@example.com',
+          phone: '+1 234 567 8900',
+          location: 'New York, USA',
+        },
+        profile: {
+          summary: 'Passionate UI/UX designer with 5+ years of experience.',
+        },
+      };
 
   const preview = {
     previewUrl: template.previewUrl,
     thumbnailUrl: template.thumbnailUrl,
     category: template.category,
+    settings: template.settings || null,
     sampleData,
   };
 
@@ -169,12 +205,38 @@ exports.getTemplatePreview = async (id) => {
   return preview;
 };
 
+/**
+ * Get IT/ATS templates only
+ * @param {number} limit - Optional limit
+ * @returns {Promise<Array>} IT/ATS templates
+ */
+exports.getITTemplates = async (limit = 0) => {
+  const cacheKey = `it_templates_${limit}`;
+
+  // Try cache first
+  const cached = await cacheHelper.get(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  // Fetch from DB
+  const templates = await Template.getITTemplates(limit);
+
+  // Store in cache (30 minutes)
+  await cacheHelper.set(cacheKey, JSON.stringify(templates), 1800);
+
+  return templates;
+};
+
 // ==========================================
 // PROTECTED SERVICES (WITH CACHE INVALIDATION)
 // ==========================================
 
 /**
  * Create template (clear cache after)
+ * @param {Object} templateData - Template data
+ * @param {string} createdBy - User ID
+ * @returns {Promise<Object>} Created template
  */
 exports.createTemplate = async (templateData, createdBy) => {
   const template = await Template.create({
@@ -190,6 +252,9 @@ exports.createTemplate = async (templateData, createdBy) => {
 
 /**
  * Update template (clear cache after)
+ * @param {string} id - Template ID
+ * @param {Object} updateData - Update data
+ * @returns {Promise<Object>} Updated template
  */
 exports.updateTemplate = async (id, updateData) => {
   validateObjectId(id);
@@ -209,6 +274,7 @@ exports.updateTemplate = async (id, updateData) => {
     'tags',
     'isPremium',
     'structure',
+    'settings',
     'isActive',
   ];
 
@@ -229,7 +295,8 @@ exports.updateTemplate = async (id, updateData) => {
 };
 
 /**
- * Delete template (clear cache after)
+ * Soft Delete template (clear cache after)
+ * @param {string} id - Template ID
  */
 exports.deleteTemplate = async (id) => {
   validateObjectId(id);
@@ -251,6 +318,10 @@ exports.deleteTemplate = async (id) => {
 
 /**
  * Duplicate template (clear cache after)
+ * @param {string} id - Template ID
+ * @param {string} description - New description
+ * @param {string} createdBy - User ID
+ * @returns {Promise<Object>} Duplicated template
  */
 exports.duplicateTemplate = async (id, description, createdBy) => {
   validateObjectId(id);

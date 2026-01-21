@@ -7,7 +7,6 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:templates": "node src/database/seeders/templateSeeder.js",
     "test": "jest --watchAll --verbose",
     "test:coverage": "jest --coverage",
     "build": "echo 'Backend build completed'",

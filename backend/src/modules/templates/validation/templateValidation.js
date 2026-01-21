@@ -1,9 +1,9 @@
 /**
  * @file templateValidation.js
- * @description Validation schemas for template operations
+ * @description Validation schemas for template operations with IT/ATS support
  * @module modules/template/validation/templateValidation
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 const { z } = require('zod');
@@ -20,30 +20,44 @@ const objectIdSchema = z
   .regex(/^[0-9a-fA-F]{24}$/, 'Invalid template ID format');
 
 /**
- * Category enum
+ * Category enum (added 'it')
  */
-const categoryEnum = z.enum(['ats-friendly', 'corporate', 'executive', 'creative', 'it'], {
-  errorMap: () => ({ message: 'Invalid category' }),
-});
+const categoryEnum = z.enum(
+  ['ats-friendly', 'corporate', 'executive', 'creative', 'it'],
+  {
+    errorMap: () => ({ message: 'Invalid category' }),
+  }
+);
 
 /**
- * Field type enum
+ * Field type enum (added 'tags')
  */
-const fieldTypeEnum = z.enum(['text', 'email', 'url', 'phone', 'textarea', 'date', 'array']);
+const fieldTypeEnum = z.enum([
+  'text',
+  'email',
+  'url',
+  'phone',
+  'textarea',
+  'date',
+  'array',
+  'tags',
+]);
 
 /**
- * Section ID enum
+ * Section ID enum (added IT-specific sections)
  */
 const sectionIdEnum = z.enum([
   'header',
-  'profile',
+  'summary',
   'experience',
+  'projects',
   'skills',
   'education',
-  'projects',
+  'certifications',
+  'competitiveProgramming',
   'achievements',
+  'languages',
   'references',
-  'technologies',
 ]);
 
 /**
@@ -75,6 +89,51 @@ const sectionSchema = z.object({
       { message: 'Field names must be unique within a section' }
     ),
 });
+
+/**
+ * Template settings schema (for IT/ATS templates)
+ */
+const templateSettingsSchema = z
+  .object({
+    locked: z
+      .object({
+        colorScheme: z.boolean().optional(),
+        layoutColumns: z.boolean().optional(),
+        fontFamily: z.boolean().optional(),
+        graphics: z.boolean().optional(),
+      })
+      .optional(),
+
+    defaults: z
+      .object({
+        colorScheme: z
+          .string()
+          .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format')
+          .optional(),
+        layoutColumns: z.number().int().min(1).max(2).optional(),
+        fontFamily: z.string().trim().optional(),
+        namePosition: z.enum(['left', 'center', 'right']).optional(),
+        nameCase: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
+        photoEnabled: z.boolean().optional(),
+        linkedinEnabled: z.boolean().optional(),
+        githubEnabled: z.boolean().optional(),
+        portfolioEnabled: z.boolean().optional(),
+        leetcodeEnabled: z.boolean().optional(),
+      })
+      .optional(),
+
+    customizable: z
+      .object({
+        namePosition: z.boolean().optional(),
+        nameCase: z.boolean().optional(),
+        sectionOrder: z.boolean().optional(),
+        sectionVisibility: z.boolean().optional(),
+        sectionTitles: z.boolean().optional(),
+        photoEnabled: z.boolean().optional(),
+      })
+      .optional(),
+  })
+  .optional();
 
 /**
  * Template structure schema
@@ -129,16 +188,26 @@ exports.getTemplateByIdSchema = z.object({
 exports.createTemplateSchema = z.object({
   body: z.object({
     category: categoryEnum,
-    description: z.string().max(500, 'Description cannot exceed 500 characters').trim().optional(),
+    description: z
+      .string()
+      .max(500, 'Description cannot exceed 500 characters')
+      .trim()
+      .optional(),
     previewUrl: z
       .string()
       .url('Preview URL must be a valid URL')
-      .regex(/^https?:\/\/.+/, 'Preview URL must start with http:// or https://')
+      .regex(
+        /^https?:\/\/.+/,
+        'Preview URL must start with http:// or https://'
+      )
       .trim(),
     thumbnailUrl: z
       .string()
       .url('Thumbnail URL must be a valid URL')
-      .regex(/^https?:\/\/.+/, 'Thumbnail URL must start with http:// or https://')
+      .regex(
+        /^https?:\/\/.+/,
+        'Thumbnail URL must start with http:// or https://'
+      )
       .trim(),
     tags: z
       .array(z.string().trim().toLowerCase())
@@ -147,6 +216,7 @@ exports.createTemplateSchema = z.object({
       .default([]),
     isPremium: z.boolean().optional().default(false),
     structure: structureSchema,
+    settings: templateSettingsSchema, // Added settings validation
   }),
 });
 
@@ -168,13 +238,19 @@ exports.updateTemplateSchema = z.object({
       previewUrl: z
         .string()
         .url('Preview URL must be a valid URL')
-        .regex(/^https?:\/\/.+/, 'Preview URL must start with http:// or https://')
+        .regex(
+          /^https?:\/\/.+/,
+          'Preview URL must start with http:// or https://'
+        )
         .trim()
         .optional(),
       thumbnailUrl: z
         .string()
         .url('Thumbnail URL must be a valid URL')
-        .regex(/^https?:\/\/.+/, 'Thumbnail URL must start with http:// or https://')
+        .regex(
+          /^https?:\/\/.+/,
+          'Thumbnail URL must start with http:// or https://'
+        )
         .trim()
         .optional(),
       tags: z
@@ -183,6 +259,7 @@ exports.updateTemplateSchema = z.object({
         .optional(),
       isPremium: z.boolean().optional(),
       structure: structureSchema.optional(),
+      settings: templateSettingsSchema, // Added settings validation
       isActive: z.boolean().optional(),
     })
     .strict()

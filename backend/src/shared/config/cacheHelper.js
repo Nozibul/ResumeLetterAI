@@ -27,10 +27,10 @@ const CACHE_KEYS = {
 // TTL CONFIGURATION (in seconds)
 // ==========================================
 const CACHE_TTL = {
-  TEMPLATES_LIST: 200, // 3+ minutes
-  SINGLE_TEMPLATE: 200, // 5 minutes
-  CATEGORY_STATS: 200, // 3+ minutes
-  TEMPLATE_PREVIEW: 200, // 5 minutes
+  TEMPLATES_LIST: 150, // 3+ minutes
+  SINGLE_TEMPLATE: 150, // 5 minutes
+  CATEGORY_STATS: 150, // 3+ minutes
+  TEMPLATE_PREVIEW: 150, // 5 minutes
 };
 
 // ==========================================

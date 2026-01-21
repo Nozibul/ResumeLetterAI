@@ -572,7 +572,7 @@ paths:
                         properties:
                           sectionId:
                             type: string
-                            enum: [header, profile, experience, skills, education, projects, achievements, references, technologies]
+                            enum: [header, profile, experience, skills, education, projects, achievements, references]
                           sectionName:
                             type: string
                             example: "Professional Experience"
@@ -684,7 +684,7 @@ paths:
                             fieldType: "text"
                           - fieldName: "description"
                             fieldType: "textarea"
-                          - fieldName: "technologies"
+                          # - fieldName: "technologies"
                             fieldType: "array"
                           - fieldName: "projectUrl"
                             fieldType: "url"
@@ -714,7 +714,7 @@ paths:
                             fieldType: "email"
                           - fieldName: "phone"
                             fieldType: "phone"
-                      - sectionId: "technologies"
+                      # - sectionId: "technologies"
                         sectionName: "Technologies"
                         isRequired: false
                         order: 9
