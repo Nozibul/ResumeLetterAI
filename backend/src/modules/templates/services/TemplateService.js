@@ -295,6 +295,65 @@ exports.updateTemplate = async (id, updateData) => {
 };
 
 /**
+ * Get all soft-deleted templates
+ * @returns {Promise<Array>} Soft-deleted templates
+ */
+exports.getSoftDeletedTemplates = async () => {
+  const templates = await Template.find({ isActive: false })
+    .select('-structure -__v')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  return templates;
+};
+
+/**
+ * Restore soft-deleted template
+ * @param {string} id - Template ID
+ * @returns {Promise<Object>} Restored template
+ */
+exports.restoreTemplate = async (id) => {
+  validateObjectId(id);
+
+  const template = await Template.findOne({ _id: id, isActive: false });
+
+  if (!template) {
+    throw new AppError('Template not found or already active', 404);
+  }
+
+  // Restore template
+  template.isActive = true;
+  await template.save();
+
+  // Clear cache
+  await cacheHelper.clearTemplateCache(id);
+  await cacheHelper.clearTemplatesListCache();
+
+  return template;
+};
+
+/**
+ * Permanently delete template from database
+ * @param {string} id - Template ID
+ */
+exports.permanentDeleteTemplate = async (id) => {
+  validateObjectId(id);
+
+  const template = await Template.findById(id);
+
+  if (!template) {
+    throw new AppError('Template not found', 404);
+  }
+
+  // Hard delete from database
+  await Template.findByIdAndDelete(id);
+
+  // Clear cache
+  await cacheHelper.clearTemplateCache(id);
+  await cacheHelper.clearTemplatesListCache();
+};
+
+/**
  * Soft Delete template (clear cache after)
  * @param {string} id - Template ID
  */

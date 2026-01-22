@@ -10,36 +10,19 @@ const catchAsync = require('../../../shared/utils/catchAsync');
 const resumeService = require('../services/ResumeService');
 
 // ==========================================
-// RESUME CRUD OPERATIONS
+// PUBLIC ENDPOINTS
 // ==========================================
 
 /**
- * @desc    Create new resume
- * @route   POST /api/v1/resumes
- * @access  Private
- */
-exports.createResume = catchAsync(async (req, res) => {
-  const userId = req.user._id; // From protect middleware
-  const resumeData = req.body;
-
-  const resume = await resumeService.createResume(userId, resumeData);
-
-  res.status(201).json({
-    success: true,
-    message: 'Resume created successfully',
-    data: { resume },
-  });
-});
-
-/**
- * @desc    Get all resumes of logged-in user
+ * @desc    Get all user's resumes
  * @route   GET /api/v1/resumes
- * @access  Private
+ * @access  Private (Authenticated user)
  */
-exports.getAllResumes = catchAsync(async (req, res) => {
+exports.getUserResumes = catchAsync(async (req, res) => {
   const userId = req.user._id;
+  const { limit, sort } = req.query;
 
-  const resumes = await resumeService.getAllResumes(userId);
+  const resumes = await resumeService.getUserResumes(userId, { limit, sort });
 
   res.status(200).json({
     success: true,
@@ -51,47 +34,9 @@ exports.getAllResumes = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Get all draft resumes (incomplete)
- * @route   GET /api/v1/resumes/drafts
- * @access  Private
- */
-exports.getDraftResumes = catchAsync(async (req, res) => {
-  const userId = req.user._id;
-
-  const drafts = await resumeService.getDraftResumes(userId);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      resumes: drafts,
-      total: drafts.length,
-    },
-  });
-});
-
-/**
- * @desc    Get all completed resumes
- * @route   GET /api/v1/resumes/completed
- * @access  Private
- */
-exports.getCompletedResumes = catchAsync(async (req, res) => {
-  const userId = req.user._id;
-
-  const completed = await resumeService.getCompletedResumes(userId);
-
-  res.status(200).json({
-    success: true,
-    data: {
-      resumes: completed,
-      total: completed.length,
-    },
-  });
-});
-
-/**
  * @desc    Get single resume by ID
  * @route   GET /api/v1/resumes/:id
- * @access  Private
+ * @access  Private (Resume owner)
  */
 exports.getResumeById = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -106,16 +51,34 @@ exports.getResumeById = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Update resume content
+ * @desc    Create new resume
+ * @route   POST /api/v1/resumes
+ * @access  Private (Authenticated user)
+ */
+exports.createResume = catchAsync(async (req, res) => {
+  const resumeData = req.body;
+  const userId = req.user._id;
+
+  const resume = await resumeService.createResume(resumeData, userId);
+
+  res.status(201).json({
+    success: true,
+    message: 'Resume created successfully',
+    data: { resume },
+  });
+});
+
+/**
+ * @desc    Update resume
  * @route   PATCH /api/v1/resumes/:id
- * @access  Private
+ * @access  Private (Resume owner)
  */
 exports.updateResume = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user._id;
   const updateData = req.body;
+  const userId = req.user._id;
 
-  const resume = await resumeService.updateResume(id, userId, updateData);
+  const resume = await resumeService.updateResume(id, updateData, userId);
 
   res.status(200).json({
     success: true,
@@ -125,28 +88,9 @@ exports.updateResume = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Update resume title only
- * @route   PATCH /api/v1/resumes/:id/title
- * @access  Private
- */
-exports.updateResumeTitle = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user._id;
-  const { resumeTitle } = req.body;
-
-  const resume = await resumeService.updateResumeTitle(id, userId, resumeTitle);
-
-  res.status(200).json({
-    success: true,
-    message: 'Resume title updated successfully',
-    data: { resume },
-  });
-});
-
-/**
- * @desc    Delete resume
+ * @desc    Delete resume (soft delete)
  * @route   DELETE /api/v1/resumes/:id
- * @access  Private
+ * @access  Private (Resume owner)
  */
 exports.deleteResume = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -162,15 +106,16 @@ exports.deleteResume = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Duplicate existing resume
+ * @desc    Duplicate resume
  * @route   POST /api/v1/resumes/:id/duplicate
- * @access  Private
+ * @access  Private (Resume owner)
  */
 exports.duplicateResume = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const { title } = req.body;
   const userId = req.user._id;
 
-  const resume = await resumeService.duplicateResume(id, userId);
+  const resume = await resumeService.duplicateResume(id, title, userId);
 
   res.status(201).json({
     success: true,
@@ -180,38 +125,82 @@ exports.duplicateResume = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Toggle resume public/private
- * @route   PATCH /api/v1/resumes/:id/visibility
- * @access  Private
+ * @desc    Update section order
+ * @route   PATCH /api/v1/resumes/:id/section-order
+ * @access  Private (Resume owner)
  */
-exports.toggleVisibility = catchAsync(async (req, res) => {
+exports.updateSectionOrder = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const { sectionOrder } = req.body;
   const userId = req.user._id;
-  const { isPublic } = req.body;
 
-  const resume = await resumeService.toggleVisibility(id, userId, isPublic);
+  const resume = await resumeService.updateSectionOrder(
+    id,
+    sectionOrder,
+    userId
+  );
 
   res.status(200).json({
     success: true,
-    message: `Resume is now ${isPublic ? 'public' : 'private'}`,
+    message: 'Section order updated successfully',
     data: { resume },
   });
 });
 
 /**
- * @desc    Track resume download
- * @route   POST /api/v1/resumes/:id/download
- * @access  Private
+ * @desc    Update section visibility
+ * @route   PATCH /api/v1/resumes/:id/section-visibility
+ * @access  Private (Resume owner)
  */
-exports.trackDownload = catchAsync(async (req, res) => {
+exports.updateSectionVisibility = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const { sectionVisibility } = req.body;
   const userId = req.user._id;
 
-  await resumeService.trackDownload(id, userId);
+  const resume = await resumeService.updateSectionVisibility(
+    id,
+    sectionVisibility,
+    userId
+  );
 
   res.status(200).json({
     success: true,
-    message: 'Download tracked successfully',
-    data: null,
+    message: 'Section visibility updated successfully',
+    data: { resume },
+  });
+});
+
+/**
+ * @desc    Get resume statistics
+ * @route   GET /api/v1/resumes/stats
+ * @access  Private (Authenticated user)
+ */
+exports.getResumeStats = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+
+  const stats = await resumeService.getResumeStats(userId);
+
+  res.status(200).json({
+    success: true,
+    data: { stats },
+  });
+});
+
+/**
+ * @desc    Switch resume template
+ * @route   PATCH /api/v1/resumes/:id/switch-template
+ * @access  Private (Resume owner)
+ */
+exports.switchTemplate = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { templateId } = req.body;
+  const userId = req.user._id;
+
+  const resume = await resumeService.switchTemplate(id, templateId, userId);
+
+  res.status(200).json({
+    success: true,
+    message: 'Template switched successfully',
+    data: { resume },
   });
 });

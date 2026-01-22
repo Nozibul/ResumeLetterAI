@@ -145,6 +145,57 @@ exports.duplicateTemplate = catchAsync(async (req, res) => {
 });
 
 /**
+ * @desc    Get all soft-deleted templates
+ * @route   GET /api/v1/templates/deleted
+ * @access  Private (Admin - TEMPORARILY OPEN)
+ */
+exports.getSoftDeletedTemplates = catchAsync(async (req, res) => {
+  const templates = await templateService.getSoftDeletedTemplates();
+
+  res.status(200).json({
+    success: true,
+    data: {
+      templates,
+      total: templates.length,
+    },
+  });
+});
+
+/**
+ * @desc    Restore soft-deleted template
+ * @route   PATCH /api/v1/templates/:id/restore
+ * @access  Private (Admin - TEMPORARILY OPEN)
+ */
+exports.restoreTemplate = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const template = await templateService.restoreTemplate(id);
+
+  res.status(200).json({
+    success: true,
+    message: 'Template restored successfully',
+    data: { template },
+  });
+});
+
+/**
+ * @desc    Permanently delete template
+ * @route   DELETE /api/v1/templates/:id/permanent
+ * @access  Private (Admin - TEMPORARILY OPEN)
+ */
+exports.permanentDeleteTemplate = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  await templateService.permanentDeleteTemplate(id);
+
+  res.status(200).json({
+    success: true,
+    message: 'Template permanently deleted',
+    data: null,
+  });
+});
+
+/**
  * @desc    Delete template (soft delete)
  * @route   DELETE /api/v1/templates/:id
  * @access  Private (Admin only)

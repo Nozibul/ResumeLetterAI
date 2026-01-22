@@ -1,6 +1,6 @@
 /**
  * @file Resume.js
- * @description Optimized Resume Model for storing user's resume data
+ * @description Resume Model with flexible structure for all template categories
  * @module models/Resume
  * @version 1.0.0
  */
@@ -9,222 +9,489 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 // ============================================
-// SUB-SCHEMAS (Dynamic Content)
+// SUB-SCHEMAS
 // ============================================
 
-const headerSchema = new Schema({
-  fullName: String,
-  position: String,
-  email: String,
-  phone: String,
-  linkedin: String,
-  github: String,
-  portfolio: String,
-  location: String
-}, { _id: false });
+/**
+ * Personal Information Schema
+ */
+const personalInfoSchema = new Schema(
+  {
+    fullName: {
+      type: String,
+      required: [true, 'Full name is required'],
+      trim: true,
+      maxlength: [100, 'Full name cannot exceed 100 characters'],
+    },
+    jobTitle: {
+      type: String,
+      required: [true, 'Job title is required'],
+      trim: true,
+      maxlength: [100, 'Job title cannot exceed 100 characters'],
+    },
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      trim: true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    phone: {
+      type: String,
+      required: [true, 'Phone is required'],
+      trim: true,
+    },
+    location: String,
 
-const profileSchema = new Schema({
-  summary: String
-}, { _id: false });
+    // Social/Professional Links
+    linkedin: String,
+    github: String,
+    portfolio: String,
+    leetcode: String,
 
-const experienceSchema = new Schema({
-  companyName: String,
-  position: String,
-  startDate: Date,
-  endDate: Date,
-  currentlyWorking: { type: Boolean, default: false },
-  description: String,
-  responsibilities: [String]
-}, { _id: false });
+    // Optional photo
+    photoUrl: String,
+  },
+  { _id: false }
+);
 
-const skillSchema = new Schema({
-  skillName: String,
-  proficiency: String
-}, { _id: false });
+/**
+ * Professional Summary Schema
+ */
+const summarySchema = new Schema(
+  {
+    text: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'Summary cannot exceed 1000 characters'],
+    },
+    isVisible: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { _id: false }
+);
 
-const educationSchema = new Schema({
-  degree: String,
-  institution: String,
-  graduationYear: Date,
-  cgpa: String
-}, { _id: false });
+/**
+ * Work Experience Schema
+ */
+const workExperienceSchema = new Schema(
+  {
+    jobTitle: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    company: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    location: String,
+    startDate: {
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 1950, max: 2100 },
+    },
+    endDate: {
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 1950, max: 2100 },
+    },
+    currentlyWorking: {
+      type: Boolean,
+      default: false,
+    },
+    responsibilities: [String],
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: true }
+);
 
-const projectSchema = new Schema({
-  projectName: String,
-  description: String,
-  technologies: [String],
-  projectUrl: String
-}, { _id: false });
+/**
+ * Project Schema
+ */
+const projectSchema = new Schema(
+  {
+    projectName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    technologies: [String],
+    description: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Description cannot exceed 500 characters'],
+    },
+    liveUrl: String,
+    sourceCode: String,
+    highlights: [String],
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: true }
+);
 
-const achievementSchema = new Schema({
-  title: String,
-  description: String,
-  date: Date
-}, { _id: false });
+/**
+ * Education Schema
+ */
+const educationSchema = new Schema(
+  {
+    degree: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    institution: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    location: String,
+    graduationDate: {
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 1950, max: 2100 },
+    },
+    gpa: String,
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: true }
+);
 
-const referenceSchema = new Schema({
-  name: String,
-  position: String,
-  company: String,
-  email: String,
-  phone: String
-}, { _id: false });
+/**
+ * Skills Schema (Categorized for IT, flexible for others)
+ */
+const skillsSchema = new Schema(
+  {
+    programmingLanguages: [String],
+    frontend: [String],
+    backend: [String],
+    database: [String],
+    devOps: [String],
+    tools: [String],
+    other: [String],
+  },
+  { _id: false }
+);
 
-const technologySchema = new Schema({
-  category: String,
-  techStack: [String]
-}, { _id: false });
+/**
+ * Competitive Programming Schema
+ */
+const competitiveProgrammingSchema = new Schema(
+  {
+    platform: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    problemsSolved: String,
+    badges: String,
+    profileUrl: String,
+    description: String,
+  },
+  { _id: true }
+);
+
+/**
+ * Certification Schema
+ */
+const certificationSchema = new Schema(
+  {
+    certificationName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    issuer: String,
+    issueDate: {
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 1950, max: 2100 },
+    },
+    credentialUrl: String,
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: true }
+);
+
+/**
+ * Language Schema
+ */
+const languageSchema = new Schema(
+  {
+    language: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    proficiency: {
+      type: String,
+      enum: ['Native', 'Fluent', 'Professional', 'Intermediate', 'Basic'],
+      default: 'Professional',
+    },
+  },
+  { _id: true }
+);
+
+/**
+ * Achievement Schema
+ */
+const achievementSchema = new Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: String,
+    date: {
+      month: { type: Number, min: 1, max: 12 },
+      year: { type: Number, min: 1950, max: 2100 },
+    },
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: true }
+);
+
+/**
+ * Customization Settings Schema
+ */
+const customizationSchema = new Schema(
+  {
+    namePosition: {
+      type: String,
+      enum: ['left', 'center', 'right'],
+      default: 'center',
+    },
+    nameCase: {
+      type: String,
+      enum: ['uppercase', 'capitalize', 'normal'],
+      default: 'uppercase',
+    },
+    colorScheme: {
+      type: String,
+      default: '#000000',
+    },
+    fontFamily: {
+      type: String,
+      default: 'Arial',
+    },
+    sectionTitles: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+  },
+  { _id: false }
+);
 
 // ============================================
-// MAIN RESUME SCHEMA
+// MAIN SCHEMA
 // ============================================
 
-const resumeSchema = new Schema({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
+const resumeSchema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
+
+    templateId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Template',
+      required: true,
+      index: true,
+    },
+
+    title: {
+      type: String,
+      required: [true, 'Resume title is required'],
+      trim: true,
+      maxlength: [100, 'Title cannot exceed 100 characters'],
+      default: 'My Resume',
+    },
+
+    // Resume Data
+    personalInfo: {
+      type: personalInfoSchema,
+      required: true,
+    },
+
+    summary: summarySchema,
+
+    workExperience: {
+      type: [workExperienceSchema],
+      default: [],
+    },
+
+    projects: {
+      type: [projectSchema],
+      default: [],
+    },
+
+    education: {
+      type: [educationSchema],
+      default: [],
+    },
+
+    skills: skillsSchema,
+
+    competitiveProgramming: {
+      type: [competitiveProgrammingSchema],
+      default: [],
+    },
+
+    certifications: {
+      type: [certificationSchema],
+      default: [],
+    },
+
+    languages: {
+      type: [languageSchema],
+      default: [],
+    },
+
+    achievements: {
+      type: [achievementSchema],
+      default: [],
+    },
+
+    // Section visibility and order
+    sectionOrder: {
+      type: [String],
+      default: [
+        'personalInfo',
+        'summary',
+        'skills',
+        'workExperience',
+        'projects',
+        'education',
+        'certifications',
+        'competitiveProgramming',
+        'achievements',
+        'languages',
+      ],
+    },
+
+    sectionVisibility: {
+      type: Map,
+      of: Boolean,
+      default: {
+        personalInfo: true,
+        summary: true,
+        skills: true,
+        workExperience: true,
+        projects: true,
+        education: true,
+        certifications: false,
+        competitiveProgramming: false,
+        achievements: false,
+        languages: false,
+      },
+    },
+
+    // User customization
+    customization: customizationSchema,
+
+    // Completion tracking
+    completionPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+
+    // Status
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
   },
-  
-  templateId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Template',
-    required: true,
-    index: true
-  },
-  
-  resumeTitle: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100,
-    default: 'Untitled Resume'
-  },
-  
-  // Resume Content (Dynamic based on template structure)
-  content: {
-    header: headerSchema,
-    profile: profileSchema,
-    experience: [experienceSchema],
-    skills: [skillSchema],
-    education: [educationSchema],
-    projects: [projectSchema],
-    achievements: [achievementSchema],
-    references: [referenceSchema],
-    technologies: [technologySchema]
-  },
-  
-  // Metadata
-  isCompleted: {
-    type: Boolean,
-    default: false
-  },
-  
-  completionPercentage: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
-  
-  lastEditedAt: {
-    type: Date,
-    default: Date.now
-  },
-  
-  viewCount: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  
-  downloadCount: {
-    type: Number,
-    default: 0,
-    min: 0
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
-  
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+);
 
 // ============================================
 // INDEXES
 // ============================================
-resumeSchema.index({ userId: 1, createdAt: -1 });
+resumeSchema.index({ userId: 1, isActive: 1 });
 resumeSchema.index({ userId: 1, templateId: 1 });
-resumeSchema.index({ userId: 1, isCompleted: 1 });
+resumeSchema.index({ createdAt: -1 });
+resumeSchema.index({ updatedAt: -1 });
 
 // ============================================
 // VIRTUALS
 // ============================================
 
-resumeSchema.virtual('template', {
-  ref: 'Template',
-  localField: 'templateId',
-  foreignField: '_id',
-  justOne: true
-});
-
-resumeSchema.virtual('user', {
-  ref: 'User',
-  localField: 'userId',
-  foreignField: '_id',
-  justOne: true
+resumeSchema.virtual('isComplete').get(function () {
+  return this.completionPercentage === 100;
 });
 
 // ============================================
 // METHODS
 // ============================================
 
-resumeSchema.methods.calculateCompletion = function() {
-  const template = this.populated('templateId') || this.templateId;
-  
-  if (!template || !template.structure) {
-    return 0;
-  }
-  
-  const requiredSections = template.structure.sections.filter(s => s.isRequired);
-  
-  if (requiredSections.length === 0) {
-    return 100;
-  }
-  
-  let filledSections = 0;
-  
-  requiredSections.forEach(section => {
-    const sectionData = this.content[section.sectionId];
-    
-    if (sectionData) {
-      if (Array.isArray(sectionData)) {
-        if (sectionData.length > 0) filledSections++;
-      } else if (Object.keys(sectionData.toObject()).length > 0) {
-        filledSections++;
-      }
-    }
-  });
-  
-  this.completionPercentage = Math.round((filledSections / requiredSections.length) * 100);
-  this.isCompleted = this.completionPercentage === 100;
-  
+/**
+ * Calculate completion percentage based on required fields
+ */
+resumeSchema.methods.calculateCompletion = function () {
+  let totalFields = 0;
+  let filledFields = 0;
+
+  // Personal Info (required fields)
+  totalFields += 4; // name, title, email, phone
+  if (this.personalInfo?.fullName) filledFields++;
+  if (this.personalInfo?.jobTitle) filledFields++;
+  if (this.personalInfo?.email) filledFields++;
+  if (this.personalInfo?.phone) filledFields++;
+
+  // Summary
+  totalFields += 1;
+  if (this.summary?.text && this.summary.text.length > 20) filledFields++;
+
+  // Work Experience (at least 1 required)
+  totalFields += 1;
+  if (this.workExperience?.length > 0) filledFields++;
+
+  // Education (at least 1 required)
+  totalFields += 1;
+  if (this.education?.length > 0) filledFields++;
+
+  // Skills (at least 3 skills)
+  totalFields += 1;
+  const totalSkills = Object.values(this.skills?.toObject() || {})
+    .flat()
+    .filter(Boolean).length;
+  if (totalSkills >= 3) filledFields++;
+
+  this.completionPercentage = Math.round((filledFields / totalFields) * 100);
   return this.completionPercentage;
 };
 
-resumeSchema.methods.incrementView = function() {
-  this.viewCount += 1;
-  return this.save();
-};
-
-resumeSchema.methods.incrementDownload = function() {
-  this.downloadCount += 1;
-  return this.save();
-};
-
-resumeSchema.methods.updateLastEdited = function() {
-  this.lastEditedAt = Date.now();
+/**
+ * Soft delete
+ */
+resumeSchema.methods.softDelete = function () {
+  this.isActive = false;
   return this.save();
 };
 
@@ -232,50 +499,56 @@ resumeSchema.methods.updateLastEdited = function() {
 // STATICS
 // ============================================
 
-resumeSchema.statics.getByUser = function(userId, options = {}) {
-  const { limit = 0, sortBy = '-updatedAt' } = options;
-  
-  return this.find({ userId })
-    .sort(sortBy)
+/**
+ * Get user's active resumes
+ */
+resumeSchema.statics.getUserResumes = function (userId, options = {}) {
+  const { limit = 0, sort = '-updatedAt' } = options;
+
+  return this.find({ userId, isActive: true })
+    .populate('templateId', 'category thumbnailUrl')
+    .sort(sort)
     .limit(limit)
-    .populate('templateId', 'category thumbnailUrl isPremium');
+    .select('-__v');
 };
 
-resumeSchema.statics.getCompleted = function(userId) {
-  return this.find({ userId, isCompleted: true })
-    .sort('-updatedAt')
-    .populate('templateId', 'category thumbnailUrl');
-};
-
-resumeSchema.statics.getDrafts = function(userId) {
-  return this.find({ userId, isCompleted: false })
-    .sort('-updatedAt')
-    .populate('templateId', 'category thumbnailUrl');
+/**
+ * Get resume with template details
+ */
+resumeSchema.statics.getResumeWithTemplate = function (resumeId, userId) {
+  return this.findOne({ _id: resumeId, userId, isActive: true })
+    .populate('templateId')
+    .select('-__v');
 };
 
 // ============================================
 // MIDDLEWARE
 // ============================================
 
-resumeSchema.pre('save', function(next) {
-  // Auto-update lastEditedAt on content change
-  if (this.isModified('content')) {
-    this.lastEditedAt = Date.now();
-  }
-  
-  next();
-});
-
-resumeSchema.post('save', function(doc, next) {
-  // Increment template usage count when new resume is created
-  if (doc.isNew) {
-    mongoose.model('Template').findByIdAndUpdate(
-      doc.templateId,
-      { $inc: { usageCount: 1 } }
-    ).exec();
+/**
+ * Calculate completion before save
+ */
+resumeSchema.pre('save', function (next) {
+  if (this.isModified()) {
+    this.calculateCompletion();
   }
   next();
 });
 
+/**
+ * Prevent duplicate section orders
+ */
+resumeSchema.pre('save', function (next) {
+  if (this.sectionOrder?.length) {
+    const uniqueSections = new Set(this.sectionOrder);
+    if (uniqueSections.size !== this.sectionOrder.length) {
+      return next(new Error('Section order contains duplicates'));
+    }
+  }
+  next();
+});
+
+// ============================================
 // EXPORT
+// ============================================
 module.exports = mongoose.model('Resume', resumeSchema);
