@@ -3,7 +3,7 @@
  * @description Template service with Redis cache and IT/ATS support
  * @module modules/template/services/TemplateService
  * @author Nozibul Islam
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 const mongoose = require('mongoose');
@@ -36,7 +36,7 @@ const validateObjectId = (id) => {
  * @returns {Promise<Array>} Templates list
  */
 exports.getAllTemplates = async (category) => {
-  // Try cache first
+  // Try cache first (cacheHelper already has try-catch)
   const cached = await cacheHelper.getCachedTemplates(category);
   if (cached) {
     return cached;
@@ -54,7 +54,7 @@ exports.getAllTemplates = async (category) => {
     .sort({ usageCount: -1, rating: -1, createdAt: -1 })
     .lean();
 
-  // Store in cache for future requests
+  // Store in cache for future requests (cacheHelper handles errors)
   await cacheHelper.setCachedTemplates(templates, category);
 
   return templates;
@@ -205,29 +205,6 @@ exports.getTemplatePreview = async (id) => {
   return preview;
 };
 
-/**
- * Get IT/ATS templates only
- * @param {number} limit - Optional limit
- * @returns {Promise<Array>} IT/ATS templates
- */
-exports.getITTemplates = async (limit = 0) => {
-  const cacheKey = `it_templates_${limit}`;
-
-  // Try cache first
-  const cached = await cacheHelper.get(cacheKey);
-  if (cached) {
-    return JSON.parse(cached);
-  }
-
-  // Fetch from DB
-  const templates = await Template.getITTemplates(limit);
-
-  // Store in cache (30 minutes)
-  await cacheHelper.set(cacheKey, JSON.stringify(templates), 1800);
-
-  return templates;
-};
-
 // ==========================================
 // PROTECTED SERVICES (WITH CACHE INVALIDATION)
 // ==========================================
@@ -285,6 +262,7 @@ exports.updateTemplate = async (id, updateData) => {
     }
   });
 
+  // Save will trigger mongoose validation and pre-save middleware
   await template.save();
 
   // Clear cache for this template
@@ -295,13 +273,21 @@ exports.updateTemplate = async (id, updateData) => {
 };
 
 /**
- * Get all soft-deleted templates
+ * Get all soft-deleted templates with optional category filter
+ * @param {string} category - Optional category filter
  * @returns {Promise<Array>} Soft-deleted templates
  */
-exports.getSoftDeletedTemplates = async () => {
-  const templates = await Template.find({ isActive: false })
+exports.getSoftDeletedTemplates = async (category) => {
+  const query = { isActive: false };
+
+  if (category) {
+    query.category = category;
+  }
+
+  const templates = await Template.find(query)
     .select('-structure -__v')
     .sort({ updatedAt: -1 })
+    .limit(100) // Safety limit to prevent memory issues
     .lean();
 
   return templates;
@@ -376,9 +362,9 @@ exports.deleteTemplate = async (id) => {
 };
 
 /**
- * Duplicate template (clear cache after)
+ * Duplicate template
  * @param {string} id - Template ID
- * @param {string} description - New description
+ * @param {string} description - New description (optional)
  * @param {string} createdBy - User ID
  * @returns {Promise<Object>} Duplicated template
  */

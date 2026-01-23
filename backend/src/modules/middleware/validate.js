@@ -25,14 +25,23 @@ exports.validate = (schema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errors = error.errors?.map((err) => ({
-          field: err.path.join('.'),
-          message: err.message,
-        })) || [];
+        // ✅ ADD DETAILED LOGGING
+        console.log('\n=== VALIDATION ERROR DETAILS ===');
+        console.log('Zod Errors:', JSON.stringify(error.errors, null, 2));
+        console.log('\n--- Request Body ---');
+        console.log(JSON.stringify(req.body, null, 2));
+        console.log('========================\n');
 
-        const errorMessage = errors.length > 0 
-          ? `Validation failed: ${errors.map((e) => e.message).join(', ')}`
-          : 'Validation failed';
+        const errors =
+          error.errors?.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })) || [];
+
+        const errorMessage =
+          errors.length > 0
+            ? `Validation failed: ${errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`
+            : 'Validation failed';
 
         return next(new AppError(errorMessage, 400));
       }

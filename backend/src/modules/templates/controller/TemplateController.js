@@ -149,7 +149,7 @@ exports.duplicateTemplate = catchAsync(async (req, res) => {
  * @route   GET /api/v1/templates/deleted
  * @access  Private (Admin - TEMPORARILY OPEN)
  */
-exports.getSoftDeletedTemplates = catchAsync(async (req, res) => {
+exports.getSoftDeletedTemplates = catchAsync(async (_, res) => {
   const templates = await templateService.getSoftDeletedTemplates();
 
   res.status(200).json({

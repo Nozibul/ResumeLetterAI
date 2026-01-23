@@ -11,7 +11,7 @@ const router = express.Router();
 
 // Middleware
 const { protect } = require('../../auth/middlewares/authMiddleware');
-const { validate } = require('../../../shared/middleware/validate');
+const { validate } = require('../../middleware/validate');
 
 // Validation schemas
 const {
@@ -24,7 +24,7 @@ const {
 } = require('../validation/resumeValidation');
 
 // Controller
-const resumeController = require('../controllers/ResumeController');
+const resumeController = require('../controller/ResumeController');
 
 // ==========================================
 // ALL ROUTES REQUIRE AUTHENTICATION
