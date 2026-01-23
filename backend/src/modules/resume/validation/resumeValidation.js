@@ -27,6 +27,27 @@ const LIMITS = {
   MAX_TECHNOLOGIES: 30,
 };
 
+/**
+ * Valid section names enum
+ */
+const sectionNameSchema = z.enum(
+  [
+    'personalInfo',
+    'summary',
+    'skills',
+    'workExperience',
+    'projects',
+    'education',
+    'certifications',
+    'competitiveProgramming',
+    'achievements',
+    'languages',
+  ],
+  {
+    errorMap: () => ({ message: 'Invalid section name' }),
+  }
+);
+
 // ==========================================
 // REUSABLE SCHEMAS
 // ==========================================
@@ -37,7 +58,7 @@ const LIMITS = {
 const objectIdSchema = z
   .string()
   .trim()
-  .length(24, 'ID অবশ্যই ২৪ character হতে হবে')
+  .length(24, 'ID must be 24 characters')
   .regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId format');
 
 /**
@@ -530,4 +551,64 @@ exports.getUserResumesQuerySchema = z.object({
     })
     .optional()
     .default({ limit: '10', sort: 'newest' }),
+});
+
+// ==========================================
+// ADDITIONAL VALIDATION SCHEMAS
+// ==========================================
+
+/**
+ * Update Section Order Validation
+ */
+exports.updateSectionOrderSchema = z.object({
+  params: z.object({
+    id: objectIdSchema,
+  }),
+  body: z
+    .object({
+      sectionOrder: z
+        .array(sectionNameSchema)
+        .min(1, 'At least one section is required')
+        .max(10, 'Maximum 10 sections allowed')
+        .refine(
+          (arr) => {
+            const uniqueSections = new Set(arr);
+            return uniqueSections.size === arr.length;
+          },
+          { message: 'Section order contains duplicate sections' }
+        ),
+    })
+    .strict(),
+});
+
+/**
+ * Update Section Visibility Validation
+ */
+exports.updateSectionVisibilitySchema = z.object({
+  params: z.object({
+    id: objectIdSchema,
+  }),
+  body: z
+    .object({
+      sectionVisibility: z
+        .record(sectionNameSchema, z.boolean())
+        .refine((obj) => Object.keys(obj).length > 0, {
+          message: 'At least one section visibility must be provided',
+        }),
+    })
+    .strict(),
+});
+
+/**
+ * Switch Template Validation
+ */
+exports.switchTemplateSchema = z.object({
+  params: z.object({
+    id: objectIdSchema,
+  }),
+  body: z
+    .object({
+      templateId: objectIdSchema,
+    })
+    .strict(),
 });

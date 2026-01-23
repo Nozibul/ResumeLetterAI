@@ -32,7 +32,7 @@ const {
 } = require('../validation/templateValidation');
 
 // Controller
-const templateController = require('../controller/TemplateController');
+const templateController = require('../controllers/TemplateController');
 
 // ==========================================
 // PUBLIC ROUTES

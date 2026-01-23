@@ -1,9 +1,10 @@
 /**
  * @file resumeRoutes.js
- * @description Resume management routes
+ * @description Resume management routes (Complete & Optimized)
  * @module modules/resume/routes/resumeRoutes
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 2.1.0
+ * @updated Added missing validations, fixed import path, enhanced security
  */
 
 const express = require('express');
@@ -21,10 +22,13 @@ const {
   deleteResumeSchema,
   duplicateResumeSchema,
   getUserResumesQuerySchema,
+  updateSectionOrderSchema,
+  updateSectionVisibilitySchema,
+  switchTemplateSchema,
 } = require('../validation/resumeValidation');
 
 // Controller
-const resumeController = require('../controller/ResumeController');
+const resumeController = require('../controllers/ResumeController');
 
 // ==========================================
 // ALL ROUTES REQUIRE AUTHENTICATION
@@ -32,16 +36,24 @@ const resumeController = require('../controller/ResumeController');
 router.use(protect);
 
 // ==========================================
-// RESUME CRUD ROUTES
+// COLLECTION ROUTES (No :id)
+// ⚠️ IMPORTANT: These MUST come before /:id routes
 // ==========================================
 
 /**
+ * GET /api/v1/resumes/stats
+ * @description Get user's resume statistics
+ * @returns {object} resume stats (total, completed, avg completion)
+ * @access Private
+ */
+router.get('/stats', resumeController.getResumeStats);
+
+/**
  * GET /api/v1/resumes
- * @description Get all user's resumes
- * @query {number} limit - Limit results (optional)
- * @query {string} sort - Sort field (optional, default: -updatedAt)
- * @returns {array} resumes list
- * @access Private (Authenticated user)
+ * @description Get all user's resumes with pagination
+ * @query {number} limit - Results per page (default: 10, max: 100)
+ * @query {string} sort - Sort option (newest|oldest|title)
+ * @access Private
  */
 router.get(
   '/',
@@ -50,19 +62,21 @@ router.get(
 );
 
 /**
- * GET /api/v1/resumes/stats
- * @description Get user's resume statistics
- * @returns {object} resume stats (total, completed, average completion)
- * @access Private (Authenticated user)
+ * POST /api/v1/resumes
+ * @description Create new resume
+ * @access Private
  */
-router.get('/stats', resumeController.getResumeStats);
+router.post('/', validate(createResumeSchema), resumeController.createResume);
+
+// ==========================================
+// SINGLE RESOURCE ROUTES (With :id)
+// ==========================================
 
 /**
  * GET /api/v1/resumes/:id
  * @description Get single resume by ID
- * @param {string} id - Resume ID
- * @returns {object} resume details
- * @access Private (Resume owner)
+ * @param {string} id - Resume ID (24-char hex)
+ * @access Private (Owner only)
  */
 router.get(
   '/:id',
@@ -71,21 +85,10 @@ router.get(
 );
 
 /**
- * POST /api/v1/resumes
- * @description Create new resume
- * @body {object} resume data
- * @returns {object} created resume
- * @access Private (Authenticated user)
- */
-router.post('/', validate(createResumeSchema), resumeController.createResume);
-
-/**
  * PATCH /api/v1/resumes/:id
- * @description Update resume
+ * @description Update resume (partial update)
  * @param {string} id - Resume ID
- * @body {object} updated data
- * @returns {object} updated resume
- * @access Private (Resume owner)
+ * @access Private (Owner only)
  */
 router.patch(
   '/:id',
@@ -95,10 +98,9 @@ router.patch(
 
 /**
  * DELETE /api/v1/resumes/:id
- * @description Delete resume (soft delete - sets isActive: false)
+ * @description Soft delete resume (sets isActive: false)
  * @param {string} id - Resume ID
- * @returns {object} success message
- * @access Private (Resume owner)
+ * @access Private (Owner only)
  */
 router.delete(
   '/:id',
@@ -107,16 +109,14 @@ router.delete(
 );
 
 // ==========================================
-// RESUME MANAGEMENT ROUTES
+// RESOURCE ACTIONS (With :id + action)
 // ==========================================
 
 /**
  * POST /api/v1/resumes/:id/duplicate
  * @description Duplicate existing resume
  * @param {string} id - Resume ID to duplicate
- * @body {string} title - New resume title (optional)
- * @returns {object} duplicated resume
- * @access Private (Resume owner)
+ * @access Private (Owner only)
  */
 router.post(
   '/:id/duplicate',
@@ -128,41 +128,35 @@ router.post(
  * PATCH /api/v1/resumes/:id/section-order
  * @description Update section order (drag & drop)
  * @param {string} id - Resume ID
- * @body {array} sectionOrder - New section order
- * @returns {object} updated resume
- * @access Private (Resume owner)
+ * @access Private (Owner only)
  */
 router.patch(
   '/:id/section-order',
-  validate(getResumeByIdSchema),
+  validate(updateSectionOrderSchema),
   resumeController.updateSectionOrder
 );
 
 /**
  * PATCH /api/v1/resumes/:id/section-visibility
- * @description Update section visibility (show/hide sections)
+ * @description Toggle section visibility (show/hide)
  * @param {string} id - Resume ID
- * @body {object} sectionVisibility - Section visibility map
- * @returns {object} updated resume
- * @access Private (Resume owner)
+ * @access Private (Owner only)
  */
 router.patch(
   '/:id/section-visibility',
-  validate(getResumeByIdSchema),
+  validate(updateSectionVisibilitySchema),
   resumeController.updateSectionVisibility
 );
 
 /**
- * PATCH /api/v1/resumes/:id/switch-template
+ * PATCH /api/v1/resumes/:id/template
  * @description Switch resume template
  * @param {string} id - Resume ID
- * @body {string} templateId - New template ID
- * @returns {object} updated resume
- * @access Private (Resume owner)
+ * @access Private (Owner only)
  */
 router.patch(
-  '/:id/switch-template',
-  validate(getResumeByIdSchema),
+  '/:id/template',
+  validate(switchTemplateSchema),
   resumeController.switchTemplate
 );
 
