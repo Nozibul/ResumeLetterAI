@@ -1,9 +1,10 @@
 /**
  * @file ResumeService.js
- * @description Resume service with business logic and data operations
+ * @description Resume service with business logic, transactions, and optimized queries
  * @module modules/resume/services/ResumeService
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 2.0.0
+ * @updated Added transaction support, removed redundant validations, optimized queries
  */
 
 const mongoose = require('mongoose');
@@ -14,17 +15,6 @@ const AppError = require('../../../shared/utils/AppError');
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
-
-/**
- * Validate MongoDB ObjectId
- * @param {string} id - ID to validate
- * @throws {AppError} If invalid ID
- */
-const validateObjectId = (id) => {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError('Invalid ID format', 400);
-  }
-};
 
 /**
  * Verify resume ownership
@@ -39,13 +29,20 @@ const verifyOwnership = (resume, userId) => {
 };
 
 /**
- * Verify template exists
+ * Verify template exists and is active
  * @param {string} templateId - Template ID
+ * @param {Object} session - Mongoose session (optional)
  * @returns {Promise<Object>} Template document
  * @throws {AppError} If template not found
  */
-const verifyTemplateExists = async (templateId) => {
-  const template = await Template.findOne({ _id: templateId, isActive: true });
+const verifyTemplateExists = async (templateId, session = null) => {
+  const query = Template.findOne({ _id: templateId, isActive: true });
+
+  if (session) {
+    query.session(session);
+  }
+
+  const template = await query;
 
   if (!template) {
     throw new AppError('Template not found or inactive', 404);
@@ -54,36 +51,78 @@ const verifyTemplateExists = async (templateId) => {
   return template;
 };
 
+/**
+ * Get resume with ownership verification (DRY helper)
+ * @param {string} resumeId - Resume ID
+ * @param {string} userId - User ID
+ * @param {Object} session - Mongoose session (optional)
+ * @returns {Promise<Object>} Resume document
+ * @throws {AppError} If not found or no permission
+ */
+const getResumeWithOwnership = async (resumeId, userId, session = null) => {
+  const query = Resume.findOne({ _id: resumeId, isActive: true });
+
+  if (session) {
+    query.session(session);
+  }
+
+  const resume = await query;
+
+  if (!resume) {
+    throw new AppError('Resume not found', 404);
+  }
+
+  verifyOwnership(resume, userId);
+
+  return resume;
+};
+
 // ==========================================
 // PUBLIC SERVICES
 // ==========================================
 
 /**
- * Get all user's resumes
- * @param {string} userId - User ID
+ * Get all user's resumes with pagination
+ * @param {string} userId - User ID (already validated by middleware)
  * @param {Object} options - Query options
- * @returns {Promise<Array>} User's resumes
+ * @returns {Promise<Object>} Resumes with metadata
  */
 exports.getUserResumes = async (userId, options = {}) => {
-  validateObjectId(userId);
+  const { limit = 10, sort = 'newest' } = options;
 
-  const { limit = 0, sort = '-updatedAt' } = options;
+  // Map sort options to MongoDB sort
+  const sortMap = {
+    newest: '-createdAt',
+    oldest: 'createdAt',
+    title: 'title',
+  };
 
-  const resumes = await Resume.getUserResumes(userId, { limit, sort });
+  const sortQuery = sortMap[sort] || '-updatedAt';
 
-  return resumes;
+  // Use optimized static method with lean()
+  const resumes = await Resume.getUserResumes(userId, {
+    limit,
+    sort: sortQuery,
+    populate: true,
+  });
+
+  // Get total count
+  const total = await Resume.countUserResumes(userId);
+
+  return {
+    resumes,
+    total,
+    limit,
+  };
 };
 
 /**
- * Get resume by ID
- * @param {string} resumeId - Resume ID
- * @param {string} userId - User ID
+ * Get resume by ID with template details
+ * @param {string} resumeId - Resume ID (already validated)
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Resume document
  */
 exports.getResumeById = async (resumeId, userId) => {
-  validateObjectId(resumeId);
-  validateObjectId(userId);
-
   const resume = await Resume.getResumeWithTemplate(resumeId, userId);
 
   if (!resume) {
@@ -94,169 +133,205 @@ exports.getResumeById = async (resumeId, userId) => {
 };
 
 /**
- * Create new resume
- * @param {Object} resumeData - Resume data
- * @param {string} userId - User ID
+ * Create new resume with transaction support
+ * @param {Object} resumeData - Resume data (already validated)
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Created resume
  */
 exports.createResume = async (resumeData, userId) => {
-  validateObjectId(userId);
-  validateObjectId(resumeData.templateId);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Verify template exists
-  await verifyTemplateExists(resumeData.templateId);
+  try {
+    // Verify template exists (within transaction)
+    await verifyTemplateExists(resumeData.templateId, session);
 
-  // Create resume
-  const resume = await Resume.create({
-    ...resumeData,
-    userId,
-  });
+    // Create resume
+    const [resume] = await Resume.create(
+      [
+        {
+          ...resumeData,
+          userId,
+        },
+      ],
+      { session }
+    );
 
-  // Populate template for response
-  await resume.populate('templateId', 'category thumbnailUrl');
+    // Populate template for response
+    await resume.populate({
+      path: 'templateId',
+      select: 'name category thumbnailUrl',
+      session,
+    });
 
-  return resume;
+    // Commit transaction
+    await session.commitTransaction();
+
+    return resume;
+  } catch (error) {
+    // Rollback on any error
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 /**
- * Update resume
- * @param {string} resumeId - Resume ID
- * @param {Object} updateData - Update data
- * @param {string} userId - User ID
+ * Update resume with transaction support
+ * @param {string} resumeId - Resume ID (already validated)
+ * @param {Object} updateData - Update data (already validated)
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Updated resume
  */
 exports.updateResume = async (resumeId, updateData, userId) => {
-  validateObjectId(resumeId);
-  validateObjectId(userId);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Find resume
-  const resume = await Resume.findOne({ _id: resumeId, isActive: true });
+  try {
+    // Get resume with ownership check
+    const resume = await getResumeWithOwnership(resumeId, userId, session);
 
-  if (!resume) {
-    throw new AppError('Resume not found', 404);
+    // Whitelist allowed fields (security layer)
+    const allowedFields = [
+      'title',
+      'personalInfo',
+      'summary',
+      'workExperience',
+      'projects',
+      'education',
+      'skills',
+      'competitiveProgramming',
+      'certifications',
+      'languages',
+      'achievements',
+      'sectionOrder',
+      'sectionVisibility',
+      'customization',
+    ];
+
+    // Update only allowed fields
+    allowedFields.forEach((field) => {
+      if (updateData[field] !== undefined) {
+        resume[field] = updateData[field];
+      }
+    });
+
+    // Save changes
+    await resume.save({ session });
+
+    // Populate template
+    await resume.populate({
+      path: 'templateId',
+      select: 'name category thumbnailUrl',
+      session,
+    });
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    return resume;
+  } catch (error) {
+    // Rollback on error
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  // Verify ownership
-  verifyOwnership(resume, userId);
-
-  // Whitelist allowed fields
-  const allowedFields = [
-    'title',
-    'personalInfo',
-    'summary',
-    'workExperience',
-    'projects',
-    'education',
-    'skills',
-    'competitiveProgramming',
-    'certifications',
-    'languages',
-    'achievements',
-    'sectionOrder',
-    'sectionVisibility',
-    'customization',
-  ];
-
-  // Update only allowed fields
-  allowedFields.forEach((field) => {
-    if (updateData[field] !== undefined) {
-      resume[field] = updateData[field];
-    }
-  });
-
-  await resume.save();
-
-  // Populate template
-  await resume.populate('templateId', 'category thumbnailUrl');
-
-  return resume;
 };
 
 /**
  * Delete resume (soft delete)
- * @param {string} resumeId - Resume ID
- * @param {string} userId - User ID
+ * @param {string} resumeId - Resume ID (already validated)
+ * @param {string} userId - User ID (already validated)
  */
 exports.deleteResume = async (resumeId, userId) => {
-  validateObjectId(resumeId);
-  validateObjectId(userId);
+  // Get resume with ownership check (no transaction needed for single operation)
+  const resume = await getResumeWithOwnership(resumeId, userId);
 
-  const resume = await Resume.findOne({ _id: resumeId, isActive: true });
-
-  if (!resume) {
-    throw new AppError('Resume not found', 404);
-  }
-
-  // Verify ownership
-  verifyOwnership(resume, userId);
-
-  // Soft delete
+  // Soft delete (atomic operation)
   await resume.softDelete();
 };
 
 /**
- * Duplicate resume
- * @param {string} resumeId - Resume ID to duplicate
- * @param {string} newTitle - New resume title
- * @param {string} userId - User ID
+ * Duplicate resume with transaction support
+ * @param {string} resumeId - Resume ID to duplicate (already validated)
+ * @param {string} userId - User ID (already validated)
+ * @param {string} newTitle - New resume title (optional, already validated)
  * @returns {Promise<Object>} Duplicated resume
  */
-exports.duplicateResume = async (resumeId, newTitle, userId) => {
-  validateObjectId(resumeId);
-  validateObjectId(userId);
+exports.duplicateResume = async (resumeId, userId, newTitle) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Find original resume
-  const originalResume = await Resume.findOne({
-    _id: resumeId,
-    userId,
-    isActive: true,
-  }).lean();
+  try {
+    // Find original resume with ownership check
+    const originalResume = await Resume.findOne({
+      _id: resumeId,
+      userId,
+      isActive: true,
+    })
+      .session(session)
+      .lean();
 
-  if (!originalResume) {
-    throw new AppError('Resume not found', 404);
+    if (!originalResume) {
+      throw new AppError('Resume not found', 404);
+    }
+
+    // Remove metadata fields
+    const {
+      _id,
+      createdAt,
+      updatedAt,
+      completionPercentage,
+      __v,
+      ...resumeData
+    } = originalResume;
+
+    // Create duplicate
+    const [duplicatedResume] = await Resume.create(
+      [
+        {
+          ...resumeData,
+          title: newTitle || `${originalResume.title} (Copy)`,
+          userId,
+        },
+      ],
+      { session }
+    );
+
+    // Populate template
+    await duplicatedResume.populate({
+      path: 'templateId',
+      select: 'name category thumbnailUrl',
+      session,
+    });
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    return duplicatedResume;
+  } catch (error) {
+    // Rollback on error
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  // Remove metadata
-  const { _id, createdAt, updatedAt, completionPercentage, ...resumeData } =
-    originalResume;
-
-  // Create duplicate
-  const duplicatedResume = await Resume.create({
-    ...resumeData,
-    title: newTitle || `${originalResume.title} (Copy)`,
-    userId,
-  });
-
-  // Populate template
-  await duplicatedResume.populate('templateId', 'category thumbnailUrl');
-
-  return duplicatedResume;
 };
 
 /**
  * Update resume section order
- * @param {string} resumeId - Resume ID
- * @param {Array} sectionOrder - New section order
- * @param {string} userId - User ID
+ * @param {string} resumeId - Resume ID (already validated)
+ * @param {Array} sectionOrder - New section order (already validated)
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Updated resume
  */
 exports.updateSectionOrder = async (resumeId, sectionOrder, userId) => {
-  validateObjectId(resumeId);
-  validateObjectId(userId);
+  // Get resume with ownership check
+  const resume = await getResumeWithOwnership(resumeId, userId);
 
-  const resume = await Resume.findOne({ _id: resumeId, isActive: true });
-
-  if (!resume) {
-    throw new AppError('Resume not found', 404);
-  }
-
-  verifyOwnership(resume, userId);
-
-  // Validate section order array
-  if (!Array.isArray(sectionOrder) || sectionOrder.length === 0) {
-    throw new AppError('Section order must be a non-empty array', 400);
-  }
-
+  // Update section order
   resume.sectionOrder = sectionOrder;
   await resume.save();
 
@@ -265,9 +340,9 @@ exports.updateSectionOrder = async (resumeId, sectionOrder, userId) => {
 
 /**
  * Update section visibility
- * @param {string} resumeId - Resume ID
- * @param {Object} sectionVisibility - Section visibility map
- * @param {string} userId - User ID
+ * @param {string} resumeId - Resume ID (already validated)
+ * @param {Object} sectionVisibility - Section visibility map (already validated)
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Updated resume
  */
 exports.updateSectionVisibility = async (
@@ -275,25 +350,10 @@ exports.updateSectionVisibility = async (
   sectionVisibility,
   userId
 ) => {
-  validateObjectId(resumeId);
-  validateObjectId(userId);
+  // Get resume with ownership check
+  const resume = await getResumeWithOwnership(resumeId, userId);
 
-  const resume = await Resume.findOne({ _id: resumeId, isActive: true });
-
-  if (!resume) {
-    throw new AppError('Resume not found', 404);
-  }
-
-  verifyOwnership(resume, userId);
-
-  // Validate visibility object
-  if (
-    typeof sectionVisibility !== 'object' ||
-    Object.keys(sectionVisibility).length === 0
-  ) {
-    throw new AppError('Section visibility must be a non-empty object', 400);
-  }
-
+  // Update section visibility
   resume.sectionVisibility = sectionVisibility;
   await resume.save();
 
@@ -302,12 +362,10 @@ exports.updateSectionVisibility = async (
 
 /**
  * Get resume statistics for user
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Statistics
  */
 exports.getResumeStats = async (userId) => {
-  validateObjectId(userId);
-
   const stats = await Resume.aggregate([
     {
       $match: {
@@ -346,27 +404,19 @@ exports.getResumeStats = async (userId) => {
 
 /**
  * Switch resume template
- * @param {string} resumeId - Resume ID
- * @param {string} newTemplateId - New template ID
- * @param {string} userId - User ID
+ * @param {string} resumeId - Resume ID (already validated)
+ * @param {string} newTemplateId - New template ID (already validated)
+ * @param {string} userId - User ID (already validated)
  * @returns {Promise<Object>} Updated resume
  */
 exports.switchTemplate = async (resumeId, newTemplateId, userId) => {
-  validateObjectId(resumeId);
-  validateObjectId(newTemplateId);
-  validateObjectId(userId);
-
   // Verify new template exists
   await verifyTemplateExists(newTemplateId);
 
-  const resume = await Resume.findOne({ _id: resumeId, isActive: true });
+  // Get resume with ownership check
+  const resume = await getResumeWithOwnership(resumeId, userId);
 
-  if (!resume) {
-    throw new AppError('Resume not found', 404);
-  }
-
-  verifyOwnership(resume, userId);
-
+  // Update template (atomic operation, no transaction needed)
   resume.templateId = newTemplateId;
   await resume.save();
 

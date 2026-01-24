@@ -26,6 +26,7 @@ const LIMITS = {
   MAX_HIGHLIGHTS: 10,
   MAX_TECHNOLOGIES: 30,
   MAX_BADGES: 20,
+  MAX_SKILLS_PER_CATEGORY: 20,
 };
 
 // ============================================
@@ -266,10 +267,10 @@ const educationSchema = new Schema(
       validate: {
         validator: function (val) {
           if (!val) return true; // Optional field
-          // Format: 3.75 or 95/100
-          return /^([0-4](\.\d{1,2})?|\d{1,3}\/\d{1,3})$/.test(val);
+
+          return /^[0-4](\.\d{1,2})?$/.test(val);
         },
-        message: 'GPA format: 3.75 (0-4 scale) or 95/100 (percentage)',
+        message: 'GPA must be a number between 0 and 4 (e.g., 3.75)',
       },
     },
     order: {
@@ -359,35 +360,16 @@ const competitiveProgrammingSchema = new Schema(
       trim: true,
       maxlength: [50, 'Platform name cannot exceed 50 characters'],
     },
-    problemsSolved: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
-    badges: {
-      type: [String],
-      default: [],
-      validate: {
-        validator: (arr) => arr.length <= LIMITS.MAX_BADGES,
-        message: `Maximum ${LIMITS.MAX_BADGES} badges allowed`,
-      },
-    },
-    profileUrl: {
-      type: String,
-      trim: true,
-      default: '',
-    },
+    problemsSolved: { type: String, trim: true, default: '' },
+    badges: { type: String, trim: true, default: '' },
+    profileUrl: { type: String, trim: true, default: '' },
     description: {
       type: String,
       trim: true,
       maxlength: [500, 'Description cannot exceed 500 characters'],
       default: '',
     },
-    order: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
+    order: { type: Number, default: 0, min: 0 },
   },
   { _id: true, timestamps: false }
 );
