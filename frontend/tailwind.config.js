@@ -14,6 +14,10 @@ module.exports = {
         sans: [...fontFamily.sans],
         lora: ['var(--font-lora)', ...fontFamily.serif],
       },
+
+      /* ==============================
+         ANIMATIONS
+      ============================== */
       animation: {
         fadeInUp: 'fadeInUp 0.8s ease-out forwards',
         fadeInLeft: 'fadeInLeft 0.8s ease-out forwards',
@@ -24,7 +28,12 @@ module.exports = {
         shimmer: 'shimmer 2s infinite linear',
         blob: 'blob 7s infinite',
         'modal-enter': 'modalEnter 0.2s ease-out',
+        'fade-in': 'fadeIn 0.3s ease-out',
       },
+
+      /* ==============================
+         KEYFRAMES
+      ============================== */
       keyframes: {
         fadeInUp: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
@@ -51,21 +60,31 @@ module.exports = {
             opacity: '1',
             boxShadow: '0 0 10px rgba(59,130,246,0.7)',
           },
-          '50%': { opacity: '0.6', boxShadow: '0 0 20px rgba(59,130,246,1)' },
+          '50%': {
+            opacity: '0.6',
+            boxShadow: '0 0 20px rgba(59,130,246,1)',
+          },
         },
+
+        /* already existed shimmer (background-position based) */
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+
         blob: {
           '0%, 100%': { transform: 'translate(0,0) scale(1)' },
           '33%': { transform: 'translate(30px,-50px) scale(1.1)' },
           '66%': { transform: 'translate(-20px,20px) scale(0.9)' },
         },
         modalEnter: {
-          // ✅ Keyframes এ definition থাকবে
           '0%': { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(-4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },
