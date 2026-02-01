@@ -10,7 +10,7 @@
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import resumeService from '@/features/resume/api/resumeApi';
+import resumeService from '@/features/resume-builder/api/resumeApi';
 import {
   setResumes,
   setSelectedResume,

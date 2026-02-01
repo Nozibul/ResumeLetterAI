@@ -11,9 +11,7 @@ import { Navigation } from '@/widgets/navigation/Navigation';
 import Footer from '@/widgets/footer/Footer';
 import { Toaster } from 'react-hot-toast';
 import FooterWrapper from '@/widgets/footer/footerWrapper/FooterWrapper';
-import { Providers } from './providers';
-
-
+import { ReduxProviders } from './providers/ReduxProviders';
 
 // 1. Font Configuration:
 // Optimized for performance using CSS variables.
@@ -134,11 +132,13 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" className={`${lora.variable} h-full`}>
-      <body className={`${lora.className} tracking-wide flex min-h-full flex-col`} >
-        {/* Wrap everything with Providers */}
-        <Providers>
+      <body
+        className={`${lora.className} tracking-wide flex min-h-full flex-col`}
+      >
+        {/* Wrap everything with ReduxProviders */}
+        <ReduxProviders>
           <Navigation />
-          
+
           {/* This <main> tag will grow to fill the available space, pushing the footer to the bottom. */}
           <main className="flex-1">{children}</main>
 
@@ -148,7 +148,7 @@ export default function RootLayout({ children }) {
           </FooterWrapper>
 
           {/* Toast Provider */}
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 5000,
@@ -173,7 +173,7 @@ export default function RootLayout({ children }) {
               },
             }}
           />
-        </Providers>
+        </ReduxProviders>
       </body>
     </html>
   );

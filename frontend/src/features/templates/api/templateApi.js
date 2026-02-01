@@ -2,7 +2,7 @@
  * @file features/templates/api/templateApi.js
  * @description Template API service
  * @author Nozibul Islam
- * 
+ *
  * Architecture:
  * - All template-related API calls
  * - Uses shared axios instance
@@ -10,7 +10,7 @@
  * - No deduplication (read operations, safe to retry)
  */
 
-import apiClient from '@/api/axios';
+import apiClient from '@/shared/lib/api/axios';
 
 /**
  * Template Service
@@ -95,7 +95,9 @@ const templateService = {
    * @returns {Promise} Duplicated template
    */
   duplicateTemplate: async (id, description) => {
-    const response = await apiClient.post(`/templates/${id}/duplicate`, { description });
+    const response = await apiClient.post(`/templates/${id}/duplicate`, {
+      description,
+    });
     return response.data;
   },
 };

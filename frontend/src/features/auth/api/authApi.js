@@ -5,7 +5,7 @@
  * Deduplication applied only to critical operations that could cause issues if duplicated
  */
 
-import apiClient from "@/api/axios";
+import apiClient from '@/shared/lib/api/axios';
 
 // Request cache to prevent duplicate concurrent requests
 const pendingRequests = new Map();
@@ -84,7 +84,9 @@ const authService = {
    */
   forgotPassword: async (email) => {
     return deduplicateRequest(`forgot-password:${email}`, async () => {
-      const response = await apiClient.post('/token/forgot-password', { email });
+      const response = await apiClient.post('/token/forgot-password', {
+        email,
+      });
       return response.data;
     });
   },
@@ -98,7 +100,10 @@ const authService = {
    */
   resetPassword: async (token, passwordData) => {
     return deduplicateRequest(`reset-password:${token}`, async () => {
-      const response = await apiClient.post(`/token/reset-password/${token}`, passwordData);
+      const response = await apiClient.post(
+        `/token/reset-password/${token}`,
+        passwordData
+      );
       return response.data;
     });
   },
@@ -162,18 +167,18 @@ const authService = {
    * @returns {Promise}
    */
   deleteAccount: async (password) => {
-  return deduplicateRequest(`delete-account:${Date.now()}`, async () => {
-    try {
-      const response = await apiClient.delete('/auth/delete-account', {
-        data: { password }
-      });
-      console.log('🟢 Backend SUCCESS:', response.data);
-      return response.data;
-    } catch (error) {
-      throw error; // Must throw
-    }
-  });
-},
+    return deduplicateRequest(`delete-account:${Date.now()}`, async () => {
+      try {
+        const response = await apiClient.delete('/auth/delete-account', {
+          data: { password },
+        });
+        console.log('🟢 Backend SUCCESS:', response.data);
+        return response.data;
+      } catch (error) {
+        throw error; // Must throw
+      }
+    });
+  },
 };
 
 export default authService;
