@@ -518,7 +518,6 @@ exports.deleteResumeSchema = z.object({
 
 /**
  * Duplicate Resume Validation
- * ✅ REMOVED .strict()
  */
 exports.duplicateResumeSchema = z.object({
   params: z.object({
@@ -566,7 +565,6 @@ exports.getUserResumesQuerySchema = z.object({
 
 /**
  * Update Section Order Validation
- * ✅ REMOVED .strict()
  */
 exports.updateSectionOrderSchema = z.object({
   params: z.object({
@@ -596,7 +594,6 @@ exports.updateSectionOrderSchema = z.object({
 
 /**
  * Update Section Visibility Validation
- * ✅ REMOVED .strict()
  */
 exports.updateSectionVisibilitySchema = z.object({
   params: z.object({
@@ -614,7 +611,6 @@ exports.updateSectionVisibilitySchema = z.object({
 
 /**
  * Switch Template Validation
- * REMOVED .strict()
  */
 exports.switchTemplateSchema = z.object({
   params: z.object({

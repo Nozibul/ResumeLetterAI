@@ -21,7 +21,8 @@ const APP_NAME = process.env.APP_NAME || 'ResumeLetterAI API';
 // Configurable timeouts and thresholds
 const SHUTDOWN_TIMEOUT = parseInt(process.env.SHUTDOWN_TIMEOUT_MS) || 30000;
 const MEMORY_THRESHOLD = parseInt(process.env.MEMORY_THRESHOLD_MB) || 800;
-const MEMORY_CHECK_INTERVAL = parseInt(process.env.MEMORY_CHECK_INTERVAL_MS) || 60000;
+const MEMORY_CHECK_INTERVAL =
+  parseInt(process.env.MEMORY_CHECK_INTERVAL_MS) || 60000;
 
 // Server instance
 let server;
@@ -80,7 +81,9 @@ async function startServer() {
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
         logger.error(`❌ Port ${PORT} is already in use`);
-        logger.error(`💡 Try a different port or stop the process using port ${PORT}`);
+        logger.error(
+          `💡 Try a different port or stop the process using port ${PORT}`
+        );
       } else {
         logger.error('❌ Server error:', error.message);
       }
@@ -135,7 +138,9 @@ function setupGracefulShutdown() {
 
         // Force close after configured timeout
         setTimeout(() => {
-          logger.error(`❌ Forced shutdown after ${SHUTDOWN_TIMEOUT}ms timeout`);
+          logger.error(
+            `❌ Forced shutdown after ${SHUTDOWN_TIMEOUT}ms timeout`
+          );
           process.exit(1);
         }, SHUTDOWN_TIMEOUT);
       } else {
@@ -147,7 +152,7 @@ function setupGracefulShutdown() {
 
   // Handle uncaught exceptions
   process.on('uncaughtException', async (error) => {
-    logger.error('💥 Uncaught Exception:', error);
+    logger.error(' Uncaught Exception:', error);
     logger.error('Stack:', error.stack);
     await cleanup();
     process.exit(1);
@@ -155,7 +160,7 @@ function setupGracefulShutdown() {
 
   // Handle unhandled promise rejections
   process.on('unhandledRejection', async (reason, promise) => {
-    logger.error('💥 Unhandled Rejection at:', promise);
+    logger.error(' Unhandled Rejection at:', promise);
     logger.error('Reason:', reason);
 
     if (NODE_ENV === 'production') {
@@ -172,7 +177,7 @@ function setupGracefulShutdown() {
 // CLEANUP FUNCTION
 // ====================================
 async function cleanup() {
-  logger.info('🧹 Starting cleanup...');
+  logger.info('Starting cleanup...');
 
   // Stop memory monitoring
   if (memoryMonitorInterval) {
@@ -184,14 +189,14 @@ async function cleanup() {
       name: 'MongoDB',
       task: async () => {
         await Database.disconnect();
-        logger.info('✅ MongoDB disconnected');
+        logger.info(' MongoDB disconnected');
       },
     },
     {
       name: 'Redis',
       task: async () => {
         await disconnect();
-        logger.info('✅ Redis disconnected');
+        logger.info(' Redis disconnected');
       },
     },
   ];
@@ -205,7 +210,7 @@ async function cleanup() {
     }
   }
 
-  logger.info('✅ Cleanup completed');
+  logger.info(' Cleanup completed');
 }
 
 // ====================================
@@ -222,13 +227,13 @@ function startMemoryMonitoring() {
     };
 
     // Log memory usage
-    logger.debug('📊 Memory usage:', memoryInfo);
+    logger.debug(' Memory usage:', memoryInfo);
 
     // Alert if memory usage is high
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
     if (heapUsedMB > MEMORY_THRESHOLD) {
       logger.warn(
-        `⚠️ High memory usage: ${Math.round(heapUsedMB)}MB (threshold: ${MEMORY_THRESHOLD}MB)`
+        ` High memory usage: ${Math.round(heapUsedMB)}MB (threshold: ${MEMORY_THRESHOLD}MB)`
       );
     }
   }, MEMORY_CHECK_INTERVAL);
