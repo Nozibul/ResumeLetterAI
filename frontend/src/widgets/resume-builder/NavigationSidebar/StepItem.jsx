@@ -2,22 +2,6 @@
  * @file widgets/resume-builder/NavigationSidebar/StepItem.jsx
  * @description Individual step item with visual states
  * @author Nozibul Islam
- *
- * Features:
- * - Three states: Active, Completed, Inactive
- * - Visual feedback (checkmark for completed)
- * - Hover effects
- * - Keyboard accessible
- * - Smooth transitions
- *
- * Performance:
- * - Memoized to prevent re-renders
- * - CSS-only animations (GPU accelerated)
- *
- * Accessibility:
- * - Keyboard focusable
- * - ARIA attributes
- * - Screen reader friendly
  */
 
 'use client';
@@ -52,42 +36,36 @@ function StepItem({
   // DYNAMIC CLASSES
   // ==========================================
   const buttonClasses = `
-    w-full flex items-center gap-3 px-4 py-3 rounded-lg
+    w-full flex items-center gap-4 px-2 py-2 rounded-lg
     transition-all duration-200 ease-in-out
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+    focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2
     ${
       isActive
-        ? 'bg-blue-50 border-2 border-blue-500 shadow-sm'
+        ? 'border-1 border-teal-300 shadow-sm bg-teal-100 '
         : isCompleted
-          ? 'bg-green-50 border border-green-200 hover:bg-green-100'
+          ? 'bg-green-50 border border-teal-200 hover:bg-teal-100'
           : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
     }
   `.trim();
 
   const numberClasses = `
     flex items-center justify-center
-    w-8 h-8 rounded-full flex-shrink-0
+    w-7 h-7 rounded-full flex-shrink-0
     font-semibold text-sm
     transition-all duration-200
     ${
       isActive
-        ? 'bg-blue-500 text-white'
+        ? 'bg-teal-500 text-white'
         : isCompleted
           ? 'bg-green-500 text-white'
-          : 'bg-gray-300 text-gray-700'
+          : 'bg-gray-200 text-gray-800'
     }
   `.trim();
 
   const labelClasses = `
-    flex-1 text-left font-medium text-sm
+    flex-1 text-left font-medium text-md
     transition-colors duration-200
-    ${
-      isActive
-        ? 'text-blue-900'
-        : isCompleted
-          ? 'text-green-900'
-          : 'text-gray-700'
-    }
+    ${isActive ? 'text-black' : isCompleted ? 'text-teal-600' : 'text-gray-700'}
   `.trim();
   return (
     <li>
@@ -138,7 +116,7 @@ function StepItem({
         ========================================== */}
         {isActive && (
           <div
-            className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+            className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"
             aria-hidden="true"
           />
         )}

@@ -9,21 +9,14 @@
  * - Template change button
  * - Mobile close button
  * - Responsive layout
- *
- * Performance:
- * - Memoized component
- * - No unnecessary re-renders
- *
- * Accessibility:
- * - ARIA labels for buttons
- * - Keyboard accessible
- * - Screen reader friendly
  */
 
 'use client';
 
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { useRouter } from 'next/navigation';
+import Button from '@/shared/components/atoms/buttons/Button';
 
 /**
  * PreviewHeader Component
@@ -34,9 +27,17 @@ function PreviewHeader({
   onZoomIn,
   onZoomOut,
   onZoomReset,
-  onTemplateChange,
   onClose,
 }) {
+  const router = useRouter();
+  /**
+   * Navigate to template selection page
+   * Uses useCallback to prevent unnecessary re-renders
+   */
+  const handleTemplateChange = useCallback(() => {
+    router.push('/resume-templates');
+  }, [router]);
+
   // ==========================================
   // INPUT VALIDATION
   // ==========================================
@@ -50,35 +51,23 @@ function PreviewHeader({
   // ==========================================
   const iconButtonClasses = `
     p-2 rounded-lg
-    bg-white hover:bg-gray-50 border border-gray-200
-    text-gray-700 hover:text-gray-900
+    bg-white hover:bg-teal-100 border border-gray-200
+    text-gray-700 hover:text-teal-600
     transition-colors duration-200
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+    focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white
   `.trim();
 
-  const primaryButtonClasses = `
-    inline-flex items-center gap-2 px-4 py-2
-    bg-blue-600 hover:bg-blue-700 text-white
-    rounded-lg font-medium transition-colors duration-200
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-  `.trim();
-
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
-    <header className="border-b border-gray-200 bg-white px-6 py-4">
+    <header className="border-b border-gray-200 bg-white px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
-        {/* ==========================================
-            LEFT SIDE - Title + Mobile Close
-        ========================================== */}
+        {/* LEFT - Title + Close */}
         <div className="flex items-center gap-3">
-          {/* Mobile close button */}
+          {/* Mobile close */}
           <button
             type="button"
             onClick={onClose}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors duration-200"
             aria-label="Close preview"
           >
             <svg
@@ -86,7 +75,6 @@ function PreviewHeader({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -97,33 +85,32 @@ function PreviewHeader({
             </svg>
           </button>
 
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+          {/* Title with icon */}
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Live Preview
+            </h3>
+          </div>
         </div>
 
-        {/* ==========================================
-            RIGHT SIDE - Controls
-        ========================================== */}
+        {/* RIGHT - Controls */}
         <div className="flex items-center gap-4">
-          {/* ==========================================
-              ZOOM CONTROLS
-          ========================================== */}
-          <div className="hidden md:flex items-center gap-2">
-            {/* Zoom out button */}
+          {/* ZOOM CONTROLS */}
+          <div className="hidden md:flex items-center gap-2 bg-gray-50 rounded-lg p-1">
+            {/* Zoom out */}
             <button
               type="button"
               onClick={onZoomOut}
               disabled={validZoomLevel <= 50}
               className={iconButtonClasses}
               aria-label="Zoom out"
-              title="Zoom out"
             >
               <svg
                 className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -134,32 +121,28 @@ function PreviewHeader({
               </svg>
             </button>
 
-            {/* Zoom level display */}
+            {/* Zoom display */}
             <button
               type="button"
               onClick={onZoomReset}
-              className="px-3 py-2 min-w-[4rem] text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label={`Current zoom: ${validZoomLevel}%. Click to reset to 100%`}
-              title="Click to reset zoom"
+              className="px-3 py-2 min-w-[4rem] text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-teal-50 hover:text-teal-600 hover:border-teal-300 transition-all duration-200"
             >
               {validZoomLevel}%
             </button>
 
-            {/* Zoom in button */}
+            {/* Zoom in */}
             <button
               type="button"
               onClick={onZoomIn}
               disabled={validZoomLevel >= 150}
               className={iconButtonClasses}
               aria-label="Zoom in"
-              title="Zoom in"
             >
               <svg
                 className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -171,41 +154,16 @@ function PreviewHeader({
             </button>
           </div>
 
-          {/* ==========================================
-              TEMPLATE CHANGE BUTTON
-          ========================================== */}
-          <button
-            type="button"
-            onClick={onTemplateChange}
-            className={primaryButtonClasses}
-            aria-label="Change resume template"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-              />
-            </svg>
-            <span className="hidden sm:inline">Change Template</span>
-            <span className="sm:hidden">Template</span>
-          </button>
+          {/* TEMPLATE CHANGE */}
+          <Button onClick={handleTemplateChange} variant="secondary" size="sm">
+            Change Template
+          </Button>
         </div>
       </div>
     </header>
   );
 }
 
-// ==========================================
-// PROP TYPES
-// ==========================================
 PreviewHeader.propTypes = {
   zoomLevel: PropTypes.number,
   onZoomIn: PropTypes.func.isRequired,
@@ -221,7 +179,4 @@ PreviewHeader.defaultProps = {
   onClose: () => {},
 };
 
-// ==========================================
-// MEMOIZATION
-// ==========================================
 export default memo(PreviewHeader);

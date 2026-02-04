@@ -15,9 +15,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
 import ErrorBoundary from '@/app/providers/ErrorBoundary';
 import logger from '@/shared/lib/logger';
+import {
+  useIsAuthenticated,
+  useAuthLoading,
+} from '@/shared/store/hooks/useAuth';
 
 /**
  * Resume Builder Layout
@@ -25,8 +28,8 @@ import logger from '@/shared/lib/logger';
  */
 export default function ResumeBuilderLayout({ children }) {
   const router = useRouter();
-  const { isAuthenticated, loading } = useSelector((state) => state.auth || {});
-
+  const isAuthenticated = useIsAuthenticated();
+  const loading = useAuthLoading();
   // ==========================================
   // AUTHENTICATION CHECK
   // ==========================================
@@ -93,10 +96,10 @@ export default function ResumeBuilderLayout({ children }) {
  * Metadata for SEO (static export)
  * Note: This only works in app directory route segments
  */
-export const metadata = {
-  title: 'Resume Builder | Create Professional IT Resume',
-  description:
-    'Build ATS-friendly IT resumes with our step-by-step builder. Optimized for software developers, engineers, and tech professionals.',
-  keywords:
-    'resume builder, IT resume, ATS resume, developer resume, tech resume',
-};
+// export const metadata = {
+//   title: 'Resume Builder | Create Professional IT Resume',
+//   description:
+//     'Build ATS-friendly IT resumes with our step-by-step builder. Optimized for software developers, engineers, and tech professionals.',
+//   keywords:
+//     'resume builder, IT resume, ATS resume, developer resume, tech resume',
+// };

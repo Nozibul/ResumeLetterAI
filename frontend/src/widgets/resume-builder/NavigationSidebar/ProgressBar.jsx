@@ -83,14 +83,11 @@ function ProgressBar({ progress }) {
   // ==========================================
   return (
     <div className="space-y-2">
-      {/* ==========================================
-          LABEL
-      ========================================== */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium text-gray-700">Resume Completeness:</span>
+      <div className="flex items-center justify-between text-md">
+        <span className="font-medium text-gray-900">Resume Completeness:</span>
         <span
           className={`font-bold ${
-            validProgress === 100 ? 'text-green-600' : 'text-blue-600'
+            validProgress === 100 ? 'text-green-600' : 'text-teal-400'
           }`}
           aria-live="polite"
         >
@@ -102,7 +99,7 @@ function ProgressBar({ progress }) {
           PROGRESS BAR
       ========================================== */}
       <div
-        className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden"
+        className="relative w-full h-2 bg-gray-300 rounded-full overflow-hidden"
         role="progressbar"
         aria-valuenow={validProgress}
         aria-valuemin={0}
@@ -129,7 +126,7 @@ function ProgressBar({ progress }) {
       ========================================== */}
       {validProgress === 100 && (
         <p
-          className="text-xs text-green-600 font-medium animate-fadeInUp"
+          className="text-xs text-teal-600 font-medium animate-fadeInUp"
           role="status"
           aria-live="polite"
         >

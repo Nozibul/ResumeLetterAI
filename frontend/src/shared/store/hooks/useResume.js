@@ -2,7 +2,7 @@
  * @file store/hooks/useResume.js
  * @description Custom Redux hooks for Resume management
  * @author Nozibul Islam
- * 
+ *
  * Architecture:
  * - Wraps resumeSlice selectors in hooks for convenience
  * - Provides hook-based approach for resume operations
@@ -32,6 +32,10 @@ import {
   selectSortedResumes,
   selectHasResumes,
   selectIsSelectedResumeEditable,
+  selectCurrentResumeData,
+  selectIsSaving,
+  selectCurrentStep,
+  selectCompletionPercentage,
 } from '../selectors/resumeSelectors';
 
 // ==========================================
@@ -222,3 +226,10 @@ export const useHasResumes = () => {
 export const useIsSelectedResumeEditable = () => {
   return useAppSelector(selectIsSelectedResumeEditable);
 };
+
+export const useCurrentResumeData = () =>
+  useAppSelector(selectCurrentResumeData);
+export const useIsSaving = () => useAppSelector(selectIsSaving);
+export const useCurrentStep = () => useAppSelector(selectCurrentStep);
+export const useCompletionPercentage = () =>
+  useAppSelector(selectCompletionPercentage);

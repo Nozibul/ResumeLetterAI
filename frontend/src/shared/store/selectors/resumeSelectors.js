@@ -2,7 +2,7 @@
  * @file store/selectors/resumeSelectors.js
  * @description Resume state selectors
  * @author Nozibul Islam
- * 
+ *
  * Architecture:
  * - All resume-related selectors
  * - Memoization for performance
@@ -84,7 +84,9 @@ export const selectPrivateResumes = (state) => {
  * Get resumes by template ID
  */
 export const selectResumesByTemplate = (state, templateId) => {
-  return state.resume.resumes.filter((resume) => resume.templateId?._id === templateId);
+  return state.resume.resumes.filter(
+    (resume) => resume.templateId?._id === templateId
+  );
 };
 
 /**
@@ -142,13 +144,19 @@ export const selectSortedResumes = (state, sortBy = 'updatedAt') => {
 
   switch (sortBy) {
     case 'updatedAt':
-      return resumes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return resumes.sort(
+        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+      );
     case 'createdAt':
-      return resumes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return resumes.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
     case 'title':
       return resumes.sort((a, b) => a.resumeTitle.localeCompare(b.resumeTitle));
     case 'downloads':
-      return resumes.sort((a, b) => (b.downloadCount || 0) - (a.downloadCount || 0));
+      return resumes.sort(
+        (a, b) => (b.downloadCount || 0) - (a.downloadCount || 0)
+      );
     default:
       return resumes;
   }
@@ -170,3 +178,10 @@ export const selectIsSelectedResumeEditable = (state) => {
   // Add more conditions as needed
   return true;
 };
+
+export const selectCurrentResumeData = (state) =>
+  state.resume.currentResumeData;
+export const selectIsSaving = (state) => state.resume.isSaving;
+export const selectCurrentStep = (state) => state.resume.currentStep;
+export const selectCompletionPercentage = (state) =>
+  state.resume.completionPercentage;

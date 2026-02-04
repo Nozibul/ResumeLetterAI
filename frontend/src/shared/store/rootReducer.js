@@ -5,13 +5,10 @@
  */
 
 import { combineReducers } from '@reduxjs/toolkit';
-
-// Import all slice reducers
 import authReducer from './slices/authSlice';
 import templateReducer from './slices/templateSlice';
 import resumeReducer from './slices/resumeSlice';
 // import coverLetterReducer from './slices/coverLetterSlice';
-// import uiReducer from './slices/uiSlice';
 
 /**
  * Combine all reducers into one root reducer
@@ -19,13 +16,12 @@ import resumeReducer from './slices/resumeSlice';
  */
 const appReducer = combineReducers({
   // These will be persisted (as per persistConfig whitelist)
-  auth: authReducer,                        // Authentication state
-  resume: resumeReducer,                    // User's resume data
+  auth: authReducer, // Authentication state
+  resume: resumeReducer, // User's resume data
   // coverLetter: coverLetterReducer,          // Cover letter data
-  
+
   // These will NOT be persisted (as per persistConfig blacklist)
-  template: templateReducer,                // Templates & preferences
-  // ui: uiReducer,                            // UI state (modals, loading)
+  template: templateReducer, // Templates & preferences
 });
 
 /**
@@ -39,7 +35,7 @@ const rootReducer = (state, action) => {
   //   const { userPreferences } = state;
   //   state = { userPreferences };
   // }
-  
+
   return appReducer(state, action);
 };
 

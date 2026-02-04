@@ -32,8 +32,17 @@ import {
   Suspense,
 } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSelector, useDispatch } from 'react-redux';
 import logger from '@/shared/lib/logger';
+
+// ==========================================
+// REDUX HOOKS
+// ==========================================
+// import { useAppDispatch } from '@/store/hooks/useAuth';
+import { useSelectedTemplate } from '@/shared/store/hooks/useTemplates';
+import {
+  useCurrentResumeData,
+  useIsSaving,
+} from '@/shared/store/hooks/useResume';
 
 // ==========================================
 // LAZY LOADED WIDGETS (Performance optimization)
@@ -79,7 +88,7 @@ const PreviewSkeleton = () => (
  */
 export default function ResumeBuilderPage() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  // const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
 
   // ==========================================
@@ -91,12 +100,10 @@ export default function ResumeBuilderPage() {
   // Get template from URL query (if user came from template selection)
   const templateIdFromQuery = searchParams.get('template');
 
-  // Redux state (null-safe with fallbacks)
-  const resumeData = useSelector((state) => state.resume?.data || null);
-  const selectedTemplate = useSelector(
-    (state) => state.template?.selected || null
-  );
-  const isSaving = useSelector((state) => state.resume?.isSaving || false);
+  // Redux state using custom hooks
+  const resumeData = useCurrentResumeData();
+  const selectedTemplate = useSelectedTemplate();
+  const isSaving = useIsSaving();
 
   // ==========================================
   // TEMPLATE INITIALIZATION
@@ -202,7 +209,11 @@ export default function ResumeBuilderPage() {
           />
         </Suspense>
       </aside>
-      <main className="flex-1 overflow-y-auto">
+
+      {/* ==========================================
+          MAIN FORM AREA
+      ========================================== */}
+      <main className="flex-1 overflow-y-auto z-20 relative">
         <Suspense fallback={<FormSkeleton />}>
           <FormArea
             currentStep={currentStep}
@@ -221,10 +232,10 @@ export default function ResumeBuilderPage() {
       ========================================== */}
       <aside
         className={`
-          fixed lg:relative inset-y-0 right-0 z-50
+          fixed lg:relative inset-y-0 right-0 z-30
           transform lg:transform-none transition-transform duration-300
           ${isMobilePreviewOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-          w-full lg:w-1/2 bg-gray-100
+          w-full lg:w-2/5 bg-gray-100
         `}
       >
         <Suspense fallback={<PreviewSkeleton />}>
@@ -241,7 +252,7 @@ export default function ResumeBuilderPage() {
       ========================================== */}
       {isMobilePreviewOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-25 lg:hidden"
           onClick={toggleMobilePreview}
           aria-label="Close preview"
         />

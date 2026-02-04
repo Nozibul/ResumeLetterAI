@@ -10,15 +10,6 @@
  * - Template switch button
  * - Mobile close button
  * - Responsive layout
- *
- * Performance:
- * - Memoized rendering
- * - Debounced updates (handled by parent)
- * - Optimized re-renders
- *
- * Security:
- * - XSS prevention in resume renderer
- * - Sanitized user input display
  */
 
 'use client';
@@ -138,28 +129,48 @@ function LivePreview({ resumeData, templateId, onClose, onTemplateChange }) {
       <div className="flex-1 overflow-y-auto p-8">
         {isEmpty ? (
           // Empty state
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full px-8">
             <div className="text-center max-w-md">
-              <svg
-                className="mx-auto h-24 w-24 text-gray-400 mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No Preview Available
+              {/* Animated icon */}
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 bg-teal-100 rounded-full animate-ping opacity-75"></div>
+                <div className="relative bg-gradient-to-br from-teal-400 to-teal-600 rounded-full p-6">
+                  <svg
+                    className="h-16 w-16 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                Your Resume Preview Will Appear Here
               </h3>
-              <p className="text-sm text-gray-600">
-                Start filling out the form to see your resume preview here.
+              <p className="text-gray-600 leading-relaxed mb-6">
+                Start filling out the form on the left to see a live preview of
+                your professional resume.
               </p>
+
+              {/* Progress indicator */}
+              <div className="flex items-center justify-center gap-2 text-sm text-teal-600">
+                <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"></div>
+                <div
+                  className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"
+                  style={{ animationDelay: '0.2s' }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"
+                  style={{ animationDelay: '0.4s' }}
+                ></div>
+              </div>
             </div>
           </div>
         ) : (

@@ -82,13 +82,7 @@ ContactInfo.propTypes = {
 const BrandLogo = React.memo(() => (
   <div className="flex items-center space-x-3 mb-6 -mt-6">
     <div className=" flex items-center justify-center shadow-lg">
-      <Image
-        src={COMPANY_INFO.logo}
-        alt="Logo"
-        width={80}
-        height={80}
-        // className="text-white"
-      />
+      <Image src={COMPANY_INFO.logo} alt="Logo" width={80} height={80} />
     </div>
     <span className="text-3xl font-bold bg-gradient-to-r from-white via-white to-teal-300 bg-clip-text text-transparent">
       {COMPANY_INFO.name}

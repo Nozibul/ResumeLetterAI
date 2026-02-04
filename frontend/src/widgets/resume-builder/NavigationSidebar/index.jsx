@@ -7,17 +7,6 @@
  * - 9-step navigation (Personal Info → Finalize)
  * - Visual progress indicator
  * - Completed steps tracking (checkmarks)
- * - Click to jump to any step
- * - Responsive (hidden on mobile)
- *
- * Performance:
- * - Memoized step items
- * - No unnecessary re-renders
- *
- * Accessibility:
- * - Keyboard navigation
- * - ARIA labels
- * - Focus management
  */
 
 'use client';
@@ -97,24 +86,26 @@ function NavigationSidebar({
 
   return (
     <nav
-      className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col"
+      className="w-68 bg-white border-r border-gray-200 h-screen flex flex-col"
       aria-label="Resume builder steps navigation"
     >
       {/* ==========================================
           HEADER
       ========================================== */}
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">Resume Builder</h1>
+      <div className="pl-6 pr-4 py-4 border-b border-gray-200">
+        <span className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-gray-800 to-teal-300 bg-clip-text text-transparent">
+          ResumeLetterAI
+        </span>{' '}
         <p className="text-sm text-gray-600 mt-1">
-          Follow the steps to create your resume
+          Complete your resume in steps
         </p>
       </div>
 
       {/* ==========================================
           STEPS LIST
       ========================================== */}
-      <div className="flex-1 overflow-y-auto py-6 px-4">
-        <ol className="space-y-2" role="list">
+      <div className="custom-scrollbar bg-gradient-to-br from-teal-50 via-white to-teal-100 rounded-lg p-8 lg:col-span-1 flex-1 overflow-y-auto py-4 px-6">
+        <ol className="space-y-3 r">
           {FORM_STEPS.map((step) => (
             <StepItem
               key={step.id}

@@ -28,7 +28,7 @@ const TemplateSelectionModal = ({ isOpen, onClose, templateId }) => {
 
     if (selectedOption === 'scratch' && templateId) {
       // Just navigate - modal will unmount automatically
-      router.push(`/resume-builder?templateId=${templateId}`);
+      router.push(`/resume-builder/new?template=${templateId}`);
     }
   };
 

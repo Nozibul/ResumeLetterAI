@@ -2,7 +2,7 @@
  * @file store/slices/resumeSlice.js
  * @description Resume state management (Reducer only)
  * @author Nozibul Islam
- * 
+ *
  * Architecture:
  * - Pure state management (no async logic)
  * - Selectors moved to selectors/resumeSelectors.js
@@ -16,13 +16,17 @@ import { createSlice } from '@reduxjs/toolkit';
 // ==========================================
 
 const initialState = {
-  resumes: [],              // All user's resumes
-  selectedResume: null,     // Currently selected resume (for editing/viewing)
-  drafts: [],               // Draft resumes (cached)
-  completed: [],            // Completed resumes (cached)
-  loading: false,           // Loading state
-  error: null,              // Error message
-  lastFetched: null,        // Timestamp for cache invalidation
+  resumes: [], // All user's resumes
+  selectedResume: null, // Currently selected resume (for editing/viewing)
+  drafts: [], // Draft resumes (cached)
+  completed: [], // Completed resumes (cached)
+  currentResumeData: null, // Current editing resume
+  isSaving: false, // Auto-save indicator
+  currentStep: 1, // Current form step (1-9)
+  completionPercentage: 0, // Progress (0-100)
+  loading: false, // Loading state
+  error: null, // Error message
+  lastFetched: null, // Timestamp for cache invalidation
 };
 
 // ==========================================
@@ -81,6 +85,26 @@ const resumeSlice = createSlice({
       state.loading = false;
     },
 
+    // Set current resume being edited
+    setCurrentResumeData: (state, action) => {
+      state.currentResumeData = action.payload;
+    },
+
+    // Set saving state
+    setIsSaving: (state, action) => {
+      state.isSaving = action.payload;
+    },
+
+    // Set current step
+    setCurrentStep: (state, action) => {
+      state.currentStep = action.payload;
+    },
+
+    // Update completion percentage
+    setCompletionPercentage: (state, action) => {
+      state.completionPercentage = action.payload;
+    },
+
     /**
      * Clear error
      */
@@ -108,6 +132,13 @@ const resumeSlice = createSlice({
       state.lastFetched = null;
     },
 
+    // Clear current resume data
+    clearCurrentResumeData: (state) => {
+      state.currentResumeData = null;
+      state.currentStep = 1;
+      state.completionPercentage = 0;
+    },
+
     /**
      * Add new resume
      */
@@ -125,14 +156,20 @@ const resumeSlice = createSlice({
      * Update resume
      */
     updateResume: (state, action) => {
-      const index = state.resumes.findIndex((r) => r._id === action.payload._id);
+      const index = state.resumes.findIndex(
+        (r) => r._id === action.payload._id
+      );
       if (index !== -1) {
         state.resumes[index] = action.payload;
       }
 
       // Update in drafts/completed arrays
-      const draftIndex = state.drafts.findIndex((r) => r._id === action.payload._id);
-      const completedIndex = state.completed.findIndex((r) => r._id === action.payload._id);
+      const draftIndex = state.drafts.findIndex(
+        (r) => r._id === action.payload._id
+      );
+      const completedIndex = state.completed.findIndex(
+        (r) => r._id === action.payload._id
+      );
 
       if (action.payload.isCompleted) {
         // Move to completed
@@ -159,6 +196,14 @@ const resumeSlice = createSlice({
       // Update selected resume if it's the same one
       if (state.selectedResume?._id === action.payload._id) {
         state.selectedResume = action.payload;
+      }
+    },
+
+    // Update current resume field (for auto-save)
+    updateCurrentResumeField: (state, action) => {
+      const { field, value } = action.payload;
+      if (state.currentResumeData) {
+        state.currentResumeData[field] = value;
       }
     },
 
@@ -244,7 +289,8 @@ const resumeSlice = createSlice({
       state.completed.forEach(incrementCount);
 
       if (state.selectedResume?._id === id) {
-        state.selectedResume.downloadCount = (state.selectedResume.downloadCount || 0) + 1;
+        state.selectedResume.downloadCount =
+          (state.selectedResume.downloadCount || 0) + 1;
       }
     },
   },
@@ -259,6 +305,10 @@ export const {
   setSelectedResume,
   setDraftResumes,
   setCompletedResumes,
+  setCurrentResumeData,
+  setIsSaving,
+  setCurrentStep,
+  setCompletionPercentage,
   setResumeLoading,
   setResumeError,
   clearResumeError,
@@ -266,6 +316,8 @@ export const {
   clearResumeState,
   addResume,
   updateResume,
+  updateCurrentResumeField,
+  clearCurrentResumeData,
   removeResume,
   updateResumeTitle,
   toggleResumeVisibility,
