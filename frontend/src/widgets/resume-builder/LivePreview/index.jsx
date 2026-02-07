@@ -25,7 +25,13 @@ import logger from '@/shared/lib/logger';
  * LivePreview Component
  * Right sidebar with live resume preview
  */
-function LivePreview({ resumeData, templateId, onClose, onTemplateChange }) {
+function LivePreview({
+  resumeData,
+  templateId,
+  onClose,
+  onTemplateChange,
+  isMobile = false,
+}) {
   // ==========================================
   // LOCAL STATE
   // ==========================================
@@ -110,7 +116,37 @@ function LivePreview({ resumeData, templateId, onClose, onTemplateChange }) {
   // RENDER
   // ==========================================
   return (
-    <div className="flex flex-col h-full bg-gray-100">
+    <div className="pb-8 flex flex-col h-full bg-gray-100">
+      {/* ==========================================
+          MOBILE CLOSE HEADER (Only on mobile)
+      ========================================== */}
+      {isMobile && (
+        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200 lg:hidden">
+          <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
+
+          {/* Close Button */}
+          <button
+            onClick={handleClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close preview"
+          >
+            <svg
+              className="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* ==========================================
           PREVIEW HEADER
       ========================================== */}
@@ -129,7 +165,7 @@ function LivePreview({ resumeData, templateId, onClose, onTemplateChange }) {
       <div className="flex-1 overflow-y-auto p-8">
         {isEmpty ? (
           // Empty state
-          <div className="flex items-center justify-center h-full px-8">
+          <div className="flex items-center justify-center h-full px-4">
             <div className="text-center max-w-md">
               {/* Animated icon */}
               <div className="relative inline-block mb-6">
@@ -211,6 +247,7 @@ LivePreview.propTypes = {
   templateId: PropTypes.string,
   onClose: PropTypes.func,
   onTemplateChange: PropTypes.func,
+  isMobile: PropTypes.bool,
 };
 
 LivePreview.defaultProps = {
@@ -218,6 +255,7 @@ LivePreview.defaultProps = {
   templateId: null,
   onClose: () => {},
   onTemplateChange: () => {},
+  isMobile: false,
 };
 
 // ==========================================

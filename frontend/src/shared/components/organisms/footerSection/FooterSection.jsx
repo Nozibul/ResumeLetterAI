@@ -158,7 +158,7 @@ ContactSection.displayName = 'ContactSection';
 
 // Footer Bottom component
 export const FooterBottom = React.memo(() => (
-  <div className="mt-12 pt-6 border-t border-slate-500">
+  <div className="mt-8 pt-6 border-t border-slate-500">
     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
       {/* Copyright */}
       <div className="text-slate-300 text-sm">

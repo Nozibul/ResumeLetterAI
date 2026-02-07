@@ -10,7 +10,7 @@ import { memo, useCallback } from 'react';
 const Button = memo(
   ({
     variant = 'primary',
-    size = 'md',
+    size = '',
     children,
     className = '',
     icon,

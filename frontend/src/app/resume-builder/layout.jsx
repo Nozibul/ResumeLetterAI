@@ -21,6 +21,7 @@ import {
   useIsAuthenticated,
   useAuthLoading,
 } from '@/shared/store/hooks/useAuth';
+import { ResumeFooter } from '@/shared/components/atoms/resumeFooter/ResumeFooter';
 
 /**
  * Resume Builder Layout
@@ -87,6 +88,8 @@ export default function ResumeBuilderLayout({ children }) {
           {/* Error boundary wraps all children */}
           {children}
         </div>
+
+        <ResumeFooter />
       </div>
     </ErrorBoundary>
   );

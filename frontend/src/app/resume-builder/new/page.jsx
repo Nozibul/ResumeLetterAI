@@ -10,15 +10,6 @@
  * - Real-time preview updates
  * - Template selection integration
  *
- * Performance:
- * - Lazy loading widgets
- * - Memoized callbacks
- * - Debounced auto-save
- *
- * Security:
- * - CSRF protection via cookies
- * - Input sanitization in forms
- * - XSS prevention
  */
 
 'use client';
@@ -213,7 +204,7 @@ export default function ResumeBuilderPage() {
       {/* ==========================================
           MAIN FORM AREA
       ========================================== */}
-      <main className="flex-1 overflow-y-auto z-20 relative">
+      <main className="lg:w-[45%] flex-1 overflow-y-auto z-20 relative">
         <Suspense fallback={<FormSkeleton />}>
           <FormArea
             currentStep={currentStep}
@@ -235,7 +226,7 @@ export default function ResumeBuilderPage() {
           fixed lg:relative inset-y-0 right-0 z-30
           transform lg:transform-none transition-transform duration-300
           ${isMobilePreviewOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-          w-full lg:w-2/5 bg-gray-100
+          w-full lg:w-[33%] bg-gray-100
         `}
       >
         <Suspense fallback={<PreviewSkeleton />}>
@@ -243,6 +234,7 @@ export default function ResumeBuilderPage() {
             resumeData={resumeData}
             templateId={selectedTemplate?._id || templateIdFromQuery}
             onClose={toggleMobilePreview}
+            isMobile={isMobilePreviewOpen}
           />
         </Suspense>
       </aside>

@@ -9,15 +9,6 @@
  * - Auto-save status indicator
  * - Mobile preview toggle button
  * - Responsive layout
- *
- * Performance:
- * - Memoized component
- * - No unnecessary re-renders
- *
- * Accessibility:
- * - Semantic HTML (header tag)
- * - ARIA labels for buttons
- * - Screen reader friendly
  */
 
 'use client';
@@ -65,7 +56,7 @@ function FormHeader({
         text: 'Saving...',
         icon: (
           <svg
-            className="animate-spin h-4 w-4 text-blue-500"
+            className="animate-spin h-4 w-4 text-teal-500"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -86,7 +77,7 @@ function FormHeader({
             />
           </svg>
         ),
-        color: 'text-blue-600',
+        color: 'text-teal-600',
       };
     }
 
@@ -94,7 +85,7 @@ function FormHeader({
       text: 'Saved',
       icon: (
         <svg
-          className="h-4 w-4 text-green-500"
+          className="h-4 w-4 text-teal-500"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -108,7 +99,7 @@ function FormHeader({
           />
         </svg>
       ),
-      color: 'text-green-600',
+      color: 'text-teal-500',
     };
   }, [validIsSaving]);
 
@@ -116,7 +107,7 @@ function FormHeader({
   // RENDER
   // ==========================================
   return (
-    <header className="border-b border-gray-200 bg-white px-8 py-6">
+    <header className="border-b border-gray-200 bg-white px-6 pt-3">
       <div className="max-w-3xl mx-auto">
         {/* ==========================================
             TOP ROW - Step Number + Auto-Save + Preview Toggle
@@ -125,14 +116,28 @@ function FormHeader({
           {/* Step number badge */}
           <div className="flex items-center gap-2">
             <span
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-600 font-semibold text-sm"
               aria-label={`Step ${validStepNumber} of 9`}
             >
               {validStepNumber}
             </span>
             <span className="text-sm text-gray-500 font-medium">of 9</span>
           </div>
+          <div>
+            {/* ==========================================
+            STEP TITLE
+        ========================================== */}
+            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+              {validStepTitle}
+            </h2>
 
+            {/* ==========================================
+            STEP DESCRIPTION
+        ========================================== */}
+            {validStepDescription && (
+              <p className="text-sm text-gray-700">{validStepDescription}</p>
+            )}
+          </div>
           {/* Right side actions */}
           <div className="flex items-center gap-4">
             {/* Auto-save indicator */}
@@ -149,7 +154,7 @@ function FormHeader({
             <button
               type="button"
               onClick={onPreviewToggle}
-              className="lg:hidden inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="lg:hidden inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
               aria-label="Toggle resume preview"
             >
               <svg
@@ -176,20 +181,6 @@ function FormHeader({
             </button>
           </div>
         </div>
-
-        {/* ==========================================
-            STEP TITLE
-        ========================================== */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {validStepTitle}
-        </h2>
-
-        {/* ==========================================
-            STEP DESCRIPTION
-        ========================================== */}
-        {validStepDescription && (
-          <p className="text-sm text-gray-600">{validStepDescription}</p>
-        )}
       </div>
     </header>
   );

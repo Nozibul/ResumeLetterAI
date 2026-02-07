@@ -59,10 +59,10 @@ function PreviewHeader({
   `.trim();
 
   return (
-    <header className="border-b border-gray-200 bg-white px-6 py-4 shadow-sm">
+    <header className="border-b border-gray-200 bg-white px-3 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         {/* LEFT - Title + Close */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Mobile close */}
           <button
             type="button"
@@ -88,16 +88,16 @@ function PreviewHeader({
           {/* Title with icon */}
           <div className="flex items-center gap-2">
             <div className="hidden sm:block w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900">
               Live Preview
             </h3>
           </div>
         </div>
 
         {/* RIGHT - Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {/* ZOOM CONTROLS */}
-          <div className="hidden md:flex items-center gap-2 bg-gray-50 rounded-lg p-1">
+          <div className="hidden md:flex items-center gap-1 bg-gray-50 rounded-lg p-1">
             {/* Zoom out */}
             <button
               type="button"
@@ -125,7 +125,7 @@ function PreviewHeader({
             <button
               type="button"
               onClick={onZoomReset}
-              className="px-3 py-2 min-w-[4rem] text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-teal-50 hover:text-teal-600 hover:border-teal-300 transition-all duration-200"
+              className="px-2 py-2 min-w-[3rem] text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-teal-50 hover:text-teal-600 hover:border-teal-300 transition-all duration-200"
             >
               {validZoomLevel}%
             </button>
@@ -155,7 +155,12 @@ function PreviewHeader({
           </div>
 
           {/* TEMPLATE CHANGE */}
-          <Button onClick={handleTemplateChange} variant="secondary" size="sm">
+          <Button
+            onClick={handleTemplateChange}
+            variant="secondary"
+            size="sm"
+            // className="text-[14px] px-2 py-2"
+          >
             Change Template
           </Button>
         </div>

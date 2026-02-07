@@ -155,6 +155,8 @@ export const SKILLS_SUGGESTIONS = {
     'System Design',
     'Microservices',
     'Unit Testing',
+    'Integration Testing',
+    'TDD',
   ],
 };
 

@@ -128,6 +128,7 @@ export default function RootLayout({ children }) {
     '/registration',
     '/forgot-password',
     '/reset-password',
+    '/resume-builder/new',
   ];
 
   return (

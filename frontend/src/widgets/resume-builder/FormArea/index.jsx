@@ -10,15 +10,6 @@
  * - Auto-save indicator
  * - Mobile preview toggle
  * - Smooth transitions between steps
- *
- * Performance:
- * - Lazy loading step components
- * - Memoized callbacks
- * - Optimized re-renders
- *
- * Security:
- * - Input sanitization handled by child forms
- * - CSRF protection via API client
  */
 
 'use client';
@@ -104,7 +95,7 @@ function FormArea({ currentStep, onNext, onBack, onPreviewToggle, isSaving }) {
   const stepDescriptions = useMemo(
     () => ({
       1: 'Enter your contact information and professional links',
-      2: 'Write a brief professional summary (optional but recommended)',
+      2: 'Write a brief professional summary (optional)',
       3: 'Add your work experience with key responsibilities',
       4: 'Showcase your projects with technologies used',
       5: 'List your technical skills by category',
@@ -199,7 +190,7 @@ function FormArea({ currentStep, onNext, onBack, onPreviewToggle, isSaving }) {
       {/* ==========================================
           FORM CONTENT (Scrollable)
       ========================================== */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="custom-scrollbar flex-1 overflow-y-auto px-6 py-6">
         <Suspense fallback={<FormSkeleton />}>
           <div
             className="max-w-3xl mx-auto animate-fadeInUp"

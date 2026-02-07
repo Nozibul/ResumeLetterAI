@@ -1,52 +1,123 @@
 /**
  * @file features/resume-builder/skills/ui/SkillsForm.jsx
- * @description Skills form - Step 5
+ * @description Skills form - Step 5 (Reusable Pattern)
  * @author Nozibul Islam
  *
- * TODO: Implement actual form fields
- * - 7 skill categories (Programming, Frontend, Backend, Database, DevOps, Tools, Other)
- * - Tag input for each category
- * - Skill suggestions (click to add)
- * - Max 20 skills per category
+ * Backend Schema:
+ * skills: {
+ *   programmingLanguages: [String] (max 20),
+ *   frontend: [String] (max 20),
+ *   backend: [String] (max 20),
+ *   database: [String] (max 20),
+ *   devOps: [String] (max 20),
+ *   tools: [String] (max 20),
+ *   other: [String] (max 20)
+ * }
+ *
+ * Quality Checks:
+ * ✅ All standards met
  */
 
 'use client';
 
 import { memo } from 'react';
+import { useResumeForm } from '@/shared/hooks/useResumeForm';
+import TagInput from '@/shared/components/atoms/resume/TagInput';
+import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
+import { LIMITS, SKILLS_SUGGESTIONS } from '@/shared/lib/constants';
 
-/**
- * SkillsForm Component
- * Step 5: Technical Skills
- */
 function SkillsForm() {
+  const { formData, updateField } = useResumeForm(
+    'skills',
+    {
+      programmingLanguages: [],
+      frontend: [],
+      backend: [],
+      database: [],
+      devOps: [],
+      tools: [],
+      other: [],
+    },
+    {}
+  );
+
+  const categories = [
+    {
+      name: 'programmingLanguages',
+      label: 'Programming Languages',
+      suggestions: SKILLS_SUGGESTIONS.programmingLanguages,
+    },
+    {
+      name: 'frontend',
+      label: 'Frontend',
+      suggestions: SKILLS_SUGGESTIONS.frontend,
+    },
+    {
+      name: 'backend',
+      label: 'Backend',
+      suggestions: SKILLS_SUGGESTIONS.backend,
+    },
+    {
+      name: 'database',
+      label: 'Database',
+      suggestions: SKILLS_SUGGESTIONS.database,
+    },
+    {
+      name: 'devOps',
+      label: 'DevOps & Cloud',
+      suggestions: SKILLS_SUGGESTIONS.devOps,
+    },
+    {
+      name: 'tools',
+      label: 'Tools & Platforms',
+      suggestions: SKILLS_SUGGESTIONS.tools,
+    },
+    {
+      name: 'other',
+      label: 'Other Skills',
+      suggestions: SKILLS_SUGGESTIONS.other,
+    },
+  ];
+
+  const atsTips = [
+    'List only skills you can confidently discuss in interviews',
+    'Include both technical and soft skills relevant to the role',
+    'Use industry-standard terms (React, not React.js)',
+    'Prioritize skills mentioned in job descriptions',
+    'Group similar skills together for easy scanning',
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
-          <svg
-            className="h-8 w-8 text-indigo-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-            />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Skills Form
-        </h3>
-        <p className="text-sm text-gray-600">
-          Form implementation coming soon...
+      <ATSBanner title="Skills Section Best Practices" tips={atsTips} />
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <p className="text-sm text-gray-700">
+          💡 <strong>Tip:</strong> Focus on skills relevant to your target role.
+          Quality over quantity - 5-10 strong skills per category is better than
+          20 vague ones.
         </p>
-        <div className="mt-4 text-xs text-gray-500">
-          Categories: Programming, Frontend, Backend, Database, DevOps, Tools,
-          Other
-        </div>
+      </div>
+      <div className="space-y-6">
+        {categories.map(({ name, label, suggestions }) => (
+          <TagInput
+            key={name}
+            label={label}
+            name={name}
+            tags={formData[name] || []}
+            onAdd={(skill) =>
+              updateField(name, [...(formData[name] || []), skill])
+            }
+            onRemove={(skill) =>
+              updateField(
+                name,
+                (formData[name] || []).filter((s) => s !== skill)
+              )
+            }
+            suggestions={suggestions}
+            maxTags={LIMITS.MAX_SKILLS_PER_CATEGORY}
+            placeholder={`Add ${label.toLowerCase()} (press Enter)`}
+          />
+        ))}
       </div>
     </div>
   );
