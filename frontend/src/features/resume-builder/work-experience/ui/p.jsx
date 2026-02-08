@@ -1,20 +1,21 @@
 /**
- * @file features/resume-builder/projects/ui/ProjectsForm.jsx
- * @description Projects form - Step 4 (Reusable Pattern)
+ * @file features/resume-builder/work-experience/ui/WorkExperienceForm.jsx
+ * @description Work Experience form - Step 3 (Reusable Pattern)
  * @author Nozibul Islam
  *
  * Backend Schema:
- * projects: [{
- *   projectName: String (required, max 100),
- *   technologies: [String] (max 30),
- *   description: String (optional, max 500),
- *   liveUrl: String (optional),
- *   sourceCode: String (optional),
- *   highlights: [String] (max 10, max 300 each)
+ * workExperience: [{
+ *   jobTitle: String (required, max 100),
+ *   company: String (required, max 100),
+ *   location: String (optional, max 100),
+ *   startDate: { month: Number, year: Number },
+ *   endDate: { month: Number, year: Number },
+ *   currentlyWorking: Boolean,
+ *   responsibilities: [String] (max 20, max 500 each)
  * }]
  *
  * Quality Checks:
- * ✅ All standards met
+ * ✅ All quality standards met
  */
 
 'use client';
@@ -28,21 +29,21 @@ import {
 } from '@/shared/store/slices/resumeSlice';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import ResumeTextarea from '@/shared/components/atoms/resume/ResumeTextarea';
-import TagInput from '@/shared/components/atoms/resume/TagInput';
+import DatePicker from '@/shared/components/atoms/resume/DatePicker';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
-import { LIMITS, SKILLS_SUGGESTIONS } from '@/shared/lib/constants';
+import { LIMITS } from '@/shared/lib/constants';
 import { reorderArray } from '@/shared/lib/utils';
 import logger from '@/shared/lib/logger';
 
-function ProjectsForm() {
+function WorkExperienceForm() {
   const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
-  const [projects, setProjects] = useState([createEmpty()]);
+  const [experiences, setExperiences] = useState([createEmpty()]);
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
-    if (resumeData?.projects?.length > 0) {
-      setProjects(resumeData.projects);
+    if (resumeData?.workExperience?.length > 0) {
+      setExperiences(resumeData.workExperience);
     }
   }, []);
 
@@ -50,36 +51,40 @@ function ProjectsForm() {
     if (!touched) return;
     const timer = setTimeout(() => {
       dispatch(setIsSaving(true));
-      const valid = projects.filter((p) => p.projectName?.trim());
-      dispatch(updateCurrentResumeField({ field: 'projects', value: valid }));
+      const valid = experiences.filter(
+        (e) => e.jobTitle?.trim() || e.company?.trim()
+      );
+      dispatch(
+        updateCurrentResumeField({ field: 'workExperience', value: valid })
+      );
       setTimeout(() => dispatch(setIsSaving(false)), 500);
     }, 500);
     return () => clearTimeout(timer);
-  }, [projects, touched, dispatch]);
+  }, [experiences, touched, dispatch]);
 
   const handleAdd = useCallback(() => {
-    if (projects.length >= LIMITS.MAX_PROJECTS) {
-      alert(`Max ${LIMITS.MAX_PROJECTS} projects`);
+    if (experiences.length >= LIMITS.MAX_WORK_EXPERIENCES) {
+      alert(`Max ${LIMITS.MAX_WORK_EXPERIENCES} experiences`);
       return;
     }
-    setProjects((prev) => [...prev, createEmpty()]);
+    setExperiences((prev) => [...prev, createEmpty()]);
     setTouched(true);
-  }, [projects.length]);
+  }, [experiences.length]);
 
   const handleRemove = useCallback(
     (idx) => {
-      if (projects.length === 1) {
-        setProjects([createEmpty()]);
+      if (experiences.length === 1) {
+        setExperiences([createEmpty()]);
       } else {
-        setProjects((prev) => prev.filter((_, i) => i !== idx));
+        setExperiences((prev) => prev.filter((_, i) => i !== idx));
       }
       setTouched(true);
     },
-    [projects.length]
+    [experiences.length]
   );
 
   const handleUpdate = useCallback((idx, field, value) => {
-    setProjects((prev) => {
+    setExperiences((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [field]: value };
       return updated;
@@ -88,43 +93,33 @@ function ProjectsForm() {
   }, []);
 
   const handleReorder = useCallback((from, to) => {
-    setProjects((prev) => reorderArray(prev, from, to));
+    setExperiences((prev) => reorderArray(prev, from, to));
     setTouched(true);
   }, []);
 
   const atsTips = [
-    'List your best 3-5 projects (quality > quantity)',
-    'Include tech stack for ATS keyword matching',
-    'Add live demo and GitHub links',
-    'Quantify impact (users, performance, scale)',
-    'Highlight your specific contributions',
-  ];
-
-  // Combine tech suggestions
-  const allTechSuggestions = [
-    ...SKILLS_SUGGESTIONS.programmingLanguages,
-    ...SKILLS_SUGGESTIONS.frontend,
-    ...SKILLS_SUGGESTIONS.backend,
-    ...SKILLS_SUGGESTIONS.database,
-    ...SKILLS_SUGGESTIONS.devOps,
+    'Use bullet points (3-5 per role)',
+    'Start with action verbs (Led, Developed, Increased)',
+    'Quantify results (reduced by 30%, managed $2M budget)',
+    'Focus on impact, not tasks',
+    'List most recent first',
   ];
 
   return (
     <div className="space-y-6">
-      <ATSBanner title="Project Tips for Developers" tips={atsTips} />
+      <ATSBanner title="ATS-Optimized Experience Tips" tips={atsTips} />
 
       <div className="space-y-6">
-        {projects.map((proj, idx) => (
-          <ProjectItem
+        {experiences.map((exp, idx) => (
+          <ExperienceItem
             key={idx}
             index={idx}
-            project={proj}
-            techSuggestions={allTechSuggestions}
+            experience={exp}
             onUpdate={handleUpdate}
             onRemove={handleRemove}
             onMoveUp={idx > 0 ? () => handleReorder(idx, idx - 1) : null}
             onMoveDown={
-              idx < projects.length - 1
+              idx < experiences.length - 1
                 ? () => handleReorder(idx, idx + 1)
                 : null
             }
@@ -135,7 +130,7 @@ function ProjectsForm() {
       <button
         type="button"
         onClick={handleAdd}
-        disabled={projects.length >= LIMITS.MAX_PROJECTS}
+        disabled={experiences.length >= LIMITS.MAX_WORK_EXPERIENCES}
         className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         <svg
@@ -152,53 +147,62 @@ function ProjectsForm() {
           />
         </svg>
         <span className="font-medium">
-          Add Project ({projects.length}/{LIMITS.MAX_PROJECTS})
+          Add Experience ({experiences.length}/{LIMITS.MAX_WORK_EXPERIENCES})
         </span>
       </button>
     </div>
   );
 }
 
-const ProjectItem = memo(
-  ({
-    index,
-    project,
-    techSuggestions,
-    onUpdate,
-    onRemove,
-    onMoveUp,
-    onMoveDown,
-  }) => {
-    const handleHighlightChange = useCallback(
-      (hIdx, value) => {
-        const updated = [...(project.highlights || [])];
-        updated[hIdx] = value;
-        onUpdate(index, 'highlights', updated);
+const ExperienceItem = memo(
+  ({ index, experience, onUpdate, onRemove, onMoveUp, onMoveDown }) => {
+    const [dateError, setDateError] = useState(null);
+
+    useEffect(() => {
+      if (experience.endDate && experience.startDate) {
+        const start =
+          experience.startDate.year * 12 + experience.startDate.month;
+        const end = experience.endDate.year * 12 + experience.endDate.month;
+        if (end < start) {
+          setDateError('End date must be after start date');
+        } else {
+          setDateError(null);
+        }
+      }
+    }, [experience.startDate, experience.endDate]);
+
+    const handleRespChange = useCallback(
+      (rIdx, value) => {
+        const updated = [...(experience.responsibilities || [])];
+        updated[rIdx] = value;
+        onUpdate(index, 'responsibilities', updated);
       },
-      [project.highlights, index, onUpdate]
+      [experience.responsibilities, index, onUpdate]
     );
 
-    const handleAddHighlight = useCallback(() => {
-      const current = project.highlights || [];
-      if (current.length >= LIMITS.MAX_HIGHLIGHTS) {
-        alert(`Max ${LIMITS.MAX_HIGHLIGHTS} highlights`);
+    const handleAddResp = useCallback(() => {
+      const current = experience.responsibilities || [];
+      if (current.length >= LIMITS.MAX_RESPONSIBILITIES) {
+        alert(`Max ${LIMITS.MAX_RESPONSIBILITIES} bullets`);
         return;
       }
-      onUpdate(index, 'highlights', [...current, '']);
-    }, [project.highlights, index, onUpdate]);
+      onUpdate(index, 'responsibilities', [...current, '']);
+    }, [experience.responsibilities, index, onUpdate]);
 
-    const handleRemoveHighlight = useCallback(
-      (hIdx) => {
-        const updated = (project.highlights || []).filter((_, i) => i !== hIdx);
-        onUpdate(index, 'highlights', updated);
+    const handleRemoveResp = useCallback(
+      (rIdx) => {
+        const updated = (experience.responsibilities || []).filter(
+          (_, i) => i !== rIdx
+        );
+        onUpdate(index, 'responsibilities', updated);
       },
-      [project.highlights, index, onUpdate]
+      [experience.responsibilities, index, onUpdate]
     );
 
     return (
       <div className="border-2 border-gray-200 rounded-lg p-6 bg-white">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Project #{index + 1}</h3>
+          <h3 className="text-lg font-semibold">Experience #{index + 1}</h3>
           <div className="flex gap-2">
             {onMoveUp && (
               <button
@@ -266,91 +270,73 @@ const ProjectItem = memo(
 
         <div className="space-y-4">
           <ResumeInput
-            label="Project Name"
-            name="projectName"
-            value={project.projectName || ''}
-            onChange={(e) => onUpdate(index, 'projectName', e.target.value)}
-            placeholder="E-commerce Platform"
+            label="Job Title"
+            name="jobTitle"
+            value={experience.jobTitle || ''}
+            onChange={(e) => onUpdate(index, 'jobTitle', e.target.value)}
+            placeholder="Software Engineer"
             required
             maxLength={LIMITS.TITLE_MAX_LENGTH}
             showCounter
           />
 
-          <TagInput
-            label="Tech Stack"
-            name="technologies"
-            tags={project.technologies || []}
-            onAdd={(tech) =>
-              onUpdate(index, 'technologies', [
-                ...(project.technologies || []),
-                tech,
-              ])
-            }
-            onRemove={(tech) =>
-              onUpdate(
-                index,
-                'technologies',
-                (project.technologies || []).filter((t) => t !== tech)
-              )
-            }
-            suggestions={techSuggestions}
-            maxTags={LIMITS.MAX_TECHNOLOGIES}
-            placeholder="React, Node.js, MongoDB (press Enter)"
-          />
-
-          <ResumeTextarea
-            label="Description"
-            name="description"
-            value={project.description || ''}
-            onChange={(e) => onUpdate(index, 'description', e.target.value)}
-            placeholder="Full-stack e-commerce platform with real-time inventory management..."
-            rows={3}
-            maxLength={500}
-            helperText="Optional"
-          />
-
           <div className="grid grid-cols-2 gap-4">
             <ResumeInput
-              label="Live URL"
-              name="liveUrl"
-              type="url"
-              value={project.liveUrl || ''}
-              onChange={(e) => onUpdate(index, 'liveUrl', e.target.value)}
-              placeholder="https://myproject.com"
-              helperText="Optional"
+              label="Company"
+              name="company"
+              value={experience.company || ''}
+              onChange={(e) => onUpdate(index, 'company', e.target.value)}
+              placeholder="Google"
+              required
+              maxLength={LIMITS.TITLE_MAX_LENGTH}
             />
             <ResumeInput
-              label="Source Code"
-              name="sourceCode"
-              type="url"
-              value={project.sourceCode || ''}
-              onChange={(e) => onUpdate(index, 'sourceCode', e.target.value)}
-              placeholder="https://github.com/user/repo"
-              helperText="Optional"
+              label="Location"
+              name="location"
+              value={experience.location || ''}
+              onChange={(e) => onUpdate(index, 'location', e.target.value)}
+              placeholder="San Francisco, CA"
+              maxLength={LIMITS.TITLE_MAX_LENGTH}
             />
           </div>
 
+          <DatePicker
+            label="Employment Period"
+            startDate={experience.startDate}
+            endDate={experience.endDate}
+            isCurrent={experience.currentlyWorking}
+            onStartChange={(date) => onUpdate(index, 'startDate', date)}
+            onEndChange={(date) => onUpdate(index, 'endDate', date)}
+            onCurrentChange={(checked) => {
+              onUpdate(index, 'currentlyWorking', checked);
+              if (checked) onUpdate(index, 'endDate', null);
+            }}
+            error={dateError}
+            required
+            currentLabel="I currently work here"
+          />
+
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
-              Key Highlights
+              Key Responsibilities
             </label>
-            {(project.highlights || ['']).map((h, hIdx) => (
-              <div key={hIdx} className="flex gap-2">
+            {(experience.responsibilities || ['']).map((resp, rIdx) => (
+              <div key={rIdx} className="flex gap-2">
                 <span className="text-gray-400 mt-3">•</span>
                 <ResumeTextarea
                   label=""
-                  name={`highlight-${hIdx}`}
-                  value={h}
-                  onChange={(e) => handleHighlightChange(hIdx, e.target.value)}
-                  placeholder="Served 100K+ users with 99.9% uptime"
+                  name={`resp-${rIdx}`}
+                  value={resp}
+                  onChange={(e) => handleRespChange(rIdx, e.target.value)}
+                  placeholder="Led development of microservices, reducing latency by 40%"
                   rows={2}
-                  maxLength={300}
+                  maxLength={500}
                   className="flex-1"
                 />
-                {(project.highlights || []).length > 1 && (
+                {(experience.responsibilities || []).length > 1 && (
                   <button
                     type="button"
-                    onClick={() => handleRemoveHighlight(hIdx)}
+                    onClick={() => handleRemoveResp(rIdx)}
                     className="p-2 text-red-600"
                   >
                     <svg
@@ -372,14 +358,15 @@ const ProjectItem = memo(
             ))}
             <button
               type="button"
-              onClick={handleAddHighlight}
+              onClick={handleAddResp}
               disabled={
-                (project.highlights || []).length >= LIMITS.MAX_HIGHLIGHTS
+                (experience.responsibilities || []).length >=
+                LIMITS.MAX_RESPONSIBILITIES
               }
               className="text-sm text-teal-600 font-medium disabled:opacity-50"
             >
-              + Add Highlight ({(project.highlights || []).length}/
-              {LIMITS.MAX_HIGHLIGHTS})
+              + Add Bullet ({(experience.responsibilities || []).length}/
+              {LIMITS.MAX_RESPONSIBILITIES})
             </button>
           </div>
         </div>
@@ -388,17 +375,18 @@ const ProjectItem = memo(
   }
 );
 
-ProjectItem.displayName = 'ProjectItem';
+ExperienceItem.displayName = 'ExperienceItem';
 
 function createEmpty() {
   return {
-    projectName: '',
-    technologies: [],
-    description: '',
-    liveUrl: '',
-    sourceCode: '',
-    highlights: [''],
+    jobTitle: '',
+    company: '',
+    location: '',
+    startDate: null,
+    endDate: null,
+    currentlyWorking: false,
+    responsibilities: [''],
   };
 }
 
-// export default memo(ProjectsForm);
+// export default memo(WorkExperienceForm);

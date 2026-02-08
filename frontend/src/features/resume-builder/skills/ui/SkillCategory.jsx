@@ -36,11 +36,8 @@ function SkillCategory({
     <div className="bg-white border border-gray-200 rounded-lg p-5 hover:border-teal-300 transition-colors">
       {/* Header with Icon */}
       <div className="flex items-center gap-2 mb-3">
-        {icon && <span className="text-2xl">{icon}</span>}
+        {icon && <span className="text-lg">{icon}</span>}
         <h3 className="text-base font-semibold text-gray-900">{label}</h3>
-        <span className="text-xs text-gray-500">
-          ({skills.length}/{LIMITS.MAX_SKILLS_PER_CATEGORY})
-        </span>
       </div>
 
       {/* Tag Input */}

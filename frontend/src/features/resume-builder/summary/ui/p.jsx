@@ -153,4 +153,4 @@ function SummaryForm() {
   );
 }
 
-export default memo(SummaryForm);
+// export default memo(SummaryForm);

@@ -1,35 +1,37 @@
 /**
  * @file features/resume-builder/personal-info/ui/PersonalInfoForm.jsx
- * @description Personal Info form - Step 1 (REFACTORED)
+ * @description Personal Info form - Step 1
  * @author Nozibul Islam
  *
  * Architecture:
- * - Uses sub-components (SocialLinksSection, PhotoUpload)
- * - Uses useResumeForm hook (reusable logic)
+ * - Uses useResumeForm hook (reusable base logic)
  * - Uses atomic components (ResumeInput, ATSBanner)
- * - Follows FSD + Atomic Design + Industry Standard
- * - Business logic in model/, UI in ui/
+ * - Follows FSD + Atomic Design principles
+ * - Business logic isolated from UI
  *
- * Self-Review:
- * ✅ Readability: Clean, modular, well-commented
- * ✅ Performance: Memoized, debounced auto-save
- * ✅ Security: XSS prevention, validation
- * ✅ Best Practices: Separation of concerns, accessible
- * ✅ Potential Bugs: Null-safe, edge cases handled
- * ✅ Memory Leaks: Cleanup in hook
+ * Backend Schema Match:
+ * personalInfo: {
+ *   fullName: String (required, max 100)
+ *   jobTitle: String (required, max 100)
+ *   email: String (required, validated)
+ *   phone: String (required, 10-15 digits)
+ *   location: String (optional, max 100)
+ *   linkedin: String (optional, URL)
+ *   github: String (optional, URL)
+ *   portfolio: String (optional, URL)
+ *   leetcode: String (optional, URL)
+ * }
  */
 
 'use client';
 
-import { memo, useState, useCallback } from 'react';
+import { memo, useState } from 'react';
 import {
   useResumeForm,
   commonValidationRules,
 } from '@/shared/hooks/useResumeForm';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
-import SocialLinksSection from './SocialLinksSection';
-import PhotoUpload from './PhotoUpload';
 import { LIMITS } from '@/shared/lib/constants';
 
 /**
@@ -38,7 +40,7 @@ import { LIMITS } from '@/shared/lib/constants';
  */
 function PersonalInfoForm() {
   // ==========================================
-  // FORM DATA & VALIDATION
+  // INITIAL DATA
   // ==========================================
   const initialData = {
     fullName: '',
@@ -52,6 +54,9 @@ function PersonalInfoForm() {
     leetcode: '',
   };
 
+  // ==========================================
+  // VALIDATION RULES
+  // ==========================================
   const validationRules = {
     fullName: commonValidationRules.required(
       'Full Name',
@@ -70,6 +75,9 @@ function PersonalInfoForm() {
     leetcode: commonValidationRules.url,
   };
 
+  // ==========================================
+  // USE REUSABLE HOOK
+  // ==========================================
   const { formData, errors, touched, isValid, handleChange, handleBlur } =
     useResumeForm('personalInfo', initialData, validationRules);
 
@@ -77,20 +85,6 @@ function PersonalInfoForm() {
   // LOCAL STATE (UI only)
   // ==========================================
   const [showSocialLinks, setShowSocialLinks] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState(null);
-
-  // ==========================================
-  // HANDLERS
-  // ==========================================
-  const toggleSocialLinks = useCallback(() => {
-    setShowSocialLinks((prev) => !prev);
-  }, []);
-
-  const handlePhotoChange = useCallback((file) => {
-    setProfilePhoto(file);
-    // TODO: Upload to server/cloud storage
-    console.log('Photo selected:', file);
-  }, []);
 
   // ==========================================
   // ATS TIPS
@@ -107,13 +101,10 @@ function PersonalInfoForm() {
   // ==========================================
   return (
     <div className="space-y-6">
-      {/* ATS GUIDELINES BANNER */}
+      {/* ATS GUIDELINES */}
       <ATSBanner title="ATS-Friendly Tips" tips={atsTips} />
 
-      {/* PROFILE PHOTO (Optional) */}
-      <PhotoUpload onPhotoChange={handlePhotoChange} initialPhoto={null} />
-
-      {/* REQUIRED CONTACT FIELDS */}
+      {/* REQUIRED FIELDS */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Contact Information <span className="text-red-500">*</span>
@@ -157,7 +148,7 @@ function PersonalInfoForm() {
           value={formData.email}
           onChange={handleChange}
           onBlur={handleBlur}
-          placeholder="john.doe@gmail.com"
+          placeholder="john.doe@example.com"
           required
           error={errors.email}
           touched={touched.email}
@@ -194,16 +185,92 @@ function PersonalInfoForm() {
         />
       </div>
 
-      {/* SOCIAL LINKS SECTION (Sub-Component) */}
-      <SocialLinksSection
-        formData={formData}
-        errors={errors}
-        touched={touched}
-        isExpanded={showSocialLinks}
-        onToggle={toggleSocialLinks}
-        handleChange={handleChange}
-        handleBlur={handleBlur}
-      />
+      {/* SOCIAL LINKS (Collapsible) */}
+      <div className="border-t border-gray-200 pt-6">
+        <button
+          type="button"
+          onClick={() => setShowSocialLinks(!showSocialLinks)}
+          className="flex items-center justify-between w-full text-left focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
+        >
+          <h3 className="text-lg font-semibold text-gray-900">
+            Social Links{' '}
+            <span className="text-gray-400 text-sm font-normal">
+              (Optional but recommended for IT)
+            </span>
+          </h3>
+          <svg
+            className={`h-5 w-5 text-gray-500 transition-transform ${
+              showSocialLinks ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {showSocialLinks && (
+          <div className="mt-4 space-y-4 animate-fadeInUp">
+            {/* LinkedIn */}
+            <ResumeInput
+              label="LinkedIn Profile"
+              name="linkedin"
+              type="url"
+              value={formData.linkedin}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="https://linkedin.com/in/johndoe"
+              error={errors.linkedin}
+              touched={touched.linkedin}
+            />
+
+            {/* GitHub */}
+            <ResumeInput
+              label="GitHub Profile"
+              name="github"
+              type="url"
+              value={formData.github}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="https://github.com/johndoe"
+              error={errors.github}
+              touched={touched.github}
+            />
+
+            {/* Portfolio */}
+            <ResumeInput
+              label="Portfolio Website"
+              name="portfolio"
+              type="url"
+              value={formData.portfolio}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="https://johndoe.com"
+              error={errors.portfolio}
+              touched={touched.portfolio}
+            />
+
+            {/* LeetCode */}
+            <ResumeInput
+              label="LeetCode Profile"
+              name="leetcode"
+              type="url"
+              value={formData.leetcode}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="https://leetcode.com/johndoe"
+              error={errors.leetcode}
+              touched={touched.leetcode}
+            />
+          </div>
+        )}
+      </div>
 
       {/* VALIDATION STATUS */}
       {!isValid && Object.keys(touched).length > 0 && (
@@ -217,4 +284,4 @@ function PersonalInfoForm() {
   );
 }
 
-export default memo(PersonalInfoForm);
+// export default memo(PersonalInfoForm);
