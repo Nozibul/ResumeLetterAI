@@ -1,5 +1,5 @@
 /**
- * @file app/(resume-builder)/new/page.jsx
+ * @file app/resume-builder/new/page.jsx
  * @description Main resume builder page - Create new resume
  * @author Nozibul Islam
  *
@@ -7,9 +7,13 @@
  * - 3-column responsive layout (Sidebar, Form, Preview)
  * - Step-based navigation (9 steps)
  * - Auto-save functionality
- * - Real-time preview updates
+ * - Real-time preview updates with Redux
  * - Template selection integration
  *
+ * CHANGES:
+ * ✅ Added Redux initialization
+ * ✅ Changed LivePreview to LivePreviewContainer
+ * ✅ Removed resumeData/templateId props (Redux handles it now)
  */
 
 'use client';
@@ -23,17 +27,18 @@ import {
   Suspense,
 } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDispatch } from 'react-redux';
 import logger from '@/shared/lib/logger';
 
 // ==========================================
-// REDUX HOOKS
+// REDUX HOOKS & ACTIONS
 // ==========================================
-// import { useAppDispatch } from '@/store/hooks/useAuth';
 import { useSelectedTemplate } from '@/shared/store/hooks/useTemplates';
 import {
   useCurrentResumeData,
   useIsSaving,
 } from '@/shared/store/hooks/useResume';
+import { setCurrentResumeData } from '@/shared/store/slices/resumeSlice';
 
 // ==========================================
 // LAZY LOADED WIDGETS (Performance optimization)
@@ -42,7 +47,9 @@ const NavigationSidebar = lazy(
   () => import('@/widgets/resume-builder/NavigationSidebar')
 );
 const FormArea = lazy(() => import('@/widgets/resume-builder/FormArea'));
-const LivePreview = lazy(() => import('@/widgets/resume-builder/LivePreview'));
+const LivePreviewContainer = lazy(
+  () => import('@/widgets/resume-builder/LivePreview/LivePreviewContainer')
+);
 
 // ==========================================
 // LOADING SKELETON COMPONENTS
@@ -79,7 +86,7 @@ const PreviewSkeleton = () => (
  */
 export default function ResumeBuilderPage() {
   const router = useRouter();
-  // const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
   const searchParams = useSearchParams();
 
   // ==========================================
@@ -97,20 +104,60 @@ export default function ResumeBuilderPage() {
   const isSaving = useIsSaving();
 
   // ==========================================
+  // ✅ REDUX INITIALIZATION (NEW)
+  // ==========================================
+  useEffect(() => {
+    // Initialize empty resume structure for new resume
+    dispatch(
+      setCurrentResumeData({
+        personalInfo: {},
+        summary: {},
+        workExperience: [],
+        projects: [],
+        skills: {},
+        education: [],
+        competitiveProgramming: [],
+        certifications: [],
+        sectionVisibility: {
+          personalInfo: true,
+          summary: true,
+          workExperience: true,
+          projects: true,
+          skills: true,
+          education: true,
+          competitiveProgramming: true,
+          certifications: true,
+        },
+        customization: {
+          colors: {
+            primary: '#000000',
+            secondary: '#333333',
+            accent: '#0066CC',
+          },
+          fonts: {
+            heading: 'Arial',
+            body: 'Arial',
+          },
+          nameStyle: {
+            position: 'center',
+            case: 'uppercase',
+            bold: true,
+          },
+        },
+      })
+    );
+  }, [dispatch]);
+
+  // ==========================================
   // TEMPLATE INITIALIZATION
   // ==========================================
   useEffect(() => {
     // If template ID in URL but not in Redux, fetch it
     if (templateIdFromQuery && !selectedTemplate) {
-      // Dispatch action to fetch template
+      // TODO: Dispatch action to fetch template
       // dispatch(fetchTemplateById(templateIdFromQuery));
       logger.info('Template ID from URL:', templateIdFromQuery);
     }
-
-    // Cleanup
-    return () => {
-      // No cleanup needed
-    };
   }, [templateIdFromQuery, selectedTemplate]);
 
   // ==========================================
@@ -204,7 +251,7 @@ export default function ResumeBuilderPage() {
       {/* ==========================================
           MAIN FORM AREA
       ========================================== */}
-      <main className="lg:w-[45%] flex-1 overflow-y-auto z-20 relative">
+      <main className="lg:w-[40%] flex-1 overflow-y-auto z-20 relative">
         <Suspense fallback={<FormSkeleton />}>
           <FormArea
             currentStep={currentStep}
@@ -217,7 +264,8 @@ export default function ResumeBuilderPage() {
       </main>
 
       {/* ==========================================
-          PREVIEW - Live Resume Preview
+          PREVIEW - Live Resume Preview (UPDATED)
+          Now uses LivePreviewContainer with Redux
           Hidden on mobile (toggle button in FormArea)
           Side-by-side on desktop
       ========================================== */}
@@ -226,15 +274,13 @@ export default function ResumeBuilderPage() {
           fixed lg:relative inset-y-0 right-0 z-30
           transform lg:transform-none transition-transform duration-300
           ${isMobilePreviewOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-          w-full lg:w-[33%] bg-gray-100
+          w-full lg:w-[40%] bg-gray-100
         `}
       >
         <Suspense fallback={<PreviewSkeleton />}>
-          <LivePreview
-            resumeData={resumeData}
-            templateId={selectedTemplate?._id || templateIdFromQuery}
-            onClose={toggleMobilePreview}
+          <LivePreviewContainer
             isMobile={isMobilePreviewOpen}
+            onClose={toggleMobilePreview}
           />
         </Suspense>
       </aside>

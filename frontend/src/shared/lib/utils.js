@@ -67,30 +67,73 @@ export const formatName = (name, caseType = 'uppercase') => {
 // ==========================================
 
 /**
- * Format {month, year} to display string
- * @param {Object} date - { month: Number, year: Number }
- * @returns {string} - "Jan 2023"
+ * Format date object to readable string
+ * Handles both Date objects and { month, year } objects
+ *
+ * @param {Date|Object|string|null} date - Date to format
+ * @returns {string} Formatted date string
+ *
+ * Examples:
+ * formatDate(new Date()) → "Jan 2024"
+ * formatDate({ month: 1, year: 2024 }) → "Jan 2024"
+ * formatDate("2024-01-15") → "Jan 2024"
+ * formatDate(null) → "Present"
  */
-export const formatDate = (date) => {
-  if (!date?.month || !date?.year) return '';
+export function formatDate(date) {
+  if (!date) return 'Present';
 
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
+  try {
+    // Handle { month, year } object (from forms)
+    if (
+      typeof date === 'object' &&
+      date.month !== undefined &&
+      date.year !== undefined
+    ) {
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      const monthIndex = parseInt(date.month) - 1; // month is 1-12
+      const monthName = months[monthIndex] || 'Jan';
+      return `${monthName} ${date.year}`;
+    }
 
-  return `${months[date.month - 1]} ${date.year}`;
-};
+    // Handle Date object or string
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
+
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return `${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid Date';
+  }
+}
 
 /**
  * Compare two {month, year} dates

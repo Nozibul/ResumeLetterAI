@@ -10,6 +10,7 @@
  * - Max length enforcement
  * - Controlled input
  * - Accessible labels
+ * - Safe undefined value handling
  *
  * Quality Checks:
  * ✅ Readability: Clear props, semantic HTML
@@ -17,6 +18,7 @@
  * ✅ Security: Controlled input, no dangerouslySetInnerHTML
  * ✅ Best Practices: PropTypes, accessible, error states
  * ✅ Accessibility: ARIA attributes, labels, error announcements
+ * ✅ Bug Fix: Handles undefined/null values safely
  */
 
 'use client';
@@ -46,6 +48,13 @@ function ResumeInput({
   className,
   helperText,
 }) {
+  // ==========================================
+  // SAFE VALUE HANDLING
+  // Ensure value is always a string (prevent undefined.length crashes)
+  // ==========================================
+  const safeValue = value ?? '';
+  const currentLength = safeValue.length;
+
   const hasError = error && touched;
   const inputId = `resume-input-${name}`;
   const errorId = `${inputId}-error`;
@@ -66,7 +75,7 @@ function ResumeInput({
         id={inputId}
         type={type}
         name={name}
-        value={value}
+        value={safeValue}
         onChange={onChange}
         onBlur={onBlur}
         placeholder={placeholder}
@@ -99,7 +108,7 @@ function ResumeInput({
         <div className="mt-1 flex items-center justify-between">
           {helperText && <p className="text-xs text-gray-500">{helperText}</p>}
           {showCounter && maxLength && (
-            <CharacterCounter current={value.length} max={maxLength} />
+            <CharacterCounter current={currentLength} max={maxLength} />
           )}
         </div>
       )}
@@ -111,7 +120,7 @@ ResumeInput.propTypes = {
   label: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   type: PropTypes.string,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   onBlur: PropTypes.func,
   placeholder: PropTypes.string,
@@ -127,6 +136,7 @@ ResumeInput.propTypes = {
 
 ResumeInput.defaultProps = {
   type: 'text',
+  value: '', // ✅ SAFE DEFAULT
   onBlur: () => {},
   placeholder: '',
   required: false,

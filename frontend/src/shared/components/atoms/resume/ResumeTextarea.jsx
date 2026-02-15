@@ -22,7 +22,7 @@ import PropTypes from 'prop-types';
 function ResumeTextarea({
   label,
   name,
-  value,
+  value = '',
   onChange,
   onBlur,
   placeholder,
@@ -39,8 +39,11 @@ function ResumeTextarea({
   const textareaId = `resume-textarea-${name}`;
   const errorId = `${textareaId}-error`;
 
+  // Safely handle value - ensure it's always a string
+  const safeValue = value || '';
+
   // Character count state
-  const charCount = value.length;
+  const charCount = safeValue.length;
   const remainingChars = maxLength ? maxLength - charCount : null;
   const isOverLimit = maxLength && charCount > maxLength;
   const isNearLimit =
@@ -65,7 +68,7 @@ function ResumeTextarea({
         <textarea
           id={textareaId}
           name={name}
-          value={value}
+          value={safeValue}
           onChange={onChange}
           onBlur={onBlur}
           placeholder={placeholder}
@@ -134,7 +137,7 @@ function ResumeTextarea({
 ResumeTextarea.propTypes = {
   label: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.string, // Changed from isRequired
   onChange: PropTypes.func.isRequired,
   onBlur: PropTypes.func,
   placeholder: PropTypes.string,
@@ -149,6 +152,7 @@ ResumeTextarea.propTypes = {
 };
 
 ResumeTextarea.defaultProps = {
+  value: '', // Added default value
   onBlur: () => {},
   placeholder: '',
   required: false,

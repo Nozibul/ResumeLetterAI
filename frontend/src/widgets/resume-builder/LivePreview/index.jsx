@@ -162,10 +162,10 @@ function LivePreview({
       {/* ==========================================
           PREVIEW CONTENT (Scrollable)
       ========================================== */}
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 overflow-y-auto p-1">
         {isEmpty ? (
           // Empty state
-          <div className="flex items-center justify-center h-full px-4">
+          <div className="flex items-center justify-center h-full w-full">
             <div className="text-center max-w-md">
               {/* Animated icon */}
               <div className="relative inline-block mb-6">
@@ -211,17 +211,19 @@ function LivePreview({
           </div>
         ) : (
           // Resume preview with zoom
-          <div
-            className="transition-transform duration-300 origin-top"
-            style={{
-              transform: `scale(${zoomLevel / 100})`,
-              transformOrigin: 'top center',
-            }}
-          >
-            <ResumeRenderer
-              resumeData={validResumeData}
-              templateId={validTemplateId}
-            />
+          <div className="w-full mx-auto">
+            <div
+              className="transition-transform duration-300"
+              style={{
+                transform: `scale(${zoomLevel / 100})`,
+                transformOrigin: 'top center',
+              }}
+            >
+              <ResumeRenderer
+                resumeData={validResumeData}
+                templateId={validTemplateId}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -229,12 +231,12 @@ function LivePreview({
       {/* ==========================================
           PREVIEW FOOTER (Optional - Download button, etc.)
       ========================================== */}
-      {!isEmpty && (
+      {/* {!isEmpty && (
         <PreviewFooter
           resumeData={validResumeData}
           templateId={validTemplateId}
         />
-      )}
+      )} */}
     </div>
   );
 }

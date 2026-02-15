@@ -1,29 +1,12 @@
-/**
- * @file shared/components/atoms/resume/TagInput.jsx
- * @description Tag input with autocomplete for skills/technologies
- * @author Nozibul Islam
- *
- * Features:
- * - Add tags by pressing Enter
- * - Remove tags with X button
- * - Autocomplete suggestions
- * - Max tags limit
- * - Duplicate prevention
- *
- */
-
 'use client';
 
 import { memo, useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
-/**
- * TagInput Component
- */
 function TagInput({
   label,
   name,
-  tags,
+  tags = [],
   onAdd,
   onRemove,
   suggestions,
@@ -35,6 +18,9 @@ function TagInput({
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  //  Safe tags - ensure it's always an array
+  const safeTags = tags || [];
+
   // Filter suggestions
   const filteredSuggestions = useMemo(() => {
     if (!suggestions || !inputValue) return [];
@@ -43,10 +29,10 @@ function TagInput({
       .filter(
         (item) =>
           item.toLowerCase().includes(inputValue.toLowerCase()) &&
-          !tags.includes(item)
+          !safeTags.includes(item)
       )
-      .slice(0, 10); // Max 10 suggestions
-  }, [suggestions, inputValue, tags]);
+      .slice(0, 10);
+  }, [suggestions, inputValue, safeTags]);
 
   // Handle add tag
   const handleAddTag = useCallback(() => {
@@ -55,13 +41,13 @@ function TagInput({
     if (!trimmedValue) return;
 
     // Check max limit
-    if (maxTags && tags.length >= maxTags) {
+    if (maxTags && safeTags.length >= maxTags) {
       alert(`Maximum ${maxTags} tags allowed`);
       return;
     }
 
     // Check duplicate
-    if (tags.includes(trimmedValue)) {
+    if (safeTags.includes(trimmedValue)) {
       setInputValue('');
       return;
     }
@@ -69,7 +55,7 @@ function TagInput({
     onAdd(trimmedValue);
     setInputValue('');
     setShowSuggestions(false);
-  }, [inputValue, tags, maxTags, onAdd]);
+  }, [inputValue, safeTags, maxTags, onAdd]);
 
   // Handle key down
   const handleKeyDown = useCallback(
@@ -85,7 +71,7 @@ function TagInput({
   // Handle suggestion click
   const handleSuggestionClick = useCallback(
     (suggestion) => {
-      if (maxTags && tags.length >= maxTags) {
+      if (maxTags && safeTags.length >= maxTags) {
         alert(`Maximum ${maxTags} tags allowed`);
         return;
       }
@@ -94,7 +80,7 @@ function TagInput({
       setInputValue('');
       setShowSuggestions(false);
     },
-    [tags, maxTags, onAdd]
+    [safeTags, maxTags, onAdd]
   );
 
   const inputId = `tag-input-${name}`;
@@ -110,15 +96,15 @@ function TagInput({
         {required && <span className="text-red-500 ml-1">*</span>}
         {maxTags && (
           <span className="text-gray-400 text-xs ml-2">
-            ({tags.length}/{maxTags})
+            ({safeTags.length}/{maxTags})
           </span>
         )}
       </label>
 
       {/* Tags Display */}
-      {tags.length > 0 && (
+      {safeTags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
-          {tags.map((tag, index) => (
+          {safeTags.map((tag, index) => (
             <span
               key={index}
               className="inline-flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm"
@@ -163,7 +149,7 @@ function TagInput({
           onFocus={() => setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder={placeholder}
-          disabled={maxTags && tags.length >= maxTags}
+          disabled={maxTags && safeTags.length >= maxTags}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
         />
 
@@ -204,6 +190,7 @@ TagInput.propTypes = {
 };
 
 TagInput.defaultProps = {
+  tags: [],
   suggestions: [],
   maxTags: null,
   placeholder: '',
