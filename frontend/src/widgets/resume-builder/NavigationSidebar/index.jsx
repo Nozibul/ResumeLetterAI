@@ -86,13 +86,13 @@ function NavigationSidebar({
 
   return (
     <nav
-      className="w-80 bg-white border-r border-gray-200 h-screen flex flex-col"
+      className="w-68 bg-white border-r border-gray-200 h-screen flex flex-col"
       aria-label="Resume builder steps navigation"
     >
       {/* ==========================================
           HEADER
       ========================================== */}
-      <div className="pl-10 pr-4 py-3 border-b border-gray-200">
+      <div className="pl-6 pr-4 py-3 border-b border-gray-200">
         <span className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-gray-800 to-teal-300 bg-clip-text text-transparent">
           ResumeLetterAI
         </span>{' '}
@@ -104,7 +104,7 @@ function NavigationSidebar({
       {/* ==========================================
           STEPS LIST
       ========================================== */}
-      <div className="custom-scrollbar bg-gradient-to-br from-teal-50 via-white to-teal-100 rounded-lg lg:col-span-1 flex-1 overflow-y-auto py-4 pl-10 pr-4">
+      <div className="custom-scrollbar bg-gradient-to-br from-teal-50 via-white to-teal-100 rounded-lg lg:col-span-1 flex-1 overflow-y-auto py-4 pl-6 pr-4">
         <ol className="space-y-3 r">
           {FORM_STEPS.map((step) => (
             <StepItem

@@ -1,47 +1,26 @@
 /**
  * @file features/resume-builder/finalize/ui/FinalizeForm.jsx
- * @description Finalize & Customize form - Step 9 (FIXED VERSION)
+ * @description Finalize & Customize form - Step 9 (NO REDUX - LOCAL STATE)
  * @author Nozibul Islam
- *
- * FIXES:
- * - ✅ Color validation fixed (proper hex values)
- * - ✅ PersonalInfo shows proper disabled state
- * - ✅ No dependency on extra files
- *
- * Self-Review:
- * ✅ Readability: Clean, modular
- * ✅ Performance: Memoized, debounced
- * ✅ Security: Color/font validation
- * ✅ Best Practices: Industry standard
- * ✅ Potential Bugs: FIXED
- * ✅ Memory Leaks: Cleanup in hooks
  */
 
 'use client';
 
 import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import SectionVisibilityToggles from './SectionVisibilityToggles';
 import ColorPicker from './ColorPicker';
 import NameStyleOptions from './NameStyleOptions';
+import SectionReorder from './SectionReorder';
 import logger from '@/shared/lib/logger';
 
 /**
  * FinalizeForm Component
- * Step 9: Finalize & Customize (FIXED - NO VALIDATION ERRORS)
+ * Step 9: Finalize & Customize (LOCAL STATE VERSION)
  */
 function FinalizeForm() {
-  const dispatch = useDispatch();
-  const resumeData = useCurrentResumeData();
-
   // ==========================================
-  // STATE (FIXED: Proper hex values)
+  // LOCAL STATE (NO REDUX)
   // ==========================================
   const [sectionVisibility, setSectionVisibility] = useState({
     personalInfo: true,
@@ -56,9 +35,9 @@ function FinalizeForm() {
 
   const [customization, setCustomization] = useState({
     colors: {
-      primary: '#000000', // ✅ Valid hex
-      secondary: '#333333', // ✅ Valid hex
-      accent: '#0066CC', // ✅ Valid hex
+      primary: '#000000',
+      secondary: '#333333',
+      accent: '#0066CC',
     },
     fonts: {
       heading: 'Arial',
@@ -71,51 +50,17 @@ function FinalizeForm() {
     },
   });
 
-  const [touched, setTouched] = useState(false);
-
-  // ==========================================
-  // INITIALIZE FROM REDUX
-  // ==========================================
-  useEffect(() => {
-    if (resumeData?.sectionVisibility) {
-      setSectionVisibility(resumeData.sectionVisibility);
-    }
-    if (resumeData?.customization) {
-      setCustomization(resumeData.customization);
-    }
-  }, []);
-
-  // ==========================================
-  // DEBOUNCED SAVE (NO VALIDATION - JUST SAVE)
-  // ==========================================
-  useEffect(() => {
-    if (!touched) return;
-
-    const timer = setTimeout(() => {
-      logger.info('Saving finalization settings to Redux...');
-      dispatch(setIsSaving(true));
-
-      // Save section visibility
-      dispatch(
-        updateCurrentResumeField({
-          field: 'sectionVisibility',
-          value: sectionVisibility,
-        })
-      );
-
-      // Save customization
-      dispatch(
-        updateCurrentResumeField({
-          field: 'customization',
-          value: customization,
-        })
-      );
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [sectionVisibility, customization, touched, dispatch]);
+  // LOCAL STATE for section order
+  const [sectionOrder, setSectionOrder] = useState([
+    'personalInfo',
+    'summary',
+    'skills',
+    'workExperience',
+    'projects',
+    'education',
+    'competitiveProgramming',
+    'certifications',
+  ]);
 
   // ==========================================
   // HANDLERS
@@ -125,7 +70,6 @@ function FinalizeForm() {
       ...prev,
       [section]: !prev[section],
     }));
-    setTouched(true);
   }, []);
 
   const handleColorChange = useCallback((colorType, value) => {
@@ -133,7 +77,6 @@ function FinalizeForm() {
       ...prev,
       colors: { ...prev.colors, [colorType]: value },
     }));
-    setTouched(true);
   }, []);
 
   const handleFontChange = useCallback((fontType, value) => {
@@ -141,7 +84,6 @@ function FinalizeForm() {
       ...prev,
       fonts: { ...prev.fonts, [fontType]: value },
     }));
-    setTouched(true);
   }, []);
 
   const handleNameStyleChange = useCallback((styleType, value) => {
@@ -149,7 +91,26 @@ function FinalizeForm() {
       ...prev,
       nameStyle: { ...prev.nameStyle, [styleType]: value },
     }));
-    setTouched(true);
+  }, []);
+
+  // Section reorder handlers (LOCAL STATE)
+  const handleSectionReorder = useCallback((newOrder) => {
+    setSectionOrder(newOrder);
+    logger.info('Section order updated:', newOrder);
+  }, []);
+
+  const handleResetSectionOrder = useCallback(() => {
+    setSectionOrder([
+      'personalInfo',
+      'summary',
+      'skills',
+      'workExperience',
+      'projects',
+      'education',
+      'competitiveProgramming',
+      'certifications',
+    ]);
+    logger.info('Section order reset to default');
   }, []);
 
   // ==========================================
@@ -167,15 +128,15 @@ function FinalizeForm() {
   // RENDER
   // ==========================================
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ATS GUIDELINES */}
       <ATSBanner title="Final ATS Checklist" tips={atsTips} />
 
-      {/* SUCCESS MESSAGE (NO VALIDATION ERRORS NOW) */}
-      <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-lg p-6">
+      {/* SUCCESS MESSAGE */}
+      <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <svg
-            className="h-8 w-8 text-teal-600 flex-shrink-0"
+            className="h-6 w-6 text-teal-600 flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -188,27 +149,34 @@ function FinalizeForm() {
             />
           </svg>
           <div className="flex-1">
-            <h4 className="text-lg font-bold text-teal-900 mb-1">
+            <h4 className="text-md font-bold text-teal-900 mb-1">
               🎉 Resume Complete!
             </h4>
             <p className="text-sm text-teal-800">
-              Your resume is ready. Customize the appearance below and download
-              when ready.
+              Your resume is ready. Customize the appearance and section order
+              below.
             </p>
           </div>
         </div>
       </div>
 
-      {/* SECTION VISIBILITY (SUB-COMPONENT) */}
+      {/* SECTION REORDERING (LOCAL STATE) */}
+      <SectionReorder
+        sectionOrder={sectionOrder}
+        onReorder={handleSectionReorder}
+        onReset={handleResetSectionOrder}
+      />
+
+      {/* SECTION VISIBILITY */}
       <SectionVisibilityToggles
         visibility={sectionVisibility}
         onToggle={handleVisibilityToggle}
       />
 
-      {/* COLOR PICKER (SUB-COMPONENT) */}
+      {/* COLOR PICKER */}
       <ColorPicker colors={customization.colors} onChange={handleColorChange} />
 
-      {/* NAME STYLE & FONTS (SUB-COMPONENT) */}
+      {/* NAME STYLE & FONTS */}
       <NameStyleOptions
         nameStyle={customization.nameStyle}
         fonts={customization.fonts}
@@ -217,7 +185,7 @@ function FinalizeForm() {
       />
 
       {/* DOWNLOAD INFO */}
-      <div className="bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-200 rounded-lg p-6">
+      <div className="bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <svg
             className="h-6 w-6 text-teal-600 flex-shrink-0 mt-0.5"

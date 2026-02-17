@@ -1,22 +1,3 @@
-/**
- * @file features/resume-builder/skills/ui/SkillsForm.jsx
- * @description Technical Skills form - Step 5 (FINAL - WITH VALIDATION)
- * @author Nozibul Islam
- *
- * Architecture:
- * - Uses sub-components (SkillCategory, SuggestionsList)
- * - Uses validation from model/validation.js
- * - Category-based validation
- *
- * Self-Review:
- * ✅ Readability: Clean, modular
- * ✅ Performance: Memoized, debounced
- * ✅ Security: Duplicate prevention
- * ✅ Best Practices: Industry standard
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: None
- */
-
 'use client';
 
 import { memo, useState, useCallback, useEffect } from 'react';
@@ -33,18 +14,11 @@ import { validateSkillsForm, getSkillsQualityScore } from '../model/validation';
 import { SKILLS_SUGGESTIONS } from '@/shared/lib/constants';
 import logger from '@/shared/lib/logger';
 
-/**
- * SkillsForm Component
- * Step 5: Technical Skills with validation
- */
 function SkillsForm() {
   const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
-  // ==========================================
-  // STATE
-  // ==========================================
-  const [formData, setFormData] = useState({
+  const defaultFormData = {
     programmingLanguages: [],
     frontend: [],
     backend: [],
@@ -52,18 +26,23 @@ function SkillsForm() {
     devOps: [],
     tools: [],
     other: [],
-  });
+  };
 
+  const [formData, setFormData] = useState(defaultFormData);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState(false);
   const [qualityScore, setQualityScore] = useState(null);
 
   // ==========================================
-  // INITIALIZE FROM REDUX
+  // INITIALIZE FROM REDUX (FIXED)
   // ==========================================
   useEffect(() => {
     if (resumeData?.skills) {
-      setFormData(resumeData.skills);
+      // ✅ Merge with defaults to ensure all fields exist
+      setFormData({
+        ...defaultFormData,
+        ...resumeData.skills,
+      });
     }
   }, []);
 
@@ -71,11 +50,9 @@ function SkillsForm() {
   // VALIDATE & CALCULATE QUALITY
   // ==========================================
   const validateAndScore = useCallback((skills) => {
-    // Validate
     const validationErrors = validateSkillsForm(skills);
     setErrors(validationErrors);
 
-    // Quality score
     const score = getSkillsQualityScore(skills);
     setQualityScore(score);
 
@@ -92,7 +69,6 @@ function SkillsForm() {
       logger.info('Saving skills to Redux...');
       dispatch(setIsSaving(true));
 
-      // Validate before saving
       validateAndScore(formData);
 
       dispatch(updateCurrentResumeField({ field: 'skills', value: formData }));
@@ -104,10 +80,48 @@ function SkillsForm() {
   }, [formData, touched, dispatch, validateAndScore]);
 
   // ==========================================
-  // HANDLE UPDATE
+  // HANDLE UPDATE (FIXED)
   // ==========================================
   const handleUpdateCategory = useCallback((category, skills) => {
-    setFormData((prev) => ({ ...prev, [category]: skills }));
+    setFormData((prev) => ({
+      ...prev,
+      [category]: skills || [], // ✅ Ensure it's always an array
+    }));
+    setTouched(true);
+  }, []);
+
+  // ==========================================
+  // ADD SKILL HELPER (NEW - REUSABLE)
+  // ==========================================
+  const handleAddSkill = useCallback((category, skill) => {
+    setFormData((prev) => {
+      const currentSkills = prev[category] || []; // ✅ Safe default
+
+      // Check duplicate
+      if (currentSkills.includes(skill)) {
+        return prev; // No change
+      }
+
+      return {
+        ...prev,
+        [category]: [...currentSkills, skill],
+      };
+    });
+    setTouched(true);
+  }, []);
+
+  // ==========================================
+  // REMOVE SKILL HELPER (NEW - REUSABLE)
+  // ==========================================
+  const handleRemoveSkill = useCallback((category, skill) => {
+    setFormData((prev) => {
+      const currentSkills = prev[category] || []; // ✅ Safe default
+
+      return {
+        ...prev,
+        [category]: currentSkills.filter((s) => s !== skill),
+      };
+    });
     setTouched(true);
   }, []);
 
@@ -116,13 +130,14 @@ function SkillsForm() {
   // ==========================================
   const getTotalSkills = useCallback(() => {
     return Object.values(formData).reduce(
-      (total, skills) => total + skills.length,
+      (total, skills) => total + (skills?.length || 0),
       0
     );
   }, [formData]);
 
   const getCategoriesWithSkills = useCallback(() => {
-    return Object.values(formData).filter((skills) => skills.length > 0).length;
+    return Object.values(formData).filter((skills) => skills?.length > 0)
+      .length;
   }, [formData]);
 
   // ==========================================
@@ -157,7 +172,6 @@ function SkillsForm() {
             </p>
           </div>
 
-          {/* Quality Score */}
           {qualityScore && (
             <div className="text-right">
               <div className="text-2xl font-bold text-teal-600">
@@ -197,166 +211,6 @@ function SkillsForm() {
         </div>
       )}
 
-      {/* SKILL CATEGORIES */}
-      <div className="space-y-4">
-        {/* Programming Languages */}
-        <SkillCategory
-          name="programmingLanguages"
-          label="Programming Languages"
-          icon="💻"
-          skills={formData.programmingLanguages}
-          onAdd={(skill) => {
-            const currentSkills = formData.programmingLanguages;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('programmingLanguages', [
-                ...currentSkills,
-                skill,
-              ]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.programmingLanguages;
-            handleUpdateCategory(
-              'programmingLanguages',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={SKILLS_SUGGESTIONS.programmingLanguages}
-        />
-
-        {/* Frontend */}
-        <SkillCategory
-          name="frontend"
-          label="Frontend Development"
-          icon="🎨"
-          skills={formData.frontend}
-          onAdd={(skill) => {
-            const currentSkills = formData.frontend;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('frontend', [...currentSkills, skill]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.frontend;
-            handleUpdateCategory(
-              'frontend',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={SKILLS_SUGGESTIONS.frontend}
-        />
-
-        {/* Backend */}
-        <SkillCategory
-          name="backend"
-          label="Backend Development"
-          icon="⚙️"
-          skills={formData.backend}
-          onAdd={(skill) => {
-            const currentSkills = formData.backend;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('backend', [...currentSkills, skill]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.backend;
-            handleUpdateCategory(
-              'backend',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={SKILLS_SUGGESTIONS.backend}
-        />
-
-        {/* Database */}
-        <SkillCategory
-          name="database"
-          label="Databases & Data"
-          icon="🗄️"
-          skills={formData.database}
-          onAdd={(skill) => {
-            const currentSkills = formData.database;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('database', [...currentSkills, skill]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.database;
-            handleUpdateCategory(
-              'database',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={SKILLS_SUGGESTIONS.database}
-        />
-
-        {/* DevOps */}
-        <SkillCategory
-          name="devOps"
-          label="DevOps & Cloud"
-          icon="☁️"
-          skills={formData.devOps}
-          onAdd={(skill) => {
-            const currentSkills = formData.devOps;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('devOps', [...currentSkills, skill]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.devOps;
-            handleUpdateCategory(
-              'devOps',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={SKILLS_SUGGESTIONS.devOps}
-        />
-
-        {/* Tools */}
-        <SkillCategory
-          name="tools"
-          label="Tools & Technologies"
-          icon="🔧"
-          skills={formData.tools}
-          onAdd={(skill) => {
-            const currentSkills = formData.tools;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('tools', [...currentSkills, skill]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.tools;
-            handleUpdateCategory(
-              'tools',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={SKILLS_SUGGESTIONS.tools}
-        />
-
-        {/* Other */}
-        <SkillCategory
-          name="other"
-          label="Other Skills"
-          icon="✨"
-          skills={formData.other}
-          onAdd={(skill) => {
-            const currentSkills = formData.other;
-            if (!currentSkills.includes(skill)) {
-              handleUpdateCategory('other', [...currentSkills, skill]);
-            }
-          }}
-          onRemove={(skill) => {
-            const currentSkills = formData.other;
-            handleUpdateCategory(
-              'other',
-              currentSkills.filter((s) => s !== skill)
-            );
-          }}
-          suggestions={[]}
-        />
-      </div>
-
       {/* POPULAR SKILLS SUGGESTIONS */}
       {Object.entries(SKILLS_SUGGESTIONS).map(([category, suggestions]) => {
         const currentSkills = formData[category] || [];
@@ -364,16 +218,92 @@ function SkillsForm() {
           <SuggestionsList
             key={category}
             category={category}
-            suggestions={suggestions}
+            suggestions={suggestions || []}
             currentSkills={currentSkills}
-            onAdd={(skill) => {
-              if (!currentSkills.includes(skill)) {
-                handleUpdateCategory(category, [...currentSkills, skill]);
-              }
-            }}
+            onAdd={(skill) => handleAddSkill(category, skill)}
           />
         );
       })}
+
+      {/* SKILL CATEGORIES */}
+      <div className="space-y-4">
+        {/* Programming Languages */}
+        <SkillCategory
+          name="programmingLanguages"
+          label="Programming Languages"
+          icon="💻"
+          skills={formData.programmingLanguages || []} // Safe access
+          onAdd={(skill) => handleAddSkill('programmingLanguages', skill)}
+          onRemove={(skill) => handleRemoveSkill('programmingLanguages', skill)}
+          suggestions={SKILLS_SUGGESTIONS.programmingLanguages || []}
+        />
+
+        {/* Frontend */}
+        <SkillCategory
+          name="frontend"
+          label="Frontend Development"
+          icon="🎨"
+          skills={formData.frontend || []}
+          onAdd={(skill) => handleAddSkill('frontend', skill)}
+          onRemove={(skill) => handleRemoveSkill('frontend', skill)}
+          suggestions={SKILLS_SUGGESTIONS.frontend || []}
+        />
+
+        {/* Backend */}
+        <SkillCategory
+          name="backend"
+          label="Backend Development"
+          icon="⚙️"
+          skills={formData.backend || []}
+          onAdd={(skill) => handleAddSkill('backend', skill)}
+          onRemove={(skill) => handleRemoveSkill('backend', skill)}
+          suggestions={SKILLS_SUGGESTIONS.backend || []}
+        />
+
+        {/* Database */}
+        <SkillCategory
+          name="database"
+          label="Databases & Data"
+          icon="🗄️"
+          skills={formData.database || []}
+          onAdd={(skill) => handleAddSkill('database', skill)}
+          onRemove={(skill) => handleRemoveSkill('database', skill)}
+          suggestions={SKILLS_SUGGESTIONS.database || []}
+        />
+
+        {/* DevOps */}
+        <SkillCategory
+          name="devOps"
+          label="DevOps & Cloud"
+          icon="☁️"
+          skills={formData.devOps || []}
+          onAdd={(skill) => handleAddSkill('devOps', skill)}
+          onRemove={(skill) => handleRemoveSkill('devOps', skill)}
+          suggestions={SKILLS_SUGGESTIONS.devOps || []}
+        />
+
+        {/* Tools */}
+        <SkillCategory
+          name="tools"
+          label="Tools & Technologies"
+          icon="🔧"
+          skills={formData.tools || []}
+          onAdd={(skill) => handleAddSkill('tools', skill)}
+          onRemove={(skill) => handleRemoveSkill('tools', skill)}
+          suggestions={SKILLS_SUGGESTIONS.tools || []}
+        />
+
+        {/* Other */}
+        <SkillCategory
+          name="other"
+          label="Other Skills"
+          icon="✨"
+          skills={formData.other || []}
+          onAdd={(skill) => handleAddSkill('other', skill)}
+          onRemove={(skill) => handleRemoveSkill('other', skill)}
+          suggestions={[]}
+        />
+      </div>
     </div>
   );
 }

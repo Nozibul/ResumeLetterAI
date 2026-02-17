@@ -104,7 +104,7 @@ export default function ResumeBuilderPage() {
   const isSaving = useIsSaving();
 
   // ==========================================
-  // ✅ REDUX INITIALIZATION (NEW)
+  // REDUX INITIALIZATION (NEW)
   // ==========================================
   useEffect(() => {
     // Initialize empty resume structure for new resume

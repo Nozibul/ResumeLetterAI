@@ -100,7 +100,7 @@ function FormArea({ currentStep, onNext, onBack, onPreviewToggle, isSaving }) {
       4: 'Showcase your projects with technologies used',
       5: 'List your technical skills by category',
       6: 'Add your educational background',
-      7: 'Include competitive programming achievements (optional)',
+      7: 'Include CP achievements (optional)',
       8: 'Add professional certifications (optional)',
       9: 'Customize your resume and download',
     }),

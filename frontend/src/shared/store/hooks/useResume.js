@@ -35,6 +35,7 @@ import {
   selectCurrentResumeData,
   selectIsSaving,
   selectCurrentStep,
+  selectSectionOrder,
   selectCompletionPercentage,
 } from '../selectors/resumeSelectors';
 
@@ -227,6 +228,13 @@ export const useIsSelectedResumeEditable = () => {
   return useAppSelector(selectIsSelectedResumeEditable);
 };
 
+/**
+ * Get section order
+ * @returns {Array} Array of section keys in custom order
+ */
+export const useSectionOrder = () => {
+  return useAppSelector(selectSectionOrder);
+};
 export const useCurrentResumeData = () =>
   useAppSelector(selectCurrentResumeData);
 export const useIsSaving = () => useAppSelector(selectIsSaving);

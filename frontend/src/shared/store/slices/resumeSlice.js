@@ -27,6 +27,18 @@ const initialState = {
   loading: false, // Loading state
   error: null, // Error message
   lastFetched: null, // Timestamp for cache invalidation
+
+  // ✅ NEW: Section ordering
+  sectionOrder: [
+    'personalInfo',
+    'summary',
+    'skills',
+    'workExperience',
+    'projects',
+    'education',
+    'competitiveProgramming',
+    'certifications',
+  ],
 };
 
 // ==========================================
@@ -250,6 +262,45 @@ const resumeSlice = createSlice({
       }
     },
 
+    // ==========================================
+    // 2. ADD NEW REDUCERS (After line ~225, before exports)
+    // Add these THREE new actions
+    // ==========================================
+
+    /**
+     * Update section order
+     */
+    setSectionOrder: (state, action) => {
+      state.sectionOrder = action.payload;
+    },
+
+    /**
+     * Reorder sections (drag and drop)
+     */
+    reorderSections: (state, action) => {
+      const { fromIndex, toIndex } = action.payload;
+      const newOrder = [...state.sectionOrder];
+      const [movedItem] = newOrder.splice(fromIndex, 1);
+      newOrder.splice(toIndex, 0, movedItem);
+      state.sectionOrder = newOrder;
+    },
+
+    /**
+     * Reset section order to default
+     */
+    resetSectionOrder: (state) => {
+      state.sectionOrder = [
+        'personalInfo',
+        'summary',
+        'skills',
+        'workExperience',
+        'projects',
+        'education',
+        'competitiveProgramming',
+        'certifications',
+      ];
+    },
+
     /**
      * Toggle resume visibility
      */
@@ -320,6 +371,9 @@ export const {
   clearCurrentResumeData,
   removeResume,
   updateResumeTitle,
+  setSectionOrder,
+  reorderSections,
+  resetSectionOrder,
   toggleResumeVisibility,
   incrementDownloadCount,
 } = resumeSlice.actions;

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 /**
  * @file LoginForm.jsx
  * @author Nozibul Islams
@@ -15,12 +15,11 @@ import GoogleAuthButton from '@/shared/components/molecules/googleAuthButton/Goo
 import AuthDivider from '@/shared/components/molecules/authDivider/AuthDivider';
 import toast from 'react-hot-toast';
 
-
-const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => { 
+const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    rememberMe: false
+    rememberMe: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -29,17 +28,17 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const inputValue = type === 'checkbox' ? checked : value;
-    
-    setFormData(prev => ({ ...prev, [name]: inputValue }));
-    
+
+    setFormData((prev) => ({ ...prev, [name]: inputValue }));
+
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
-  
+
   const validateForm = () => {
     const newErrors = {};
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
@@ -47,19 +46,19 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
     } else if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
-    
+
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
@@ -69,7 +68,7 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
       await onSubmit(formData);
     } catch (error) {
       const errorMessage = error.message || 'Invalid email or password';
-      
+
       // Use toast instead of setErrors for lock message
       if (errorMessage.includes('locked')) {
         toast.error(errorMessage, {
@@ -96,7 +95,7 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
 
       {/* Google Auth Button */}
       <GoogleAuthButton text="Sign up with Google" />
-      <AuthDivider text='Or with email and password' />
+      <AuthDivider text="Or with email and password" />
 
       {/* Email Field */}
       <InputField
@@ -129,10 +128,10 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
           onChange={handleChange}
           label="Remember me"
         />
-        
-        <Link 
-          href="/forgot-password" 
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
+
+        <Link
+          href="/forgot-password"
+          className="text-sm text-teal-600 hover:text-teal-700 font-medium hover:underline transition-colors"
         >
           Forgot password?
         </Link>
@@ -144,7 +143,8 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
           <div className="flex items-center gap-2 text-amber-700">
             <Lock className="w-4 h-4" />
             <span className="font-semibold text-sm">
-              Account Locked - Try again in {formatTime(timeRemaining)} ({Math.ceil(timeRemaining / 60000)} minutes)
+              Account Locked - Try again in {formatTime(timeRemaining)} (
+              {Math.ceil(timeRemaining / 60000)} minutes)
             </span>
           </div>
         </div>
@@ -153,10 +153,11 @@ const LoginForm = ({ onSubmit, isLocked, timeRemaining, formatTime }) => {
       {/* Submit Button */}
       <Button
         className="w-full mt-2"
+        size="loging_md"
         type="submit"
         onClick={handleSubmit}
         variant="primary"
-        disabled={isLoading || isLocked}  //  isLocked from props
+        disabled={isLoading || isLocked} //  isLocked from props
         loading={isLoading}
       >
         {isLoading ? 'Logging in...' : 'Login'}

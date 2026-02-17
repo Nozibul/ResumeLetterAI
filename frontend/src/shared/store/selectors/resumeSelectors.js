@@ -179,6 +179,11 @@ export const selectIsSelectedResumeEditable = (state) => {
   return true;
 };
 
+/**
+ * Get section order
+ */
+export const selectSectionOrder = (state) => state.resume.sectionOrder;
+
 export const selectCurrentResumeData = (state) =>
   state.resume.currentResumeData;
 export const selectIsSaving = (state) => state.resume.isSaving;

@@ -127,7 +127,7 @@ function FormHeader({
             {/* ==========================================
             STEP TITLE
         ========================================== */}
-            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+            <h2 className="text-lg font-bold text-gray-900 mb-2 text-center">
               {validStepTitle}
             </h2>
 
@@ -135,7 +135,9 @@ function FormHeader({
             STEP DESCRIPTION
         ========================================== */}
             {validStepDescription && (
-              <p className="text-sm text-gray-700">{validStepDescription}</p>
+              <p className="text-[13px] text-gray-700">
+                {validStepDescription}
+              </p>
             )}
           </div>
           {/* Right side actions */}

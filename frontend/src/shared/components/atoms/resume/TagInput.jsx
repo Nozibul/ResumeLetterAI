@@ -18,8 +18,31 @@ function TagInput({
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  //  Safe tags - ensure it's always an array
+  // Safe tags - ensure it's always an array
   const safeTags = tags || [];
+
+  // ✅ Safe function wrappers
+  const safeOnAdd = useCallback(
+    (value) => {
+      if (onAdd && typeof onAdd === 'function') {
+        onAdd(value);
+      } else {
+        console.warn('TagInput: onAdd function not provided');
+      }
+    },
+    [onAdd]
+  );
+
+  const safeOnRemove = useCallback(
+    (value) => {
+      if (onRemove && typeof onRemove === 'function') {
+        onRemove(value);
+      } else {
+        console.warn('TagInput: onRemove function not provided');
+      }
+    },
+    [onRemove]
+  );
 
   // Filter suggestions
   const filteredSuggestions = useMemo(() => {
@@ -52,10 +75,11 @@ function TagInput({
       return;
     }
 
-    onAdd(trimmedValue);
+    // ✅ Use safe wrapper
+    safeOnAdd(trimmedValue);
     setInputValue('');
     setShowSuggestions(false);
-  }, [inputValue, safeTags, maxTags, onAdd]);
+  }, [inputValue, safeTags, maxTags, safeOnAdd]);
 
   // Handle key down
   const handleKeyDown = useCallback(
@@ -76,11 +100,12 @@ function TagInput({
         return;
       }
 
-      onAdd(suggestion);
+      // ✅ Use safe wrapper
+      safeOnAdd(suggestion);
       setInputValue('');
       setShowSuggestions(false);
     },
-    [safeTags, maxTags, onAdd]
+    [safeTags, maxTags, safeOnAdd]
   );
 
   const inputId = `tag-input-${name}`;
@@ -112,7 +137,7 @@ function TagInput({
               {tag}
               <button
                 type="button"
-                onClick={() => onRemove(tag)}
+                onClick={() => safeOnRemove(tag)}
                 className="hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
                 aria-label={`Remove ${tag}`}
               >
@@ -190,7 +215,7 @@ TagInput.propTypes = {
 };
 
 TagInput.defaultProps = {
-  tags: [],
+  tags: [], // Crash prevention
   suggestions: [],
   maxTags: null,
   placeholder: '',
