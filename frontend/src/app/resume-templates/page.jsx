@@ -10,6 +10,8 @@
  * - Pagination (load more)
  * - Optimistic UI with skeleton loading
  * - Responsive grid layout
+ *
+ * ⚠️ NO CHANGES NEEDED - Keep this file exactly as is
  */
 
 import React, { useState, useEffect } from 'react';
@@ -62,11 +64,6 @@ const TemplatePage = () => {
       setItemsToShow((prev) => prev + ITEMS_PER_LOAD);
     }
   };
-
-  // ❌ REMOVED: handleUseTemplate function
-  // const handleUseTemplate = (templateId) => {
-  //   router.push(`/resume-builder?templateId=${templateId}`);
-  // };
 
   // Error state
   if (error) {
@@ -136,7 +133,7 @@ const TemplatePage = () => {
         </div>
       ) : (
         <>
-          {/* Template Grid - ✅ UPDATED: Removed onUseTemplate prop */}
+          {/* Template Grid */}
           <TemplateGrid templates={templatesToShow} />
 
           {/* Load More Button */}

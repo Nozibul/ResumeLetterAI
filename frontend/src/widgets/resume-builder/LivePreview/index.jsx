@@ -18,7 +18,7 @@ import { memo, useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import PreviewHeader from './PreviewHeader';
 import ResumeRenderer from './ResumeRenderer';
-import PreviewFooter from './PreviewFooter';
+// import PreviewFooter from './PreviewFooter';
 import logger from '@/shared/lib/logger';
 
 /**
@@ -116,7 +116,7 @@ function LivePreview({
   // RENDER
   // ==========================================
   return (
-    <div className="pb-8 flex flex-col h-full bg-gray-100">
+    <div className="pb-1 flex flex-col h-full bg-gray-100">
       {/* ==========================================
           MOBILE CLOSE HEADER (Only on mobile)
       ========================================== */}
@@ -168,7 +168,7 @@ function LivePreview({
           <div className="flex items-center justify-center h-full w-full">
             <div className="text-center max-w-md">
               {/* Animated icon */}
-              <div className="relative inline-block mb-6">
+              <div className="relative inline-block mb-1">
                 <div className="absolute inset-0 bg-teal-100 rounded-full animate-ping opacity-75"></div>
                 <div className="relative bg-gradient-to-br from-teal-400 to-teal-600 rounded-full p-6">
                   <svg
@@ -187,7 +187,7 @@ function LivePreview({
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Your Resume Preview Will Appear Here
               </h3>
               <p className="text-gray-600 leading-relaxed mb-6">

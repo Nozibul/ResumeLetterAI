@@ -28,13 +28,13 @@ const initialState = {
   error: null, // Error message
   lastFetched: null, // Timestamp for cache invalidation
 
-  // ✅ NEW: Section ordering
+  // Section ordering
   sectionOrder: [
     'personalInfo',
     'summary',
-    'skills',
     'workExperience',
     'projects',
+    'skills',
     'education',
     'competitiveProgramming',
     'certifications',
@@ -292,9 +292,9 @@ const resumeSlice = createSlice({
       state.sectionOrder = [
         'personalInfo',
         'summary',
-        'skills',
         'workExperience',
         'projects',
+        'skills',
         'education',
         'competitiveProgramming',
         'certifications',

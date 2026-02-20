@@ -94,15 +94,3 @@ export default function ResumeBuilderLayout({ children }) {
     </ErrorBoundary>
   );
 }
-
-/**
- * Metadata for SEO (static export)
- * Note: This only works in app directory route segments
- */
-// export const metadata = {
-//   title: 'Resume Builder | Create Professional IT Resume',
-//   description:
-//     'Build ATS-friendly IT resumes with our step-by-step builder. Optimized for software developers, engineers, and tech professionals.',
-//   keywords:
-//     'resume builder, IT resume, ATS resume, developer resume, tech resume',
-// };

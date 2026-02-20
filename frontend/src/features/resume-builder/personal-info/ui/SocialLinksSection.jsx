@@ -115,20 +115,6 @@ function SocialLinksSection({
             helperText="Your personal website or portfolio"
           />
 
-          {/* LeetCode */}
-          <ResumeInput
-            label="LeetCode Profile"
-            name="leetcode"
-            type="url"
-            value={formData.leetcode || ''}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="https://leetcode.com/johndoe"
-            error={errors.leetcode}
-            touched={touched.leetcode}
-            helperText="Showcase your problem-solving skills"
-          />
-
           {/* Info Banner */}
           <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 mt-4">
             <p className="text-xs text-teal-800">

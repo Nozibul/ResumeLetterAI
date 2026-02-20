@@ -158,11 +158,3 @@ export default function ResumeBuilderRoot() {
     </div>
   );
 }
-
-/**
- * Metadata for SEO (static export)
- */
-export const metadata = {
-  title: 'Resume Builder | ResumeLetterAI',
-  description: 'Create professional IT resumes with our step-by-step builder',
-};

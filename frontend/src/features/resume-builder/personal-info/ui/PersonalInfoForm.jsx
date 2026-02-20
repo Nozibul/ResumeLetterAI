@@ -56,7 +56,6 @@ function PersonalInfoForm() {
     linkedin: '',
     github: '',
     portfolio: '',
-    leetcode: '',
   });
 
   const [errors, setErrors] = useState({});

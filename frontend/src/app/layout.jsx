@@ -26,7 +26,9 @@ const lora = Lora({
 // Central hub for SEO, Social Sharing, and core application info.
 export const metadata = {
   // --- Core Metadata ---
-  metadataBase: new URL('https://www.resumeletterai.com'), // IMPORTANT: Set your production domain here.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://www.resumeletterai.com'
+  ),
   title: {
     default: 'ResumeLetterAI - AI-Powered Resume & Cover Letter Builder',
     template: '%s | ResumeLetterAI',
@@ -84,7 +86,7 @@ export const metadata = {
     title: 'ResumeLetterAI - Your AI-Powered Career Assistant',
     description:
       'Stop guessing, start applying. Create job-winning resumes and cover letters with AI.',
-    creator: '@YourTwitterHandle', // IMPORTANT: Replace with your Twitter handle
+    creator: '@resumeletterai', // Twitter handle
     images: ['/og-image.png'], // Relative to metadataBase
   },
 
