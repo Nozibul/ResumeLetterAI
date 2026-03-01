@@ -39,13 +39,13 @@ function SummaryQualityIndicator({ text }) {
   // COLOR BASED ON SCORE
   // ==========================================
   const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-700 bg-green-100';
+    if (score >= 80) return 'text-teal-700 bg-teal-100';
     if (score >= 60) return 'text-yellow-700 bg-yellow-100';
     return 'text-red-700 bg-red-100';
   };
 
   const getProgressColor = (score) => {
-    if (score >= 80) return 'bg-green-500';
+    if (score >= 80) return 'bg-teal-500';
     if (score >= 60) return 'bg-yellow-500';
     return 'bg-red-500';
   };
@@ -114,8 +114,8 @@ function SummaryQualityIndicator({ text }) {
 
       {/* Perfect Score Message */}
       {quality.score >= 90 && (
-        <div className="bg-green-50 border border-green-200 rounded p-2">
-          <p className="text-xs text-green-800">
+        <div className="bg-teal-50 border border-teal-200 rounded p-2">
+          <p className="text-xs text-teal-800">
             ✨ <strong>Excellent!</strong> Your summary is well-optimized for
             ATS systems.
           </p>

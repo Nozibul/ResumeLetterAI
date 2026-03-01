@@ -162,7 +162,7 @@ function LivePreview({
       {/* ==========================================
           PREVIEW CONTENT (Scrollable)
       ========================================== */}
-      <div className="flex-1 overflow-y-auto p-1">
+      <div className="custom-scrollbar flex-1 overflow-y-auto p-1">
         {isEmpty ? (
           // Empty state
           <div className="flex items-center justify-center h-full w-full">

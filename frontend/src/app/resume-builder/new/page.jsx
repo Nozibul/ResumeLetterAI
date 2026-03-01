@@ -219,6 +219,12 @@ export default function ResumeBuilderPage() {
     if (resumeData.education?.length > 0) {
       completed.push(6);
     }
+    if (resumeData.competitiveProgramming?.length > 0) {
+      completed.push(7);
+    }
+    if (resumeData.certifications?.length > 0) {
+      completed.push(8);
+    }
     // Steps 7, 8 are optional
 
     return completed;

@@ -3,7 +3,6 @@
  * @description Resume renderer with DYNAMIC FONT SCALING
  * @author Nozibul Islam
  *
- * FIXES:
  * ✅ Projects section now shows correctly in preview
  * ✅ Competitive Programming (CP) section added back
  * ✅ memo() re-render issue fixed with JSON.stringify key
@@ -13,6 +12,7 @@
 'use client';
 
 import { memo, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import PropTypes from 'prop-types';
 import { formatDate } from '@/shared/lib/utils';
 import {
@@ -21,18 +21,15 @@ import {
 } from '@/shared/hooks/useAutoFontSize';
 import logger from '@/shared/lib/logger';
 
-/**
- * ResumeRenderer Component with Dynamic Font Scaling
- */
 function ResumeRenderer({ resumeData, templateId }) {
   // ==========================================
   // DYNAMIC FONT SCALING
   // ==========================================
   const { fontSize, containerRef, isScaling } = useAutoFontSize(
     resumeData,
-    1123, // A4 height in pixels
-    8, // Min font size
-    11 // Max font size
+    1123,
+    8,
+    11
   );
 
   // ==========================================
@@ -85,7 +82,7 @@ function ResumeRenderer({ resumeData, templateId }) {
   }
 
   // ==========================================
-  // DYNAMIC SPACING BASED ON FONT SIZE
+  // DYNAMIC SPACING
   // ==========================================
   const spacing = useMemo(() => {
     if (fontSize >= 10.5) {
@@ -113,7 +110,7 @@ function ResumeRenderer({ resumeData, templateId }) {
   }, [fontSize]);
 
   // ==========================================
-  // FIX: Filter out empty/invalid projects
+  // FILTER EMPTY ENTRIES
   // ==========================================
   const validProjects = useMemo(() => {
     if (!Array.isArray(validData.projects)) return [];
@@ -123,13 +120,10 @@ function ResumeRenderer({ resumeData, templateId }) {
     );
   }, [validData.projects]);
 
-  // ==========================================
-  // FIX: Filter out empty CP entries
-  // ==========================================
   const validCPProfiles = useMemo(() => {
     if (!Array.isArray(validData.competitiveProgramming)) return [];
     return validData.competitiveProgramming.filter(
-      (cp) => cp && (cp.platform || cp.handle || cp.profileUrl)
+      (cp) => cp && cp.platform?.trim()
     );
   }, [validData.competitiveProgramming]);
 
@@ -138,42 +132,30 @@ function ResumeRenderer({ resumeData, templateId }) {
   // ==========================================
   return (
     <div className="relative">
-      {/* Font Size Indicator (Development only) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="absolute top-2 right-2 bg-teal-500 text-white text-xs px-2 py-1 rounded z-10">
           {fontSize}pt ({getFontSizeLabel(fontSize)})
         </div>
       )}
-
-      {/* Scaling Indicator */}
       {isScaling && (
         <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded z-10 animate-pulse">
           Optimizing...
         </div>
       )}
 
-      {/* Resume Container */}
       <div
-        className="bg-white rounded-lg shadow-2xl overflow-hidden"
-        style={{
-          width: '100%',
-          aspectRatio: '210 / 297',
-          margin: '0 auto',
-        }}
+        className="bg-white rounded-lg shadow-2xl"
+        style={{ width: '100%', aspectRatio: '210 / 297', margin: '0 auto' }}
       >
-        {/* Content with Dynamic Font Size */}
         <div
           ref={containerRef}
           className={spacing.padding}
-          style={{
-            fontSize: `${fontSize}pt`,
-            lineHeight: spacing.lineHeight,
-          }}
+          style={{ fontSize: `${fontSize}pt`, lineHeight: spacing.lineHeight }}
         >
           {/* ========== HEADER ========== */}
           {isSectionVisible('personalInfo') && validData.personalInfo && (
             <header
-              className={`${spacing.sectionGap} text-center border-b-1 border-gray-800 pb-2`}
+              className={`${spacing.sectionGap} text-center border-b border-gray-800 pb-2`}
             >
               <h1
                 className="text-2xl font-semibold text-gray-900 uppercase"
@@ -181,68 +163,65 @@ function ResumeRenderer({ resumeData, templateId }) {
               >
                 {sanitizeText(validData.personalInfo.fullName) || 'YOUR NAME'}
               </h1>
+
               {validData.personalInfo.jobTitle && (
-                <p className="text-md text-gray-800 font-semibold mb-2">
+                <p className="text-sm text-gray-800 font-semibold mb-1">
                   {sanitizeText(validData.personalInfo.jobTitle)}
                 </p>
               )}
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-600 flex-nowrap">
+
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-600 flex-wrap">
                 {validData.personalInfo.email && (
-                  <span className="whitespace-nowrap">
-                    {sanitizeText(validData.personalInfo.email)}
-                  </span>
+                  <span>{sanitizeText(validData.personalInfo.email)}</span>
                 )}
                 {validData.personalInfo.phone && <span>•</span>}
                 {validData.personalInfo.phone && (
-                  <span className="whitespace-nowrap">
-                    {sanitizeText(validData.personalInfo.phone)}
-                  </span>
+                  <span>{sanitizeText(validData.personalInfo.phone)}</span>
                 )}
                 {validData.personalInfo.location && <span>•</span>}
                 {validData.personalInfo.location && (
-                  <span className="whitespace-nowrap">
-                    {sanitizeText(validData.personalInfo.location)}
-                  </span>
+                  <span>{sanitizeText(validData.personalInfo.location)}</span>
                 )}
               </div>
+
               {(validData.personalInfo.linkedin ||
                 validData.personalInfo.github ||
                 validData.personalInfo.portfolio) && (
                 <div className="flex flex-wrap justify-center gap-3 text-xs text-gray-600 mt-1">
                   {validData.personalInfo.linkedin && (
-                    <a
+                    <Link
                       href={sanitizeText(validData.personalInfo.linkedin)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"
                     >
                       LinkedIn
-                    </a>
+                    </Link>
                   )}
-                  {validData.personalInfo.github &&
-                    validData.personalInfo.linkedin && <span>•</span>}
+                  {validData.personalInfo.linkedin &&
+                    validData.personalInfo.github && <span>•</span>}
                   {validData.personalInfo.github && (
-                    <a
+                    <Link
                       href={sanitizeText(validData.personalInfo.github)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"
                     >
                       GitHub
-                    </a>
+                    </Link>
                   )}
                   {validData.personalInfo.portfolio &&
                     (validData.personalInfo.linkedin ||
                       validData.personalInfo.github) && <span>•</span>}
                   {validData.personalInfo.portfolio && (
-                    <a
+                    <Link
                       href={sanitizeText(validData.personalInfo.portfolio)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"
                     >
                       Portfolio
-                    </a>
+                    </Link>
                   )}
                 </div>
               )}
@@ -252,10 +231,10 @@ function ResumeRenderer({ resumeData, templateId }) {
           {/* ========== SUMMARY ========== */}
           {isSectionVisible('summary') && validData.summary?.text && (
             <section className={spacing.sectionGap}>
-              <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+              <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                 Professional Summary
               </h2>
-              <p className="text-gray-700 leading-relaxed text-xs">
+              <p className="text-xs text-gray-700 leading-relaxed">
                 {sanitizeText(validData.summary.text)}
               </p>
             </section>
@@ -265,31 +244,31 @@ function ResumeRenderer({ resumeData, templateId }) {
           {isSectionVisible('workExperience') &&
             validData.workExperience?.length > 0 && (
               <section className={spacing.sectionGap}>
-                <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                   Work Experience
                 </h2>
                 <div className={spacing.listGap}>
                   {validData.workExperience.map((exp, index) => (
                     <div key={exp._id || index}>
-                      <div className="flex justify-between items-start mb-1">
+                      <div className="flex justify-between items-start mb-0.5">
                         <div>
                           <h3 className="font-semibold text-gray-900 text-xs">
                             {sanitizeText(exp.jobTitle)}
                           </h3>
-                          <p className="text-gray-700 italic text-xs">
+                          <p className="text-gray-600 italic text-xs">
                             {sanitizeText(exp.company)}
-                            {exp.location && ` - ${sanitizeText(exp.location)}`}
+                            {exp.location && ` — ${sanitizeText(exp.location)}`}
                           </p>
                         </div>
-                        <span className="text-xs text-gray-600 whitespace-nowrap ml-4">
-                          {formatDate(exp.startDate)} -{' '}
+                        <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                          {formatDate(exp.startDate)} –{' '}
                           {exp.currentlyWorking
                             ? 'Present'
                             : formatDate(exp.endDate)}
                         </span>
                       </div>
                       {exp.responsibilities?.length > 0 && (
-                        <ul className="list-disc list-inside space-y-0.5 text-gray-700 mt-1">
+                        <ul className="list-disc list-inside space-y-0.5 text-gray-700 mt-0.5">
                           {exp.responsibilities.map((resp, idx) => (
                             <li key={idx} className="text-xs">
                               {sanitizeText(resp)}
@@ -306,7 +285,7 @@ function ResumeRenderer({ resumeData, templateId }) {
           {/* ========== PROJECTS ========== */}
           {isSectionVisible('projects') && validProjects.length > 0 && (
             <section className={spacing.sectionGap}>
-              <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+              <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                 Projects
               </h2>
               <div className={spacing.listGap}>
@@ -316,33 +295,31 @@ function ResumeRenderer({ resumeData, templateId }) {
                       <h3 className="font-semibold text-gray-900 text-xs">
                         {sanitizeText(project.projectName)}
                       </h3>
-                      {(project.liveUrl || project.sourceCode) && (
-                        <div className="flex items-center gap-2 text-xs">
-                          {project.liveUrl && (
-                            <a
-                              href={sanitizeText(project.liveUrl)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-teal-600 hover:underline"
-                            >
-                              🔗 Live
-                            </a>
-                          )}
-                          {project.sourceCode && (
-                            <a
-                              href={sanitizeText(project.sourceCode)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-teal-600 hover:underline"
-                            >
-                              📂 Code
-                            </a>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 text-xs">
+                        {project.liveUrl && (
+                          <Link
+                            href={sanitizeText(project.liveUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal-600 hover:underline"
+                          >
+                            🔗 Live
+                          </Link>
+                        )}
+                        {project.sourceCode && (
+                          <Link
+                            href={sanitizeText(project.sourceCode)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal-600 hover:underline"
+                          >
+                            📂 Code
+                          </Link>
+                        )}
+                      </div>
                     </div>
                     {project.technologies?.length > 0 && (
-                      <p className="text-xs text-gray-600 mb-1">
+                      <p className="text-xs text-gray-600 mb-0.5">
                         <span className="font-semibold">Tech Stack:</span>{' '}
                         {project.technologies
                           .map((t) => sanitizeText(t))
@@ -350,17 +327,19 @@ function ResumeRenderer({ resumeData, templateId }) {
                       </p>
                     )}
                     {project.description && (
-                      <p className="text-gray-700 mb-1 text-xs">
+                      <p className="text-xs text-gray-700 mb-0.5">
                         {sanitizeText(project.description)}
                       </p>
                     )}
-                    {project.highlights?.length > 0 && (
+                    {project.highlights?.some((h) => h.trim()) && (
                       <ul className="list-disc list-inside space-y-0.5 text-gray-700">
-                        {project.highlights.map((highlight, idx) => (
-                          <li key={idx} className="text-xs">
-                            {sanitizeText(highlight)}
-                          </li>
-                        ))}
+                        {project.highlights
+                          .filter((h) => h.trim())
+                          .map((highlight, idx) => (
+                            <li key={idx} className="text-xs">
+                              {sanitizeText(highlight)}
+                            </li>
+                          ))}
                       </ul>
                     )}
                   </div>
@@ -376,17 +355,17 @@ function ResumeRenderer({ resumeData, templateId }) {
               (v) => Array.isArray(v) && v.length > 0
             ) && (
               <section className={spacing.sectionGap}>
-                <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                   Technical Skills
                 </h2>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {Object.entries(validData.skills).map(
                     ([category, skills]) => {
                       if (!Array.isArray(skills) || skills.length === 0)
                         return null;
                       return (
-                        <div key={category} className="flex text-xs">
-                          <span className="font-semibold text-gray-800 min-w-[120px] capitalize">
+                        <div key={category} className="flex gap-1 text-xs">
+                          <span className="font-semibold text-gray-800 shrink-0 capitalize">
                             {category.replace(/([A-Z])/g, ' $1').trim()}:
                           </span>
                           <span className="text-gray-700">
@@ -403,7 +382,7 @@ function ResumeRenderer({ resumeData, templateId }) {
           {/* ========== EDUCATION ========== */}
           {isSectionVisible('education') && validData.education?.length > 0 && (
             <section className={spacing.sectionGap}>
-              <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+              <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                 Education
               </h2>
               <div className={spacing.listGap}>
@@ -413,17 +392,17 @@ function ResumeRenderer({ resumeData, templateId }) {
                       <h3 className="font-semibold text-gray-900 text-xs">
                         {sanitizeText(edu.degree)}
                       </h3>
-                      <p className="text-gray-700 italic text-xs">
+                      <p className="text-gray-600 italic text-xs">
                         {sanitizeText(edu.institution)}
-                        {edu.location && ` - ${sanitizeText(edu.location)}`}
+                        {edu.location && ` — ${sanitizeText(edu.location)}`}
                       </p>
                       {edu.gpa && (
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-500">
                           GPA: {sanitizeText(edu.gpa)}
                         </p>
                       )}
                     </div>
-                    <span className="text-xs text-gray-600 whitespace-nowrap ml-4">
+                    <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
                       {formatDate(edu.graduationDate)}
                     </span>
                   </div>
@@ -436,7 +415,7 @@ function ResumeRenderer({ resumeData, templateId }) {
           {isSectionVisible('competitiveProgramming') &&
             validCPProfiles.length > 0 && (
               <section className={spacing.sectionGap}>
-                <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                   Competitive Programming
                 </h2>
                 <div className={spacing.listGap}>
@@ -446,86 +425,42 @@ function ResumeRenderer({ resumeData, templateId }) {
                       className="flex justify-between items-start"
                     >
                       <div>
-                        {cp.platform && (
-                          <h3 className="font-semibold text-gray-900 text-xs">
-                            {sanitizeText(cp.platform)}
-                          </h3>
-                        )}
-                        {cp.handle && (
+                        {/* Platform name + View Profile পাশাপাশি */}
+                        <h3 className="font-semibold text-gray-900 text-xs flex items-center gap-2">
+                          {sanitizeText(cp.platform)}
+                          {cp.profileUrl && (
+                            <Link
+                              href={sanitizeText(cp.profileUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-teal-600 hover:underline font-normal"
+                            >
+                              View Profile
+                            </Link>
+                          )}
+                        </h3>
+
+                        {/* Badges */}
+                        {cp.badges?.length > 0 && (
                           <p className="text-xs text-gray-600">
-                            Handle:{' '}
-                            {cp.profileUrl ? (
-                              <a
-                                href={sanitizeText(cp.profileUrl)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-teal-600 hover:underline"
-                              >
-                                {sanitizeText(cp.handle)}
-                              </a>
-                            ) : (
-                              sanitizeText(cp.handle)
-                            )}
-                          </p>
-                        )}
-                        {cp.rating && (
-                          <p className="text-xs text-gray-600">
-                            Rating:{' '}
-                            <span className="font-semibold text-gray-800">
-                              {sanitizeText(String(cp.rating))}
-                            </span>
-                            {cp.maxRating && cp.maxRating !== cp.rating && (
-                              <span className="text-gray-500">
-                                {' '}
-                                (max: {sanitizeText(String(cp.maxRating))})
-                              </span>
-                            )}
-                          </p>
-                        )}
-                        {cp.rank && (
-                          <p className="text-xs text-gray-600">
-                            Rank:{' '}
-                            <span className="capitalize">
-                              {sanitizeText(cp.rank)}
-                            </span>
+                            <span className="font-semibold">Badges:</span>{' '}
+                            {cp.badges.map((b) => sanitizeText(b)).join(', ')}
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
-                        {cp.problemsSolved && (
-                          <p className="text-xs text-gray-600">
-                            Solved:{' '}
-                            <span className="font-semibold text-gray-800">
-                              {sanitizeText(String(cp.problemsSolved))}
-                            </span>
-                          </p>
-                        )}
-                        {cp.contests && (
-                          <p className="text-xs text-gray-600">
-                            Contests:{' '}
-                            <span className="font-semibold text-gray-800">
-                              {sanitizeText(String(cp.contests))}
-                            </span>
-                          </p>
-                        )}
-                      </div>
+
+                      {/* Problems Solved */}
+                      {cp.problemsSolved > 0 && (
+                        <p className="text-xs text-gray-600 text-right">
+                          Solved:{' '}
+                          <span className="font-semibold text-gray-800">
+                            {cp.problemsSolved}
+                          </span>
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
-                {/* Highlights / Achievements */}
-                {validData.competitiveProgramming?.some(
-                  (cp) => cp.achievements?.length > 0
-                ) && (
-                  <ul className="list-disc list-inside space-y-0.5 text-gray-700 mt-1">
-                    {validData.competitiveProgramming.flatMap((cp) =>
-                      (cp.achievements || []).map((ach, idx) => (
-                        <li key={idx} className="text-xs">
-                          {sanitizeText(ach)}
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                )}
               </section>
             )}
 
@@ -533,7 +468,7 @@ function ResumeRenderer({ resumeData, templateId }) {
           {isSectionVisible('certifications') &&
             validData.certifications?.length > 0 && (
               <section className={spacing.sectionGap}>
-                <h2 className="text-md font-semibold text-gray-900 uppercase mb-2 border-b border-gray-300 pb-1">
+                <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
                   Certifications
                 </h2>
                 <div className={spacing.listGap}>
@@ -547,12 +482,12 @@ function ResumeRenderer({ resumeData, templateId }) {
                           {sanitizeText(cert.certificationName)}
                         </h3>
                         {cert.issuer && (
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-gray-500">
                             {sanitizeText(cert.issuer)}
                           </p>
                         )}
                       </div>
-                      <span className="text-xs text-gray-600 whitespace-nowrap ml-4">
+                      <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
                         {formatDate(cert.issueDate)}
                       </span>
                     </div>

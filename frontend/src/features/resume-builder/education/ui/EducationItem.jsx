@@ -174,7 +174,7 @@ function EducationItem({
         </div>
 
         {/* Graduation Date & GPA */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Month */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -188,7 +188,7 @@ function EducationItem({
                   month: Number(e.target.value),
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="">Select Month</option>
               {months.map((m, i) => (

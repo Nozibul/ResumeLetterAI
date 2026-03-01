@@ -122,7 +122,7 @@ function DatePicker({
             type="checkbox"
             checked={isCurrent}
             onChange={(e) => onCurrentChange(e.target.checked)}
-            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+            className="w-4 h-4 accent-teal-600 border-gray-300 rounded focus:ring-teal-500"
           />
           <span className="text-sm text-gray-700">{currentLabel}</span>
         </label>

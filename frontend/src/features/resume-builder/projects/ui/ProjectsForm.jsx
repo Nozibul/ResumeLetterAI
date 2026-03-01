@@ -144,7 +144,7 @@ function ProjectsForm() {
   // ATS TIPS
   // ==========================================
   const atsTips = [
-    'List your best 3-5 projects (quality > quantity)',
+    'List your best 2-5 projects (quality > quantity)',
     'Include tech stack for ATS keyword matching',
     'Add live demo and GitHub links when possible',
     'Quantify impact (users, performance, scale)',
@@ -166,7 +166,7 @@ function ProjectsForm() {
   // RENDER
   // ==========================================
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ATS GUIDELINES */}
       <ATSBanner title="Project Tips for Developers" tips={atsTips} />
 
@@ -181,7 +181,7 @@ function ProjectsForm() {
       )}
 
       {/* PROJECTS LIST */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {projects.map((project, index) => (
           <div key={index} className="relative">
             {/* Show error indicator */}

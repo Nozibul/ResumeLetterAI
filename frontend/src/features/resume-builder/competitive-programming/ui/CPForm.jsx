@@ -1,21 +1,12 @@
 /**
  * @file features/resume-builder/competitive-programming/ui/CPForm.jsx
- * @description Competitive Programming form - Step 7 (FINAL - WITH VALIDATION)
+ * @description Competitive Programming form - Step 7
  * @author Nozibul Islam
  *
- * Architecture:
- * - Uses sub-components (CPItem, AddPlatformButton)
- * - Uses validation from model/validation.js
- * - Platform-specific URL validation
- * - Problems count validation
- *
- * Self-Review:
- * ✅ Readability: Clean, modular
- * ✅ Performance: Memoized, debounced
- * ✅ Security: URL validation
- * ✅ Best Practices: Industry standard
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: Cleanup in hooks
+ * FIXES:
+ * ✅ MAX_CP_PLATFORMS typo fix (was MAX_CP_PROFILES — undefined)
+ * ✅ Add Platform button এখন সঠিকভাবে দেখাবে
+ * ✅ Clean, optimized, modular
  */
 
 'use client';
@@ -34,9 +25,36 @@ import { validateCPForm, getCPQualityScore } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
 import logger from '@/shared/lib/logger';
 
+// ==========================================
+// CONSTANTS
+// ==========================================
+const ATS_TIPS = [
+  'Include competitive programming if relevant to the role',
+  'Highlight problem counts and rankings',
+  'Mention notable achievements (contest wins, rating milestones)',
+  'Add profile links for verification',
+];
+
+// ==========================================
+// HELPER
+// ==========================================
+function createEmptyProfile() {
+  return {
+    platform: '',
+    problemsSolved: 0,
+    badges: [],
+    profileUrl: '',
+  };
+}
+
+// ==========================================
+// MAX LIMIT — FIX: MAX_CP_PLATFORMS (not MAX_CP_PROFILES)
+// ==========================================
+const MAX_PROFILES = LIMITS.MAX_CP_PLATFORMS ?? 5;
+
 /**
  * CPForm Component
- * Step 7: Competitive Programming with validation
+ * Step 7: Competitive Programming
  */
 function CPForm() {
   const dispatch = useDispatch();
@@ -50,16 +68,17 @@ function CPForm() {
   const [touched, setTouched] = useState(false);
 
   // ==========================================
-  // INITIALIZE FROM REDUX
+  // INITIALIZE FROM REDUX (once on mount)
   // ==========================================
   useEffect(() => {
     if (resumeData?.competitiveProgramming?.length > 0) {
       setProfiles(resumeData.competitiveProgramming);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ==========================================
-  // VALIDATE ALL PROFILES
+  // VALIDATE
   // ==========================================
   const validateAllProfiles = useCallback((profilesList) => {
     const validationErrors = validateCPForm(profilesList);
@@ -68,7 +87,7 @@ function CPForm() {
   }, []);
 
   // ==========================================
-  // DEBOUNCED SAVE
+  // DEBOUNCED SAVE TO REDUX
   // ==========================================
   useEffect(() => {
     if (!touched) return;
@@ -77,10 +96,9 @@ function CPForm() {
       logger.info('Saving competitive programming to Redux...');
       dispatch(setIsSaving(true));
 
-      // Validate before saving
       validateAllProfiles(profiles);
 
-      // Filter out empty profiles
+      // Only save profiles that have a platform selected
       const validProfiles = profiles.filter((p) => p.platform?.trim());
 
       dispatch(
@@ -100,8 +118,8 @@ function CPForm() {
   // HANDLERS
   // ==========================================
   const handleAdd = useCallback(() => {
-    if (profiles.length >= LIMITS.MAX_CP_PROFILES) {
-      alert(`Maximum ${LIMITS.MAX_CP_PROFILES} platforms allowed`);
+    if (profiles.length >= MAX_PROFILES) {
+      alert(`Maximum ${MAX_PROFILES} platforms allowed`);
       return;
     }
     setProfiles((prev) => [...prev, createEmptyProfile()]);
@@ -112,7 +130,7 @@ function CPForm() {
   const handleRemove = useCallback((index) => {
     setProfiles((prev) => prev.filter((_, i) => i !== index));
     setTouched(true);
-    logger.info('Removed CP platform:', index);
+    logger.info('Removed CP platform at index:', index);
   }, []);
 
   const handleUpdate = useCallback((index, field, value) => {
@@ -125,17 +143,7 @@ function CPForm() {
   }, []);
 
   // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'Include competitive programming if relevant to the role',
-    'Highlight problem counts and rankings',
-    'Mention notable achievements (contest wins, rating milestones)',
-    'Add profile links for verification',
-  ];
-
-  // ==========================================
-  // VALIDATION SUMMARY
+  // DERIVED STATE
   // ==========================================
   const hasValidationErrors =
     Object.keys(errors).length > 0 && errors._form === undefined;
@@ -146,7 +154,7 @@ function CPForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="Competitive Programming Tips" tips={atsTips} />
+      <ATSBanner title="Competitive Programming Tips" tips={ATS_TIPS} />
 
       {/* VALIDATION ERRORS SUMMARY */}
       {hasValidationErrors && (
@@ -254,11 +262,11 @@ function CPForm() {
 
                 {/* Quality Suggestions */}
                 {qualityScore.suggestions.length > 0 && (
-                  <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs font-medium text-blue-800 mb-1">
+                  <div className="mt-2 bg-teal-50 border border-teal-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-teal-800 mb-1">
                       💡 Suggestions (Score: {qualityScore.score}/100):
                     </p>
-                    <ul className="text-xs text-blue-700 space-y-0.5 list-disc list-inside">
+                    <ul className="text-xs text-teal-700 space-y-0.5 list-disc list-inside">
                       {qualityScore.suggestions.map((suggestion, idx) => (
                         <li key={idx}>{suggestion}</li>
                       ))}
@@ -271,25 +279,12 @@ function CPForm() {
         </div>
       )}
 
-      {/* ADD BUTTON */}
-      {profiles.length > 0 && profiles.length < LIMITS.MAX_CP_PROFILES && (
+      {/* ADD BUTTON — FIX: MAX_CP_PLATFORMS (was MAX_CP_PROFILES = undefined) */}
+      {profiles.length > 0 && profiles.length < MAX_PROFILES && (
         <AddPlatformButton currentCount={profiles.length} onClick={handleAdd} />
       )}
     </div>
   );
-}
-
-// ==========================================
-// HELPER: Create Empty Profile
-// ==========================================
-
-function createEmptyProfile() {
-  return {
-    platform: '',
-    problemsSolved: 0,
-    badges: [],
-    profileUrl: '',
-  };
 }
 
 export default memo(CPForm);

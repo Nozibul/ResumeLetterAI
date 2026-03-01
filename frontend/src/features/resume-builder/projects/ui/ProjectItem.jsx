@@ -190,8 +190,8 @@ function ProjectItem({
           value={project.description || ''}
           onChange={(e) => onUpdate(index, 'description', e.target.value)}
           placeholder="Full-stack e-commerce platform with real-time inventory management..."
-          rows={3}
-          maxLength={500}
+          rows={2}
+          maxLength={300}
           helperText="Optional but recommended"
         />
 
@@ -204,7 +204,7 @@ function ProjectItem({
             value={project.liveUrl || ''}
             onChange={(e) => onUpdate(index, 'liveUrl', e.target.value)}
             placeholder="https://myproject.com"
-            helperText="Optional"
+            helperText="Optional but recommended"
           />
 
           <ResumeInput
@@ -214,7 +214,7 @@ function ProjectItem({
             value={project.sourceCode || ''}
             onChange={(e) => onUpdate(index, 'sourceCode', e.target.value)}
             placeholder="https://github.com/user/repo"
-            helperText="Optional"
+            helperText="Optional but recommended"
           />
         </div>
 

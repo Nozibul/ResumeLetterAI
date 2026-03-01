@@ -49,17 +49,17 @@ function ProgressBar({ progress }) {
 
   // ==========================================
   // PROGRESS COLOR (Memoized)
-  // Green when complete, blue otherwise
+  // Green when complete, teal otherwise
   // ==========================================
   const progressColor = useMemo(() => {
     if (validProgress === 100) {
-      return 'bg-green-500';
+      return 'bg-teal-500';
     } else if (validProgress >= 75) {
-      return 'bg-blue-500';
+      return 'bg-teal-500';
     } else if (validProgress >= 50) {
-      return 'bg-blue-400';
+      return 'bg-teal-400';
     } else if (validProgress >= 25) {
-      return 'bg-blue-300';
+      return 'bg-teal-300';
     } else {
       return 'bg-gray-400';
     }
@@ -83,7 +83,7 @@ function ProgressBar({ progress }) {
   // ==========================================
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-md">
+      <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-gray-900">Resume Completeness:</span>
         <span
           className={`font-bold ${

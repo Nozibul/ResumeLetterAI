@@ -209,7 +209,7 @@ function WorkExperienceForm() {
               {/* Quality Score Badge */}
               {!hasErrors && qualityScore.score >= 70 && (
                 <div className="absolute -top-2 -right-2 z-10">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-500 text-white text-xs font-bold">
                     ✓
                   </span>
                 </div>

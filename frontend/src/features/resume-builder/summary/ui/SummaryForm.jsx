@@ -70,7 +70,7 @@ function SummaryForm() {
     setTouched({ text: true });
     setIsFormTouched(true);
 
-    // ✅ Validate with our function
+    // Validate with our function
     const error = validateSummaryText(value);
     setErrors({ text: error });
   }, []);

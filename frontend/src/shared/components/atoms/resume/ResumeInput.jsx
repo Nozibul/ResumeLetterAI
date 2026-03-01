@@ -85,7 +85,7 @@ function ResumeInput({
         aria-invalid={hasError}
         aria-describedby={hasError ? errorId : undefined}
         className={`
-          w-full px-4 py-2.5 border rounded-lg
+          w-full px-4 py-2 border rounded-lg text-sm
           focus:outline-none focus:ring-2 transition-colors
           disabled:bg-gray-100 disabled:cursor-not-allowed
           ${
@@ -136,7 +136,7 @@ ResumeInput.propTypes = {
 
 ResumeInput.defaultProps = {
   type: 'text',
-  value: '', // ✅ SAFE DEFAULT
+  value: '',
   onBlur: () => {},
   placeholder: '',
   required: false,
