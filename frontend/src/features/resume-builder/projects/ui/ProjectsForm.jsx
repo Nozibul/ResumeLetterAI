@@ -1,166 +1,122 @@
 /**
  * @file features/resume-builder/projects/ui/ProjectsForm.jsx
- * @description Projects form - Step 4 (FINAL - WITH VALIDATION)
+ * @description Projects form - Step 4
  * @author Nozibul Islam
  *
- * Architecture:
- * - Uses sub-components (ProjectItem, AddProjectButton)
- * - Uses validation from model/validation.js
- * - Per-project validation
- *
- * Self-Review:
- * ✅ Readability: Clean, modular
- * ✅ Performance: Memoized, debounced
- * ✅ Security: URL validation
- * ✅ Best Practices: Industry standard
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: Cleanup in hooks
+ * Refactored to use shared useResumeListForm hook.
+ * All init, save, add/remove/update/reorder logic lives in the hook.
+ * Component is responsible for UI only.
  */
 
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { memo, useMemo, useCallback } from 'react';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
+import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import ProjectItem from './ProjectItem';
 import AddProjectButton from './AddProjectButton';
 import { validateProject } from '../model/validation';
 import { LIMITS, SKILLS_SUGGESTIONS } from '@/shared/lib/constants';
-import { reorderArray } from '@/shared/lib/utils';
-import logger from '@/shared/lib/logger';
+
+// ==========================================
+// CONSTANTS
+// ==========================================
+const ATS_TIPS = [
+  'List your best 2-5 projects (quality > quantity)',
+  'Include tech stack for ATS keyword matching',
+  'Add live demo and GitHub links when possible',
+  'Quantify impact (users, performance, scale)',
+  'Highlight your specific contributions',
+];
+
+// ==========================================
+// HELPERS
+// Defined outside component — stable reference, no re-creation on render
+// createEmptyProject passed to hook as createItem — no useCallback needed
+// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
+// ==========================================
+function createEmptyProject() {
+  return {
+    projectName: '',
+    technologies: [],
+    description: '',
+    liveUrl: '',
+    sourceCode: '',
+    highlights: [''],
+  };
+}
+
+function isNotEmpty(project) {
+  return project.projectName?.trim();
+}
 
 /**
  * ProjectsForm Component
- * Step 4: Projects with validation
+ * Step 4: Projects
  */
 function ProjectsForm() {
-  const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
   // ==========================================
-  // STATE
+  // LIST FORM HOOK
+  // All init, save, add/remove/update/reorder logic lives in useResumeListForm.
+  // handleAdd returns false if max limit reached — show alert in UI.
   // ==========================================
-  const [projects, setProjects] = useState([createEmptyProject()]);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState(false);
+  const {
+    items: projects,
+    handleAdd,
+    handleRemove,
+    handleUpdate,
+    handleReorder,
+  } = useResumeListForm({
+    field: 'projects',
+    createItem: createEmptyProject,
+    reduxData: resumeData?.projects,
+    maxItems: LIMITS.MAX_PROJECTS,
+    filterEmpty: isNotEmpty,
+  });
 
   // ==========================================
-  // INITIALIZE FROM REDUX
+  // VALIDATION
+  // Run on current projects for UI feedback only
+  // Does not block saving — partial data is allowed
   // ==========================================
-  useEffect(() => {
-    if (resumeData?.projects?.length > 0) {
-      setProjects(resumeData.projects);
-    }
-  }, []);
-
-  // ==========================================
-  // VALIDATE ALL PROJECTS
-  // ==========================================
-  const validateAllProjects = useCallback((projectsList) => {
+  const errors = useMemo(() => {
     const allErrors = {};
-    projectsList.forEach((project, index) => {
+    projects.forEach((project, index) => {
       const projectErrors = validateProject(project);
       if (Object.keys(projectErrors).length > 0) {
         allErrors[index] = projectErrors;
       }
     });
     return allErrors;
-  }, []);
+  }, [projects]);
 
   // ==========================================
-  // DEBOUNCED SAVE
+  // TECH SUGGESTIONS
+  // Memoized — only recomputed if SKILLS_SUGGESTIONS changes (never)
   // ==========================================
-  useEffect(() => {
-    if (!touched) return;
-
-    const timer = setTimeout(() => {
-      logger.info('Saving projects to Redux...');
-      dispatch(setIsSaving(true));
-
-      // Validate before saving
-      const validationErrors = validateAllProjects(projects);
-      setErrors(validationErrors);
-
-      // Filter out empty projects
-      const validProjects = projects.filter((p) => p.projectName?.trim());
-
-      dispatch(
-        updateCurrentResumeField({ field: 'projects', value: validProjects })
-      );
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [projects, touched, dispatch, validateAllProjects]);
+  const allTechSuggestions = useMemo(
+    () => [
+      ...SKILLS_SUGGESTIONS.programmingLanguages,
+      ...SKILLS_SUGGESTIONS.frontend,
+      ...SKILLS_SUGGESTIONS.backend,
+      ...SKILLS_SUGGESTIONS.database,
+      ...SKILLS_SUGGESTIONS.devOps,
+    ],
+    []
+  );
 
   // ==========================================
   // HANDLERS
   // ==========================================
-  const handleAdd = useCallback(() => {
-    if (projects.length >= LIMITS.MAX_PROJECTS) {
+  const onAdd = useCallback(() => {
+    const added = handleAdd();
+    if (!added) {
       alert(`Maximum ${LIMITS.MAX_PROJECTS} projects allowed`);
-      return;
     }
-    setProjects((prev) => [...prev, createEmptyProject()]);
-    setTouched(true);
-    logger.info('Added new project');
-  }, [projects.length]);
-
-  const handleRemove = useCallback(
-    (index) => {
-      if (projects.length === 1) {
-        setProjects([createEmptyProject()]);
-      } else {
-        setProjects((prev) => prev.filter((_, i) => i !== index));
-      }
-      setTouched(true);
-      logger.info('Removed project:', index);
-    },
-    [projects.length]
-  );
-
-  const handleUpdate = useCallback((index, field, value) => {
-    setProjects((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-    setTouched(true);
-  }, []);
-
-  const handleReorder = useCallback((fromIndex, toIndex) => {
-    setProjects((prev) => reorderArray(prev, fromIndex, toIndex));
-    setTouched(true);
-    logger.info(`Reordered project: ${fromIndex} → ${toIndex}`);
-  }, []);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'List your best 2-5 projects (quality > quantity)',
-    'Include tech stack for ATS keyword matching',
-    'Add live demo and GitHub links when possible',
-    'Quantify impact (users, performance, scale)',
-    'Highlight your specific contributions',
-  ];
-
-  // ==========================================
-  // TECH SUGGESTIONS
-  // ==========================================
-  const allTechSuggestions = [
-    ...SKILLS_SUGGESTIONS.programmingLanguages,
-    ...SKILLS_SUGGESTIONS.frontend,
-    ...SKILLS_SUGGESTIONS.backend,
-    ...SKILLS_SUGGESTIONS.database,
-    ...SKILLS_SUGGESTIONS.devOps,
-  ];
+  }, [handleAdd]);
 
   // ==========================================
   // RENDER
@@ -168,7 +124,7 @@ function ProjectsForm() {
   return (
     <div className="space-y-4">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="Project Tips for Developers" tips={atsTips} />
+      <ATSBanner title="Project Tips for Developers" tips={ATS_TIPS} />
 
       {/* VALIDATION ERRORS SUMMARY */}
       {Object.keys(errors).length > 0 && (
@@ -184,7 +140,7 @@ function ProjectsForm() {
       <div className="space-y-4">
         {projects.map((project, index) => (
           <div key={index} className="relative">
-            {/* Show error indicator */}
+            {/* Error Indicator */}
             {errors[index] && (
               <div className="absolute -top-2 -right-2 z-10">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -213,24 +169,9 @@ function ProjectsForm() {
       </div>
 
       {/* ADD PROJECT BUTTON */}
-      <AddProjectButton currentCount={projects.length} onClick={handleAdd} />
+      <AddProjectButton currentCount={projects.length} onClick={onAdd} />
     </div>
   );
-}
-
-// ==========================================
-// HELPER: Create Empty Project
-// ==========================================
-
-function createEmptyProject() {
-  return {
-    projectName: '',
-    technologies: [],
-    description: '',
-    liveUrl: '',
-    sourceCode: '',
-    highlights: [''],
-  };
 }
 
 export default memo(ProjectsForm);

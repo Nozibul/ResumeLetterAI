@@ -1,25 +1,18 @@
 /**
  * @file features/resume-builder/work-experience/ui/WorkExperienceForm.jsx
- * @description Work Experience form - Step 3 (FINAL - WITH VALIDATION)
+ * @description Work Experience form - Step 3
  * @author Nozibul Islam
  *
- * Architecture:
- * - Uses sub-components (ExperienceItem, BulletPointsList, AddExperienceButton)
- * - Uses validation from model/validation.js
- * - Date range validation
- * - Responsibilities validation
- *
+ * Refactored to use shared useResumeListForm hook.
+ * All init, save, add/remove/update/reorder logic lives in the hook.
+ * Component is responsible for UI only.
  */
 
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { memo } from 'react';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
+import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import ExperienceItem from './ExperienceItem';
 import AddExperienceButton from './AddExperienceButton';
@@ -28,137 +21,84 @@ import {
   getExperienceQualityScore,
 } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
-import { reorderArray } from '@/shared/lib/utils';
-import logger from '@/shared/lib/logger';
+
+// ==========================================
+// CONSTANTS
+// ==========================================
+const ATS_TIPS = [
+  'Use bullet points (3-5 per role)',
+  'Start with action verbs (Led, Developed, Increased)',
+  'Quantify results (reduced by 30%, managed $2M budget)',
+  'Focus on impact, not tasks',
+  'List most recent first',
+];
+
+// ==========================================
+// HELPERS
+// Defined outside component — stable reference, no re-creation on render
+// createEmptyExperience passed to hook as createItem — no useCallback needed
+// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
+// ==========================================
+function createEmptyExperience() {
+  return {
+    jobTitle: '',
+    company: '',
+    location: '',
+    startDate: null,
+    endDate: null,
+    currentlyWorking: false,
+    responsibilities: [''],
+  };
+}
+
+function isNotEmpty(experience) {
+  return experience.jobTitle?.trim() || experience.company?.trim();
+}
 
 /**
  * WorkExperienceForm Component
- * Step 3: Work Experience with validation
+ * Step 3: Work Experience
  */
 function WorkExperienceForm() {
-  const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
   // ==========================================
-  // STATE
+  // LIST FORM HOOK
+  // All init, save, add/remove/update/reorder logic lives in useResumeListForm.
+  // handleAdd returns false if max limit reached — show alert in UI.
   // ==========================================
-  const [experiences, setExperiences] = useState([createEmptyExperience()]);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState(false);
-
-  // ==========================================
-  // INITIALIZE FROM REDUX
-  // ==========================================
-  useEffect(() => {
-    if (resumeData?.workExperience?.length > 0) {
-      setExperiences(resumeData.workExperience);
-    }
-  }, []);
-
-  // ==========================================
-  // VALIDATE ALL EXPERIENCES
-  // ==========================================
-  const validateAllExperiences = useCallback((experiencesList) => {
-    const validationErrors = validateWorkExperienceForm(experiencesList);
-    setErrors(validationErrors);
-    return validationErrors;
-  }, []);
+  const {
+    items: experiences,
+    handleAdd,
+    handleRemove,
+    handleUpdate,
+    handleReorder,
+  } = useResumeListForm({
+    field: 'workExperience',
+    createItem: createEmptyExperience,
+    reduxData: resumeData?.workExperience,
+    maxItems: LIMITS.MAX_WORK_EXPERIENCES,
+    filterEmpty: isNotEmpty,
+  });
 
   // ==========================================
-  // DEBOUNCED SAVE
+  // VALIDATION
+  // Run on current experiences for UI feedback only
+  // Does not block saving — partial data is allowed
   // ==========================================
-  useEffect(() => {
-    if (!touched) return;
-
-    const timer = setTimeout(() => {
-      logger.info('Saving work experience to Redux...');
-      dispatch(setIsSaving(true));
-
-      // Validate before saving
-      validateAllExperiences(experiences);
-
-      // Filter out empty experiences
-      const validExperiences = experiences.filter(
-        (e) => e.jobTitle?.trim() || e.company?.trim()
-      );
-
-      dispatch(
-        updateCurrentResumeField({
-          field: 'workExperience',
-          value: validExperiences,
-        })
-      );
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [experiences, touched, dispatch, validateAllExperiences]);
+  const errors = validateWorkExperienceForm(experiences);
+  const hasValidationErrors =
+    Object.keys(errors).length > 0 && errors._form === undefined;
 
   // ==========================================
   // HANDLERS
   // ==========================================
-  const handleAdd = useCallback(() => {
-    if (experiences.length >= LIMITS.MAX_WORK_EXPERIENCES) {
+  const onAdd = () => {
+    const added = handleAdd();
+    if (!added) {
       alert(`Maximum ${LIMITS.MAX_WORK_EXPERIENCES} experiences allowed`);
-      return;
     }
-    setExperiences((prev) => [...prev, createEmptyExperience()]);
-    setTouched(true);
-    logger.info('Added new work experience');
-  }, [experiences.length]);
-
-  const handleRemove = useCallback(
-    (index) => {
-      if (experiences.length === 1) {
-        setExperiences([createEmptyExperience()]);
-      } else {
-        setExperiences((prev) => prev.filter((_, i) => i !== index));
-      }
-      setTouched(true);
-      logger.info('Removed work experience:', index);
-    },
-    [experiences.length]
-  );
-
-  const handleUpdate = useCallback((index, field, value) => {
-    setExperiences((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-    setTouched(true);
-  }, []);
-
-  const handleReorder = useCallback((fromIndex, toIndex) => {
-    setExperiences((prev) => reorderArray(prev, fromIndex, toIndex));
-    setTouched(true);
-    logger.info(`Reordered experience: ${fromIndex} → ${toIndex}`);
-  }, []);
-
-  // ==========================================
-  // GET QUALITY SCORES
-  // ==========================================
-  // const getQualityScores = useCallback(() => {
-  //   return experiences.map((exp) => getExperienceQualityScore(exp));
-  // }, [experiences]);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'Use bullet points (3-5 per role)',
-    'Start with action verbs (Led, Developed, Increased)',
-    'Quantify results (reduced by 30%, managed $2M budget)',
-    'Focus on impact, not tasks',
-    'List most recent first',
-  ];
-
-  // ==========================================
-  // VALIDATION SUMMARY
-  // ==========================================
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  };
 
   // ==========================================
   // RENDER
@@ -166,7 +106,7 @@ function WorkExperienceForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="ATS-Optimized Experience Tips" tips={atsTips} />
+      <ATSBanner title="ATS-Optimized Experience Tips" tips={ATS_TIPS} />
 
       {/* VALIDATION ERRORS SUMMARY */}
       {hasValidationErrors && (
@@ -251,28 +191,9 @@ function WorkExperienceForm() {
       </div>
 
       {/* ADD BUTTON */}
-      <AddExperienceButton
-        currentCount={experiences.length}
-        onClick={handleAdd}
-      />
+      <AddExperienceButton currentCount={experiences.length} onClick={onAdd} />
     </div>
   );
-}
-
-// ==========================================
-// HELPER: Create Empty Experience
-// ==========================================
-
-function createEmptyExperience() {
-  return {
-    jobTitle: '',
-    company: '',
-    location: '',
-    startDate: null,
-    endDate: null,
-    currentlyWorking: false,
-    responsibilities: [''],
-  };
 }
 
 export default memo(WorkExperienceForm);

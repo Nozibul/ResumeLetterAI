@@ -1,155 +1,139 @@
+/**
+ * @file features/resume-builder/skills/ui/SkillsForm.jsx
+ * @description Skills form - Step 5
+ * @author Nozibul Islam
+ *
+ * Refactored to use shared useResumeForm hook.
+ * All init, save logic lives in the hook.
+ * Component is responsible for UI only.
+ */
+
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { memo, useCallback, useMemo } from 'react';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
+import { useResumeForm } from '@/shared/hooks/useResumeForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import SkillCategory from './SkillCategory';
 import SuggestionsList from './SuggestionsList';
 import { validateSkillsForm, getSkillsQualityScore } from '../model/validation';
 import { SKILLS_SUGGESTIONS } from '@/shared/lib/constants';
-import logger from '@/shared/lib/logger';
 
+// ==========================================
+// CONSTANTS
+// Defined outside component — stable reference, no re-creation on render
+// ==========================================
+const INITIAL_FORM_DATA = {
+  programmingLanguages: [],
+  frontend: [],
+  backend: [],
+  database: [],
+  devOps: [],
+  tools: [],
+  other: [],
+};
+
+const ATS_TIPS = [
+  'Include both technical and soft skills',
+  'Use industry-standard terminology (React, not React.js)',
+  'List programming languages you actively use',
+  'Separate frontend, backend, and DevOps skills',
+  'Keep skill names consistent (PostgreSQL, not Postgres)',
+];
+
+const SKILL_CATEGORIES = [
+  { name: 'programmingLanguages', label: 'Programming Languages', icon: '💻' },
+  { name: 'frontend', label: 'Frontend Development', icon: '🎨' },
+  { name: 'backend', label: 'Backend Development', icon: '⚙️' },
+  { name: 'database', label: 'Databases & Data', icon: '🗄️' },
+  { name: 'devOps', label: 'DevOps & Cloud', icon: '☁️' },
+  { name: 'tools', label: 'Tools & Technologies', icon: '🔧' },
+  { name: 'other', label: 'Other Skills', icon: '✨' },
+];
+
+/**
+ * Custom hasDataCheck for skills:
+ * At least one category must have actual skills.
+ * Prevents initializing from { programmingLanguages: [], frontend: [], ... }
+ */
+function skillsHasDataCheck(data) {
+  return Object.values(data).some((v) => Array.isArray(v) && v.length > 0);
+}
+
+/**
+ * SkillsForm Component
+ * Step 5: Skills
+ */
 function SkillsForm() {
-  const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
-  const defaultFormData = {
-    programmingLanguages: [],
-    frontend: [],
-    backend: [],
-    database: [],
-    devOps: [],
-    tools: [],
-    other: [],
-  };
-
-  const [formData, setFormData] = useState(defaultFormData);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState(false);
-  const [qualityScore, setQualityScore] = useState(null);
+  // ==========================================
+  // FORM HOOK
+  // hasDataCheck: at least one skill category must be non-empty
+  // Prevents {} or all-empty-array data from triggering initialization
+  // Merge with INITIAL_FORM_DATA ensures all category keys always exist
+  // No requiredFields — skills section is optional
+  // ==========================================
+  const { formData, updateField } = useResumeForm({
+    field: 'skills',
+    initialData: INITIAL_FORM_DATA,
+    reduxData: resumeData?.skills
+      ? { ...INITIAL_FORM_DATA, ...resumeData.skills }
+      : undefined,
+    hasDataCheck: skillsHasDataCheck,
+  });
 
   // ==========================================
-  // INITIALIZE FROM REDUX (FIXED)
+  // VALIDATION & QUALITY SCORE
+  // Derived from formData — no separate state needed
+  // useMemo — only recomputes when formData changes
   // ==========================================
-  useEffect(() => {
-    if (resumeData?.skills) {
-      // ✅ Merge with defaults to ensure all fields exist
-      setFormData({
-        ...defaultFormData,
-        ...resumeData.skills,
-      });
-    }
-  }, []);
+  const errors = useMemo(() => validateSkillsForm(formData), [formData]);
+  const qualityScore = useMemo(
+    () => getSkillsQualityScore(formData),
+    [formData]
+  );
 
   // ==========================================
-  // VALIDATE & CALCULATE QUALITY
+  // DERIVED VALUES
   // ==========================================
-  const validateAndScore = useCallback((skills) => {
-    const validationErrors = validateSkillsForm(skills);
-    setErrors(validationErrors);
+  const totalSkills = useMemo(
+    () =>
+      Object.values(formData).reduce(
+        (total, skills) => total + (skills?.length || 0),
+        0
+      ),
+    [formData]
+  );
 
-    const score = getSkillsQualityScore(skills);
-    setQualityScore(score);
-
-    return validationErrors;
-  }, []);
-
-  // ==========================================
-  // DEBOUNCED SAVE
-  // ==========================================
-  useEffect(() => {
-    if (!touched) return;
-
-    const timer = setTimeout(() => {
-      logger.info('Saving skills to Redux...');
-      dispatch(setIsSaving(true));
-
-      validateAndScore(formData);
-
-      dispatch(updateCurrentResumeField({ field: 'skills', value: formData }));
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [formData, touched, dispatch, validateAndScore]);
+  const categoriesWithSkills = useMemo(
+    () => Object.values(formData).filter((skills) => skills?.length > 0).length,
+    [formData]
+  );
 
   // ==========================================
-  // HANDLE UPDATE (FIXED)
+  // HANDLERS
+  // updateField from hook handles setFormData + setIsFormTouched
   // ==========================================
-  const handleUpdateCategory = useCallback((category, skills) => {
-    setFormData((prev) => ({
-      ...prev,
-      [category]: skills || [], // ✅ Ensure it's always an array
-    }));
-    setTouched(true);
-  }, []);
+  const handleAddSkill = useCallback(
+    (category, skill) => {
+      const currentSkills = formData[category] || [];
+      if (currentSkills.includes(skill)) return;
+      updateField(category, [...currentSkills, skill]);
+    },
+    [formData, updateField]
+  );
 
-  // ==========================================
-  // ADD SKILL HELPER (NEW - REUSABLE)
-  // ==========================================
-  const handleAddSkill = useCallback((category, skill) => {
-    setFormData((prev) => {
-      const currentSkills = prev[category] || []; // ✅ Safe default
-
-      // Check duplicate
-      if (currentSkills.includes(skill)) {
-        return prev; // No change
-      }
-
-      return {
-        ...prev,
-        [category]: [...currentSkills, skill],
-      };
-    });
-    setTouched(true);
-  }, []);
-
-  // ==========================================
-  // REMOVE SKILL HELPER (NEW - REUSABLE)
-  // ==========================================
-  const handleRemoveSkill = useCallback((category, skill) => {
-    setFormData((prev) => {
-      const currentSkills = prev[category] || []; // ✅ Safe default
-
-      return {
-        ...prev,
-        [category]: currentSkills.filter((s) => s !== skill),
-      };
-    });
-    setTouched(true);
-  }, []);
-
-  // ==========================================
-  // TOTAL SKILLS COUNT
-  // ==========================================
-  const getTotalSkills = useCallback(() => {
-    return Object.values(formData).reduce(
-      (total, skills) => total + (skills?.length || 0),
-      0
-    );
-  }, [formData]);
-
-  const getCategoriesWithSkills = useCallback(() => {
-    return Object.values(formData).filter((skills) => skills?.length > 0)
-      .length;
-  }, [formData]);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'Include both technical and soft skills',
-    'Use industry-standard terminology (React, not React.js)',
-    'List programming languages you actively use',
-    'Separate frontend, backend, and DevOps skills',
-    'Keep skill names consistent (PostgreSQL, not Postgres)',
-  ];
+  const handleRemoveSkill = useCallback(
+    (category, skill) => {
+      const currentSkills = formData[category] || [];
+      updateField(
+        category,
+        currentSkills.filter((s) => s !== skill)
+      );
+    },
+    [formData, updateField]
+  );
 
   // ==========================================
   // RENDER
@@ -157,15 +141,14 @@ function SkillsForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="Skills Section Best Practices" tips={atsTips} />
+      <ATSBanner title="Skills Section Best Practices" tips={ATS_TIPS} />
 
       {/* STATS */}
       <div className="bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-900">
-              {getTotalSkills()} skills across {getCategoriesWithSkills()}{' '}
-              categories
+              {totalSkills} skills across {categoriesWithSkills} categories
             </p>
             <p className="text-xs text-gray-600 mt-1">
               Aim for 15-25 relevant skills for best results
@@ -198,7 +181,7 @@ function SkillsForm() {
       )}
 
       {/* QUALITY SUGGESTIONS */}
-      {qualityScore?.suggestions && qualityScore.suggestions.length > 0 && (
+      {qualityScore?.suggestions?.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm font-medium text-teal-800 mb-2">
             💡 Suggestions to improve:
@@ -212,97 +195,30 @@ function SkillsForm() {
       )}
 
       {/* POPULAR SKILLS SUGGESTIONS */}
-      {Object.entries(SKILLS_SUGGESTIONS).map(([category, suggestions]) => {
-        const currentSkills = formData[category] || [];
-        return (
-          <SuggestionsList
-            key={category}
-            category={category}
-            suggestions={suggestions || []}
-            currentSkills={currentSkills}
-            onAdd={(skill) => handleAddSkill(category, skill)}
-          />
-        );
-      })}
+      {Object.entries(SKILLS_SUGGESTIONS).map(([category, suggestions]) => (
+        <SuggestionsList
+          key={category}
+          category={category}
+          suggestions={suggestions || []}
+          currentSkills={formData[category] || []}
+          onAdd={(skill) => handleAddSkill(category, skill)}
+        />
+      ))}
 
       {/* SKILL CATEGORIES */}
       <div className="space-y-4">
-        {/* Programming Languages */}
-        <SkillCategory
-          name="programmingLanguages"
-          label="Programming Languages"
-          icon="💻"
-          skills={formData.programmingLanguages || []} // Safe access
-          onAdd={(skill) => handleAddSkill('programmingLanguages', skill)}
-          onRemove={(skill) => handleRemoveSkill('programmingLanguages', skill)}
-          suggestions={SKILLS_SUGGESTIONS.programmingLanguages || []}
-        />
-
-        {/* Frontend */}
-        <SkillCategory
-          name="frontend"
-          label="Frontend Development"
-          icon="🎨"
-          skills={formData.frontend || []}
-          onAdd={(skill) => handleAddSkill('frontend', skill)}
-          onRemove={(skill) => handleRemoveSkill('frontend', skill)}
-          suggestions={SKILLS_SUGGESTIONS.frontend || []}
-        />
-
-        {/* Backend */}
-        <SkillCategory
-          name="backend"
-          label="Backend Development"
-          icon="⚙️"
-          skills={formData.backend || []}
-          onAdd={(skill) => handleAddSkill('backend', skill)}
-          onRemove={(skill) => handleRemoveSkill('backend', skill)}
-          suggestions={SKILLS_SUGGESTIONS.backend || []}
-        />
-
-        {/* Database */}
-        <SkillCategory
-          name="database"
-          label="Databases & Data"
-          icon="🗄️"
-          skills={formData.database || []}
-          onAdd={(skill) => handleAddSkill('database', skill)}
-          onRemove={(skill) => handleRemoveSkill('database', skill)}
-          suggestions={SKILLS_SUGGESTIONS.database || []}
-        />
-
-        {/* DevOps */}
-        <SkillCategory
-          name="devOps"
-          label="DevOps & Cloud"
-          icon="☁️"
-          skills={formData.devOps || []}
-          onAdd={(skill) => handleAddSkill('devOps', skill)}
-          onRemove={(skill) => handleRemoveSkill('devOps', skill)}
-          suggestions={SKILLS_SUGGESTIONS.devOps || []}
-        />
-
-        {/* Tools */}
-        <SkillCategory
-          name="tools"
-          label="Tools & Technologies"
-          icon="🔧"
-          skills={formData.tools || []}
-          onAdd={(skill) => handleAddSkill('tools', skill)}
-          onRemove={(skill) => handleRemoveSkill('tools', skill)}
-          suggestions={SKILLS_SUGGESTIONS.tools || []}
-        />
-
-        {/* Other */}
-        <SkillCategory
-          name="other"
-          label="Other Skills"
-          icon="✨"
-          skills={formData.other || []}
-          onAdd={(skill) => handleAddSkill('other', skill)}
-          onRemove={(skill) => handleRemoveSkill('other', skill)}
-          suggestions={[]}
-        />
+        {SKILL_CATEGORIES.map(({ name, label, icon }) => (
+          <SkillCategory
+            key={name}
+            name={name}
+            label={label}
+            icon={icon}
+            skills={formData[name] || []}
+            onAdd={(skill) => handleAddSkill(name, skill)}
+            onRemove={(skill) => handleRemoveSkill(name, skill)}
+            suggestions={SKILLS_SUGGESTIONS[name] || []}
+          />
+        ))}
       </div>
     </div>
   );

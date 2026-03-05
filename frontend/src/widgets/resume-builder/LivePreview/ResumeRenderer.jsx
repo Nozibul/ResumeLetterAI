@@ -261,19 +261,28 @@ function ResumeRenderer({ resumeData, templateId }) {
                           </p>
                         </div>
                         <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                          {formatDate(exp.startDate)} –{' '}
+                          {exp.startDate ? formatDate(exp.startDate) : ''}{' '}
+                          {(exp.startDate ||
+                            exp.currentlyWorking ||
+                            exp.endDate) &&
+                            '–'}{' '}
                           {exp.currentlyWorking
                             ? 'Present'
-                            : formatDate(exp.endDate)}
+                            : exp.endDate
+                              ? formatDate(exp.endDate)
+                              : ''}
                         </span>
                       </div>
-                      {exp.responsibilities?.length > 0 && (
+                      {exp.responsibilities?.filter((r) => r && r.trim() !== '')
+                        .length > 0 && (
                         <ul className="list-disc list-inside space-y-0.5 text-gray-700 mt-0.5">
-                          {exp.responsibilities.map((resp, idx) => (
-                            <li key={idx} className="text-xs">
-                              {sanitizeText(resp)}
-                            </li>
-                          ))}
+                          {exp.responsibilities
+                            .filter((resp) => resp && resp.trim() !== '')
+                            .map((resp, idx) => (
+                              <li key={idx} className="text-xs">
+                                {sanitizeText(resp)}
+                              </li>
+                            ))}
                         </ul>
                       )}
                     </div>

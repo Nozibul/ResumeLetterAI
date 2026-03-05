@@ -1,125 +1,65 @@
 /**
  * @file features/resume-builder/summary/ui/SummaryForm.jsx
- * @description Professional Summary form - Step 2 (FINAL - WITH VALIDATION)
+ * @description Professional Summary form - Step 2
  * @author Nozibul Islam
  *
- * Architecture:
- * - Uses sub-components (ExamplesModal, SummaryQualityIndicator)
- * - Uses validation from model/validation.js
- * - Real-time quality scoring
- *
- * Self-Review:
- * ✅ Readability: Modular, clean
- * ✅ Performance: Memoized, debounced
- * ✅ Security: No XSS
- * ✅ Best Practices: Separation of concerns
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: None
+ * Refactored to use shared useResumeForm hook.
+ * All init, save, and validation logic lives in the hook.
+ * Component is responsible for UI only.
  */
 
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { memo, useState, useCallback } from 'react';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
+import { useResumeForm } from '@/shared/hooks/useResumeForm';
 import ResumeTextarea from '@/shared/components/atoms/resume/ResumeTextarea';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import ExamplesModal from './ExamplesModal';
 import SummaryQualityIndicator from './SummaryQualityIndicator';
-import { validateSummaryText } from '../model/validation';
+import { summaryValidationRules } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
-import logger from '@/shared/lib/logger';
+
+// ==========================================
+// CONSTANTS
+// ==========================================
+const INITIAL_FORM_DATA = { text: '' };
+
+const ATS_TIPS = [
+  'Start with strong action verbs (Led, Developed, Architected)',
+  'Focus on impact, not responsibilities',
+  'Keep it concise (2-4 sentences ideal)',
+  'Avoid buzzwords like "synergy," "guru," "rockstar"',
+  'Quantify achievements with numbers (increased by 40%, managed 10+ projects)',
+];
 
 /**
  * SummaryForm Component
  * Step 2: Professional Summary
  */
 function SummaryForm() {
-  const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
   // ==========================================
-  // STATE
+  // FORM HOOK
+  // All init, save, and validation logic lives in useResumeForm.
+  // summaryValidationRules imported directly from validation.js — no duplicate.
+  // No requiredFields — summary is optional.
+  // updateField used when user selects an example from the modal.
   // ==========================================
-  const [formData, setFormData] = useState({ text: '' });
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
+  const { formData, errors, touched, handleChange, handleBlur, updateField } =
+    useResumeForm({
+      field: 'summary',
+      initialData: INITIAL_FORM_DATA,
+      reduxData: resumeData?.summary,
+      validationRules: summaryValidationRules,
+    });
+
+  // ==========================================
+  // LOCAL UI STATE
+  // Only UI concerns live here — not form logic
+  // ==========================================
   const [showExamplesModal, setShowExamplesModal] = useState(false);
-  const [isFormTouched, setIsFormTouched] = useState(false);
-
-  // ==========================================
-  // INITIALIZE FROM REDUX
-  // ==========================================
-  useEffect(() => {
-    if (resumeData?.summary) {
-      setFormData(resumeData.summary);
-    }
-  }, []);
-
-  // ==========================================
-  // HANDLE CHANGE
-  // ==========================================
-  const handleChange = useCallback((e) => {
-    const { value } = e.target;
-
-    setFormData({ text: value });
-    setTouched({ text: true });
-    setIsFormTouched(true);
-
-    // Validate with our function
-    const error = validateSummaryText(value);
-    setErrors({ text: error });
-  }, []);
-
-  // ==========================================
-  // HANDLE BLUR
-  // ==========================================
-  const handleBlur = useCallback((e) => {
-    const { value } = e.target;
-    setTouched({ text: true });
-
-    const error = validateSummaryText(value);
-    setErrors({ text: error });
-  }, []);
-
-  // ==========================================
-  // UPDATE FIELD (for examples)
-  // ==========================================
-  const updateField = useCallback((field, value) => {
-    setFormData({ [field]: value });
-    setTouched({ [field]: true });
-    setIsFormTouched(true);
-
-    const error = validateSummaryText(value);
-    setErrors({ [field]: error });
-  }, []);
-
-  // ==========================================
-  // DEBOUNCED SAVE
-  // ==========================================
-  useEffect(() => {
-    if (!isFormTouched) return;
-
-    const timer = setTimeout(() => {
-      logger.info('Saving summary to Redux...');
-      dispatch(setIsSaving(true));
-
-      dispatch(
-        updateCurrentResumeField({
-          field: 'summary',
-          value: formData,
-        })
-      );
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [formData, isFormTouched, dispatch]);
 
   // ==========================================
   // HANDLERS
@@ -131,24 +71,8 @@ function SummaryForm() {
     [updateField]
   );
 
-  const openExamplesModal = useCallback(() => {
-    setShowExamplesModal(true);
-  }, []);
-
-  const closeExamplesModal = useCallback(() => {
-    setShowExamplesModal(false);
-  }, []);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'Start with strong action verbs (Led, Developed, Architected)',
-    'Focus on impact, not responsibilities',
-    'Keep it concise (2-4 sentences ideal)',
-    'Avoid buzzwords like "synergy," "guru," "rockstar"',
-    'Quantify achievements with numbers (increased by 40%, managed 10+ projects)',
-  ];
+  const openExamplesModal = useCallback(() => setShowExamplesModal(true), []);
+  const closeExamplesModal = useCallback(() => setShowExamplesModal(false), []);
 
   // ==========================================
   // RENDER
@@ -156,7 +80,7 @@ function SummaryForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="Writing Tips for ATS Success" tips={atsTips} />
+      <ATSBanner title="Writing Tips for ATS Success" tips={ATS_TIPS} />
 
       {/* HEADER WITH EXAMPLES BUTTON */}
       <div className="flex items-center justify-between">
@@ -170,7 +94,6 @@ function SummaryForm() {
           </span>
         </label>
 
-        {/* Examples Button */}
         <button
           type="button"
           onClick={openExamplesModal}
