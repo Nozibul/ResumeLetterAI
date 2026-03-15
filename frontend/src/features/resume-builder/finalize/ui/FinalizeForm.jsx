@@ -1,12 +1,25 @@
 /**
  * @file features/resume-builder/finalize/ui/FinalizeForm.jsx
- * @description Finalize & Customize form - Step 9 (NO REDUX - LOCAL STATE)
+ * @description Finalize & Customize form - Step 9
  * @author Nozibul Islam
+ *
+ * FIXES:
+ * ✅ sectionOrder — local state সরিয়ে Redux এ নেওয়া হয়েছে
+ * ✅ sectionVisibility — Redux এ save হচ্ছে
+ * ✅ customization — Redux এ save হচ্ছে
+ * ✅ reorderSections, resetSectionOrder dispatch করা হচ্ছে
  */
 
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
+import {
+  reorderSections,
+  resetSectionOrder,
+  updateCurrentResumeField,
+} from '@/shared/store/slices/resumeSlice';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import SectionVisibilityToggles from './SectionVisibilityToggles';
 import ColorPicker from './ColorPicker';
@@ -14,69 +27,155 @@ import NameStyleOptions from './NameStyleOptions';
 import SectionReorder from './SectionReorder';
 import logger from '@/shared/lib/logger';
 
+// ==========================================
+// CONSTANTS
+// ==========================================
+const ATS_TIPS = [
+  'Keep colors professional (black, navy, dark gray)',
+  'Use ATS-safe fonts (Arial, Helvetica, Calibri)',
+  'Avoid images, graphics, or complex formatting',
+  'Ensure all sections are visible for ATS scanning',
+  'Use standard section names for better parsing',
+];
+
+const INITIAL_VISIBILITY = {
+  personalInfo: true,
+  summary: true,
+  workExperience: true,
+  projects: true,
+  skills: true,
+  education: true,
+  competitiveProgramming: true,
+  certifications: true,
+};
+
+const INITIAL_CUSTOMIZATION = {
+  colors: {
+    primary: '#000000',
+    secondary: '#333333',
+    accent: '#0066CC',
+  },
+  fonts: {
+    heading: 'Arial',
+    body: 'Arial',
+  },
+  nameStyle: {
+    position: 'center',
+    case: 'uppercase',
+    bold: true,
+  },
+};
+
 /**
  * FinalizeForm Component
- * Step 9: Finalize & Customize (LOCAL STATE VERSION)
+ * Step 9: Finalize & Customize
  */
 function FinalizeForm() {
-  // ==========================================
-  // LOCAL STATE (NO REDUX)
-  // ==========================================
-  const [sectionVisibility, setSectionVisibility] = useState({
-    personalInfo: true,
-    summary: true,
-    workExperience: true,
-    projects: true,
-    skills: true,
-    education: true,
-    competitiveProgramming: true,
-    certifications: true,
-  });
+  const dispatch = useDispatch();
+  const resumeData = useCurrentResumeData();
 
-  const [customization, setCustomization] = useState({
-    colors: {
-      primary: '#000000',
-      secondary: '#333333',
-      accent: '#0066CC',
-    },
-    fonts: {
-      heading: 'Arial',
-      body: 'Arial',
-    },
-    nameStyle: {
-      position: 'center',
-      case: 'uppercase',
-      bold: true,
-    },
-  });
-
-  // LOCAL STATE for section order
-  const [sectionOrder, setSectionOrder] = useState([
-    'personalInfo',
-    'summary',
-    'skills',
-    'workExperience',
-    'projects',
-    'education',
-    'competitiveProgramming',
-    'certifications',
-  ]);
+  // sectionOrder — Redux থেকে নেওয়া
+  const sectionOrder = useSelector((state) => state.resume.sectionOrder);
 
   // ==========================================
-  // HANDLERS
+  // LOCAL STATE — visibility & customization
+  // ==========================================
+  const [sectionVisibility, setSectionVisibility] =
+    useState(INITIAL_VISIBILITY);
+  const [customization, setCustomization] = useState(INITIAL_CUSTOMIZATION);
+  const [isTouched, setIsTouched] = useState(false);
+
+  // ==========================================
+  // INITIALIZE — visibility & customization from Redux
+  // ==========================================
+  const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    if (!resumeData) return;
+
+    if (
+      resumeData.sectionVisibility &&
+      Object.keys(resumeData.sectionVisibility).length > 0
+    ) {
+      setSectionVisibility(resumeData.sectionVisibility);
+    }
+
+    if (
+      resumeData.customization &&
+      Object.keys(resumeData.customization).length > 0
+    ) {
+      setCustomization(resumeData.customization);
+    }
+
+    hasInitialized.current = true;
+  }, [resumeData]);
+
+  // ==========================================
+  // DEBOUNCED SAVE — visibility & customization
+  // ==========================================
+  useEffect(() => {
+    if (!isTouched) return;
+
+    const timer = setTimeout(() => {
+      dispatch(
+        updateCurrentResumeField({
+          field: 'sectionVisibility',
+          value: sectionVisibility,
+        })
+      );
+      dispatch(
+        updateCurrentResumeField({
+          field: 'customization',
+          value: customization,
+        })
+      );
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [sectionVisibility, customization, isTouched, dispatch]);
+
+  // ==========================================
+  // SECTION ORDER HANDLERS — Redux dispatch
+  // ==========================================
+  const handleSectionReorder = useCallback(
+    (newOrder) => {
+      dispatch(
+        reorderSections({
+          fromIndex: newOrder.fromIndex,
+          toIndex: newOrder.toIndex,
+        })
+      );
+      logger.info('Section reordered in Redux');
+    },
+    [dispatch]
+  );
+
+  const handleResetSectionOrder = useCallback(() => {
+    dispatch(resetSectionOrder());
+    logger.info('Section order reset in Redux');
+  }, [dispatch]);
+
+  // ==========================================
+  // VISIBILITY HANDLERS
   // ==========================================
   const handleVisibilityToggle = useCallback((section) => {
     setSectionVisibility((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
+    setIsTouched(true);
   }, []);
 
+  // ==========================================
+  // CUSTOMIZATION HANDLERS
+  // ==========================================
   const handleColorChange = useCallback((colorType, value) => {
     setCustomization((prev) => ({
       ...prev,
       colors: { ...prev.colors, [colorType]: value },
     }));
+    setIsTouched(true);
   }, []);
 
   const handleFontChange = useCallback((fontType, value) => {
@@ -84,6 +183,7 @@ function FinalizeForm() {
       ...prev,
       fonts: { ...prev.fonts, [fontType]: value },
     }));
+    setIsTouched(true);
   }, []);
 
   const handleNameStyleChange = useCallback((styleType, value) => {
@@ -91,46 +191,15 @@ function FinalizeForm() {
       ...prev,
       nameStyle: { ...prev.nameStyle, [styleType]: value },
     }));
+    setIsTouched(true);
   }, []);
-
-  // Section reorder handlers (LOCAL STATE)
-  const handleSectionReorder = useCallback((newOrder) => {
-    setSectionOrder(newOrder);
-    logger.info('Section order updated:', newOrder);
-  }, []);
-
-  const handleResetSectionOrder = useCallback(() => {
-    setSectionOrder([
-      'personalInfo',
-      'summary',
-      'skills',
-      'workExperience',
-      'projects',
-      'education',
-      'competitiveProgramming',
-      'certifications',
-    ]);
-    logger.info('Section order reset to default');
-  }, []);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'Keep colors professional (black, navy, dark gray)',
-    'Use ATS-safe fonts (Arial, Helvetica, Calibri)',
-    'Avoid images, graphics, or complex formatting',
-    'Ensure all sections are visible for ATS scanning',
-    'Use standard section names for better parsing',
-  ];
 
   // ==========================================
   // RENDER
   // ==========================================
   return (
     <div className="space-y-4">
-      {/* ATS GUIDELINES */}
-      <ATSBanner title="Final ATS Checklist" tips={atsTips} />
+      <ATSBanner title="Final ATS Checklist" tips={ATS_TIPS} />
 
       {/* SUCCESS MESSAGE */}
       <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-lg p-4">
@@ -160,7 +229,7 @@ function FinalizeForm() {
         </div>
       </div>
 
-      {/* SECTION REORDERING (LOCAL STATE) */}
+      {/* SECTION REORDERING — Redux connected */}
       <SectionReorder
         sectionOrder={sectionOrder}
         onReorder={handleSectionReorder}

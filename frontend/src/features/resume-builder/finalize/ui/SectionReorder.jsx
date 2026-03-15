@@ -1,17 +1,12 @@
 /**
  * @file features/resume-builder/finalize/ui/SectionReorder.jsx
- * @description Drag-and-drop section reordering component
+ * @description Drag-and-drop section reordering
  * @author Nozibul Islam
  *
- * Features:
- * - Drag-and-drop reordering
- * - Visual feedback
- * - Reset to default
- * - PersonalInfo locked (always first)
- *
- * Libraries:
- * - @dnd-kit/core
- * - @dnd-kit/sortable
+ * FIXES:
+ * ✅ onReorder এ { fromIndex, toIndex } pass করছে — Redux reorderSections এর জন্য
+ * ✅ personalInfo lock — drag করা যাবে না, উপরে নেওয়া যাবে না
+ * ✅ Edge cases: same position, invalid index handle করা হয়েছে
  */
 
 'use client';
@@ -27,7 +22,6 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -35,9 +29,28 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-/**
- * Sortable Item Component
- */
+// ==========================================
+// SECTION METADATA
+// Defined outside component — stable reference
+// ==========================================
+const SECTION_METADATA = {
+  personalInfo: { label: 'Personal Information', icon: '👤', locked: true },
+  summary: { label: 'Professional Summary', icon: '📝', locked: false },
+  skills: { label: 'Technical Skills', icon: '⚡', locked: false },
+  workExperience: { label: 'Work Experience', icon: '💼', locked: false },
+  projects: { label: 'Projects', icon: '🚀', locked: false },
+  education: { label: 'Education', icon: '🎓', locked: false },
+  competitiveProgramming: {
+    label: 'Competitive Programming',
+    icon: '🏆',
+    locked: false,
+  },
+  certifications: { label: 'Certifications', icon: '📜', locked: false },
+};
+
+// ==========================================
+// SORTABLE ITEM
+// ==========================================
 function SortableItem({ id, section, isLocked }) {
   const {
     attributes,
@@ -61,18 +74,20 @@ function SortableItem({ id, section, isLocked }) {
       {...attributes}
       {...listeners}
       className={`
-        flex items-center gap-3 p-4 border border-gray-200 rounded-lg 
-        ${isLocked ? 'bg-gray-50 cursor-not-allowed opacity-60' : 'bg-white cursor-move hover:bg-gray-50'}
+        flex items-center gap-3 p-4 border rounded-lg
+        ${
+          isLocked
+            ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
+            : 'bg-white border-gray-200 cursor-move hover:bg-gray-50 hover:border-teal-300'
+        }
         ${isDragging ? 'shadow-lg ring-2 ring-teal-500' : ''}
         transition-all duration-200
       `}
     >
-      {/* Drag Handle */}
       <div className={`text-gray-400 ${isLocked ? '' : 'hover:text-gray-600'}`}>
         {isLocked ? '🔒' : '☰'}
       </div>
 
-      {/* Section Info */}
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <span className="text-xl">{section.icon}</span>
@@ -80,13 +95,12 @@ function SortableItem({ id, section, isLocked }) {
             {section.label}
           </span>
           {isLocked && (
-            <span className="text-xs text-gray-500 ml-2">(Required First)</span>
+            <span className="text-xs text-gray-500 ml-1">(Required First)</span>
           )}
         </div>
       </div>
 
-      {/* Order Number */}
-      <div className="text-xs text-gray-500 font-mono">#{section.order}</div>
+      <div className="text-xs text-gray-400 font-mono">#{section.order}</div>
     </div>
   );
 }
@@ -99,26 +113,10 @@ SortableItem.propTypes = {
 
 /**
  * SectionReorder Component
+ *
+ * onReorder receives { fromIndex, toIndex } — for Redux reorderSections
  */
 function SectionReorder({ sectionOrder, onReorder, onReset }) {
-  // ==========================================
-  // SECTION METADATA
-  // ==========================================
-  const sectionMetadata = {
-    personalInfo: { label: 'Personal Information', icon: '👤', locked: true },
-    summary: { label: 'Professional Summary', icon: '📝', locked: false },
-    skills: { label: 'Technical Skills', icon: '⚡', locked: false },
-    workExperience: { label: 'Work Experience', icon: '💼', locked: false },
-    projects: { label: 'Projects', icon: '🚀', locked: false },
-    education: { label: 'Education', icon: '🎓', locked: false },
-    competitiveProgramming: {
-      label: 'Competitive Programming',
-      icon: '🏆',
-      locked: false,
-    },
-    certifications: { label: 'Certifications', icon: '📜', locked: false },
-  };
-
   // ==========================================
   // DND SENSORS
   // ==========================================
@@ -130,32 +128,38 @@ function SectionReorder({ sectionOrder, onReorder, onReset }) {
   );
 
   // ==========================================
-  // DRAG END HANDLER
+  // DRAG END — pass { fromIndex, toIndex } to Redux
   // ==========================================
   const handleDragEnd = (event) => {
     const { active, over } = event;
 
+    // Edge case: no target or same position
     if (!over || active.id === over.id) return;
 
-    // Don't allow moving personalInfo
-    if (active.id === 'personalInfo' || over.id === 'personalInfo') return;
+    // Edge case: personalInfo cannot be moved
+    if (active.id === 'personalInfo') return;
 
-    const oldIndex = sectionOrder.indexOf(active.id);
-    const newIndex = sectionOrder.indexOf(over.id);
+    // Edge case: nothing can be moved to personalInfo's position
+    if (over.id === 'personalInfo') return;
 
-    // Don't allow moving above personalInfo
-    if (newIndex === 0) return;
+    const fromIndex = sectionOrder.indexOf(active.id);
+    const toIndex = sectionOrder.indexOf(over.id);
 
-    const newOrder = arrayMove(sectionOrder, oldIndex, newIndex);
-    onReorder(newOrder);
+    // Edge case: invalid indices
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    // Edge case: toIndex === 0 means moving above personalInfo
+    if (toIndex === 0) return;
+
+    onReorder({ fromIndex, toIndex });
   };
 
   // ==========================================
-  // PREPARE SECTIONS WITH METADATA
+  // PREPARE SECTIONS
   // ==========================================
   const sections = sectionOrder.map((key, index) => ({
     id: key,
-    ...sectionMetadata[key],
+    ...(SECTION_METADATA[key] || { label: key, icon: '📄', locked: false }),
     order: index + 1,
   }));
 
@@ -167,21 +171,20 @@ function SectionReorder({ sectionOrder, onReorder, onReset }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Section Order</h3>
-          <p className="text-[13px] text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Drag to reorder sections (Personal Info always first)
           </p>
         </div>
 
-        {/* Reset Button */}
         <button
+          type="button"
           onClick={onReset}
-          className="cursor-pointer px-2 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Reset to Default
         </button>
       </div>
 
-      {/* Sortable List */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -204,7 +207,6 @@ function SectionReorder({ sectionOrder, onReorder, onReset }) {
         </SortableContext>
       </DndContext>
 
-      {/* Help Text */}
       <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
         <p className="text-xs text-yellow-800">
           💡 <strong>Tip:</strong> Sections will appear in this order on your

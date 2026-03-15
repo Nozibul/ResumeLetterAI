@@ -37,7 +37,7 @@ export const CTABanner = () => {
             the rest.
           </Typography>
           <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center md:items-start">
-            <Button className="text-xl" variant="secondary">
+            <Button className="text-xl p-2" variant="secondary">
               Check Your Resume
             </Button>
           </div>

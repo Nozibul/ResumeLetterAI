@@ -190,7 +190,7 @@ const FAQ = () => {
           </h1>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button className="text-lg" variant="secondary">
+            <Button className="text-lg p-2" variant="secondary">
               Create Your Resume Now
             </Button>
           </div>

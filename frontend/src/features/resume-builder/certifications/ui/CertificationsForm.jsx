@@ -1,32 +1,18 @@
 /**
  * @file features/resume-builder/certifications/ui/CertificationsForm.jsx
- * @description Certifications form - Step 8 (FINAL - WITH VALIDATION)
+ * @description Certifications form - Step 8
  * @author Nozibul Islam
  *
- * Architecture:
- * - Uses sub-components (CertificationItem, AddCertButton)
- * - Uses validation from model/validation.js
- * - Issue date validation (no future dates)
- * - Credential URL validation
- *
- * Self-Review:
- * ✅ Readability: Clean, modular
- * ✅ Performance: Memoized, debounced
- * ✅ Security: URL validation
- * ✅ Best Practices: Industry standard
- * ✅ Potential Bugs: Date validation
- * ✅ Memory Leaks: Cleanup in hooks
+ * Refactored to use shared useResumeListForm hook.
+ * All init, save, add/remove/update logic lives in the hook.
+ * Component is responsible for UI only.
  */
 
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { memo, useCallback, useMemo } from 'react';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
+import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import CertificationItem from './CertificationItem';
 import AddCertButton from './AddCertButton';
@@ -35,115 +21,94 @@ import {
   getCertificationQualityScore,
 } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
-import logger from '@/shared/lib/logger';
+
+// ==========================================
+// CONSTANTS
+// ==========================================
+const ATS_TIPS = [
+  'List relevant certifications only (AWS, Azure, Google Cloud, etc.)',
+  'Include credential URLs for verification',
+  'Mention expiration dates if still valid',
+  'Prioritize industry-recognized certifications',
+];
+
+// ==========================================
+// HELPERS
+// Defined outside component — stable reference, no re-creation on render
+// createEmptyCertification passed to hook as createItem
+// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
+// ==========================================
+function createEmptyCertification() {
+  return {
+    certificationName: '',
+    issuer: '',
+    issueDate: null,
+    credentialUrl: '',
+  };
+}
+
+function isNotEmpty(certification) {
+  return certification.certificationName?.trim();
+}
 
 /**
  * CertificationsForm Component
- * Step 8: Certifications with validation
+ * Step 8: Certifications
  */
 function CertificationsForm() {
-  const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
   // ==========================================
-  // STATE
+  // LIST FORM HOOK
+  // All init, save, add/remove/update logic lives in useResumeListForm.
+  // handleAdd returns false if max limit reached — show alert in UI.
+  // No reorder — certifications don't need ordering.
   // ==========================================
-  const [certifications, setCertifications] = useState([]);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState(false);
-
-  // ==========================================
-  // INITIALIZE FROM REDUX
-  // ==========================================
-  useEffect(() => {
-    if (resumeData?.certifications?.length > 0) {
-      setCertifications(resumeData.certifications);
-    }
-  }, []);
-
-  // ==========================================
-  // VALIDATE ALL CERTIFICATIONS
-  // ==========================================
-  const validateAllCertifications = useCallback((certificationsList) => {
-    const validationErrors = validateCertificationsForm(certificationsList);
-    setErrors(validationErrors);
-    return validationErrors;
-  }, []);
+  const {
+    items: certifications,
+    handleAdd,
+    handleRemove,
+    handleUpdate,
+  } = useResumeListForm({
+    field: 'certifications',
+    createItem: createEmptyCertification,
+    reduxData: resumeData?.certifications,
+    maxItems: LIMITS.MAX_CERTIFICATIONS,
+    filterEmpty: isNotEmpty,
+  });
 
   // ==========================================
-  // DEBOUNCED SAVE
+  // VALIDATION
+  // Run on current certifications for UI feedback only
   // ==========================================
-  useEffect(() => {
-    if (!touched) return;
+  const errors = useMemo(
+    () => validateCertificationsForm(certifications),
+    [certifications]
+  );
 
-    const timer = setTimeout(() => {
-      logger.info('Saving certifications to Redux...');
-      dispatch(setIsSaving(true));
+  const hasValidationErrors =
+    Object.keys(errors).length > 0 && errors._form === undefined;
 
-      // Validate before saving
-      validateAllCertifications(certifications);
-
-      // Filter out empty certifications
-      const validCertifications = certifications.filter((c) =>
-        c.certificationName?.trim()
-      );
-
-      dispatch(
-        updateCurrentResumeField({
-          field: 'certifications',
-          value: validCertifications,
-        })
-      );
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [certifications, touched, dispatch, validateAllCertifications]);
+  // ==========================================
+  // DERIVED STATE
+  // Single source of truth — avoids mirrored/brittle conditions
+  // isEmpty: no certification filled yet — show empty state UI
+  // hasAnyCert: at least one certification filled — show list + add button
+  // ==========================================
+  const isEmpty =
+    certifications.length === 1 &&
+    !certifications[0]?.certificationName?.trim();
+  const hasAnyCert = certifications.some((c) => c.certificationName?.trim());
 
   // ==========================================
   // HANDLERS
   // ==========================================
-  const handleAdd = useCallback(() => {
-    if (certifications.length >= LIMITS.MAX_CERTIFICATIONS) {
+  const onAdd = useCallback(() => {
+    const added = handleAdd();
+    if (!added) {
       alert(`Maximum ${LIMITS.MAX_CERTIFICATIONS} certifications allowed`);
-      return;
     }
-    setCertifications((prev) => [...prev, createEmptyCertification()]);
-    setTouched(true);
-    logger.info('Added new certification');
-  }, [certifications.length]);
-
-  const handleRemove = useCallback((index) => {
-    setCertifications((prev) => prev.filter((_, i) => i !== index));
-    setTouched(true);
-    logger.info('Removed certification:', index);
-  }, []);
-
-  const handleUpdate = useCallback((index, field, value) => {
-    setCertifications((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-    setTouched(true);
-  }, []);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'List relevant certifications only (AWS, Azure, Google Cloud, etc.)',
-    'Include credential URLs for verification',
-    'Mention expiration dates if still valid',
-    'Prioritize industry-recognized certifications',
-  ];
-
-  // ==========================================
-  // VALIDATION SUMMARY
-  // ==========================================
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  }, [handleAdd]);
 
   // ==========================================
   // RENDER
@@ -151,7 +116,7 @@ function CertificationsForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="Certifications Tips" tips={atsTips} />
+      <ATSBanner title="Certifications Tips" tips={ATS_TIPS} />
 
       {/* VALIDATION ERRORS SUMMARY */}
       {hasValidationErrors && (
@@ -174,7 +139,7 @@ function CertificationsForm() {
       )}
 
       {/* EMPTY STATE */}
-      {certifications.length === 0 && (
+      {isEmpty && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <div className="max-w-sm mx-auto">
             <svg
@@ -199,7 +164,7 @@ function CertificationsForm() {
             <div className="mt-6">
               <button
                 type="button"
-                onClick={handleAdd}
+                onClick={onAdd}
                 className="inline-flex items-center px-6 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 <svg
@@ -223,7 +188,7 @@ function CertificationsForm() {
       )}
 
       {/* CERTIFICATIONS LIST */}
-      {certifications.length > 0 && (
+      {!isEmpty && (
         <div className="space-y-6">
           {certifications.map((certification, index) => {
             const qualityScore = getCertificationQualityScore(certification);
@@ -277,28 +242,11 @@ function CertificationsForm() {
       )}
 
       {/* ADD BUTTON */}
-      {certifications.length > 0 &&
-        certifications.length < LIMITS.MAX_CERTIFICATIONS && (
-          <AddCertButton
-            currentCount={certifications.length}
-            onClick={handleAdd}
-          />
-        )}
+      {hasAnyCert && certifications.length < LIMITS.MAX_CERTIFICATIONS && (
+        <AddCertButton currentCount={certifications.length} onClick={onAdd} />
+      )}
     </div>
   );
-}
-
-// ==========================================
-// HELPER: Create Empty Certification
-// ==========================================
-
-function createEmptyCertification() {
-  return {
-    certificationName: '',
-    issuer: '',
-    issueDate: null,
-    credentialUrl: '',
-  };
 }
 
 export default memo(CertificationsForm);

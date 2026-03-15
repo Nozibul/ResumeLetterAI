@@ -1,32 +1,18 @@
 /**
  * @file features/resume-builder/education/ui/EducationForm.jsx
- * @description Education form - Step 6 (FINAL - WITH VALIDATION)
+ * @description Education form - Step 6
  * @author Nozibul Islam
  *
- * Architecture:
- * - Uses sub-components (EducationItem, AddEducationButton)
- * - Uses validation from model/validation.js
- * - GPA validation (0.0-4.0)
- * - Graduation date validation
- *
- * Self-Review:
- * ✅ Readability: Clean, modular
- * ✅ Performance: Memoized, debounced
- * ✅ Security: No XSS, GPA validation
- * ✅ Best Practices: Industry standard
- * ✅ Potential Bugs: Date validation
- * ✅ Memory Leaks: Cleanup in hooks
+ * Refactored to use shared useResumeListForm hook.
+ * All init, save, add/remove/update/reorder logic lives in the hook.
+ * Component is responsible for UI only.
  */
 
 'use client';
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { memo, useCallback, useMemo } from 'react';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
-import {
-  updateCurrentResumeField,
-  setIsSaving,
-} from '@/shared/store/slices/resumeSlice';
+import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import EducationItem from './EducationItem';
 import AddEducationButton from './AddEducationButton';
@@ -35,126 +21,82 @@ import {
   getEducationQualityScore,
 } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
-import { reorderArray } from '@/shared/lib/utils';
-import logger from '@/shared/lib/logger';
+
+// ==========================================
+// CONSTANTS
+// ==========================================
+const ATS_TIPS = [
+  'List most recent degree first',
+  'Include GPA if 3.0 or higher',
+  'Mention relevant coursework for entry-level positions',
+  "Include honors, awards, or Dean's List if applicable",
+];
+
+// ==========================================
+// HELPERS
+// Defined outside component — stable reference, no re-creation on render
+// createEmptyEducation passed to hook as createItem — no useCallback needed
+// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
+// ==========================================
+function createEmptyEducation() {
+  return {
+    degree: '',
+    institution: '',
+    location: '',
+    graduationDate: null,
+    gpa: '',
+  };
+}
+
+function isNotEmpty(education) {
+  return education.degree?.trim() || education.institution?.trim();
+}
 
 /**
  * EducationForm Component
- * Step 6: Education with validation
+ * Step 6: Education
  */
 function EducationForm() {
-  const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
   // ==========================================
-  // STATE
+  // LIST FORM HOOK
+  // All init, save, add/remove/update/reorder logic lives in useResumeListForm.
+  // handleAdd returns false if max limit reached — show alert in UI.
   // ==========================================
-  const [educations, setEducations] = useState([createEmptyEducation()]);
-  const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState(false);
-
-  // ==========================================
-  // INITIALIZE FROM REDUX
-  // ==========================================
-  useEffect(() => {
-    if (resumeData?.education?.length > 0) {
-      setEducations(resumeData.education);
-    }
-  }, []);
-
-  // ==========================================
-  // VALIDATE ALL EDUCATIONS
-  // ==========================================
-  const validateAllEducations = useCallback((educationsList) => {
-    const validationErrors = validateEducationForm(educationsList);
-    setErrors(validationErrors);
-    return validationErrors;
-  }, []);
+  const {
+    items: educations,
+    handleAdd,
+    handleRemove,
+    handleUpdate,
+    handleReorder,
+  } = useResumeListForm({
+    field: 'education',
+    createItem: createEmptyEducation,
+    reduxData: resumeData?.education,
+    maxItems: LIMITS.MAX_EDUCATIONS,
+    filterEmpty: isNotEmpty,
+  });
 
   // ==========================================
-  // DEBOUNCED SAVE
+  // VALIDATION
+  // Run on current educations for UI feedback only
+  // Does not block saving — partial data is allowed
   // ==========================================
-  useEffect(() => {
-    if (!touched) return;
+  const errors = useMemo(() => validateEducationForm(educations), [educations]);
 
-    const timer = setTimeout(() => {
-      logger.info('Saving education to Redux...');
-      dispatch(setIsSaving(true));
-
-      // Validate before saving
-      validateAllEducations(educations);
-
-      // Filter out empty education entries
-      const validEducations = educations.filter(
-        (e) => e.degree?.trim() || e.institution?.trim()
-      );
-
-      dispatch(
-        updateCurrentResumeField({ field: 'education', value: validEducations })
-      );
-
-      setTimeout(() => dispatch(setIsSaving(false)), 500);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [educations, touched, dispatch, validateAllEducations]);
+  const hasValidationErrors =
+    Object.keys(errors).length > 0 && errors._form === undefined;
 
   // ==========================================
   // HANDLERS
   // ==========================================
-  const handleAdd = useCallback(() => {
-    if (educations.length >= LIMITS.MAX_EDUCATION) {
-      alert(`Maximum ${LIMITS.MAX_EDUCATION} education entries allowed`);
-      return;
+  const onAdd = useCallback(() => {
+    const added = handleAdd();
+    if (!added) {
+      alert(`Maximum ${LIMITS.MAX_EDUCATIONS} education entries allowed`);
     }
-    setEducations((prev) => [...prev, createEmptyEducation()]);
-    setTouched(true);
-    logger.info('Added new education entry');
-  }, [educations.length]);
-
-  const handleRemove = useCallback(
-    (index) => {
-      if (educations.length === 1) {
-        setEducations([createEmptyEducation()]);
-      } else {
-        setEducations((prev) => prev.filter((_, i) => i !== index));
-      }
-      setTouched(true);
-      logger.info('Removed education:', index);
-    },
-    [educations.length]
-  );
-
-  const handleUpdate = useCallback((index, field, value) => {
-    setEducations((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-    setTouched(true);
-  }, []);
-
-  const handleReorder = useCallback((fromIndex, toIndex) => {
-    setEducations((prev) => reorderArray(prev, fromIndex, toIndex));
-    setTouched(true);
-    logger.info(`Reordered education: ${fromIndex} → ${toIndex}`);
-  }, []);
-
-  // ==========================================
-  // ATS TIPS
-  // ==========================================
-  const atsTips = [
-    'List most recent degree first',
-    'Include GPA if 3.0 or higher',
-    'Mention relevant coursework for entry-level positions',
-    "Include honors, awards, or Dean's List if applicable",
-  ];
-
-  // ==========================================
-  // VALIDATION SUMMARY
-  // ==========================================
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  }, [handleAdd]);
 
   // ==========================================
   // RENDER
@@ -162,7 +104,7 @@ function EducationForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="Education Section Tips" tips={atsTips} />
+      <ATSBanner title="Education Section Tips" tips={ATS_TIPS} />
 
       {/* VALIDATION ERRORS SUMMARY */}
       {hasValidationErrors && (
@@ -245,26 +187,9 @@ function EducationForm() {
       </div>
 
       {/* ADD BUTTON */}
-      <AddEducationButton
-        currentCount={educations.length}
-        onClick={handleAdd}
-      />
+      <AddEducationButton currentCount={educations.length} onClick={onAdd} />
     </div>
   );
-}
-
-// ==========================================
-// HELPER: Create Empty Education
-// ==========================================
-
-function createEmptyEducation() {
-  return {
-    degree: '',
-    institution: '',
-    location: '',
-    graduationDate: null,
-    gpa: '',
-  };
 }
 
 export default memo(EducationForm);
