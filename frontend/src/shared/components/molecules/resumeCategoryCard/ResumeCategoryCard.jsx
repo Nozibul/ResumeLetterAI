@@ -13,17 +13,12 @@ import PropTypes from 'prop-types';
 import clsx from 'clsx';
 import Typography from '../../atoms/typography/Typography';
 import Icon from '../../atoms/icons/Icons';
-import { getColorGradient, getBorderColor } from '@/shared/lib/colorsUtils';
 import { formatCategoryName } from '@/shared/lib/formatCategoryName';
 
 const ResumeCategoryCard = memo(
   ({ templates, isActive = true, onClick, className = '', index = 0 }) => {
     const { category } = templates;
     const categoryFormatted = formatCategoryName(category);
-
-    // Get colors from utility functions
-    const gradientClass = getColorGradient(index);
-    const borderClass = getBorderColor(index);
 
     return (
       <section>
@@ -35,19 +30,14 @@ const ResumeCategoryCard = memo(
           className={clsx(
             'w-52 h-72 bg-white rounded-xl shadow-lg border-2 p-4 transition-transform duration-300 cursor-pointer relative transform',
             isActive
-              ? clsx(borderClass, 'shadow-2xl scale-110 z-10')
+              ? `shadow-2xl scale-110 z-10`
               : 'border-gray-200 hover:border-blue-200 hover:shadow-xl hover:scale-102',
             'hover:rotate-1',
             className
           )}
         >
           {/* Template Header */}
-          <div
-            className={clsx(
-              'h-8 bg-gradient-to-r rounded-lg mb-3 flex items-center px-3 transition-all duration-300',
-              gradientClass
-            )}
-          >
+          <div className="h-8 bg-gradient-to-r rounded-lg mb-3 flex items-center px-3 transition-all duration-300">
             <div className="w-6 h-6 bg-white rounded-full opacity-90 flex items-center justify-center">
               <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
             </div>

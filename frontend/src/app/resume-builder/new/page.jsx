@@ -143,6 +143,12 @@ export default function ResumeBuilderPage() {
             case: 'uppercase',
             bold: true,
           },
+          sectionHeadingStyle: {
+            position: 'left',
+            case: 'uppercase',
+            fontWeight: 'bold',
+            borderStyle: 'bottom',
+          },
         },
       })
     );

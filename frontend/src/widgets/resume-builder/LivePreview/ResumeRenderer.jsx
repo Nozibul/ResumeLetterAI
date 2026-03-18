@@ -1,14 +1,20 @@
 /**
  * @file widgets/resume-builder/LivePreview/ResumeRenderer.jsx
- * @description Resume renderer with dynamic section ordering
+ * @description Resume renderer — dynamic section order, font, name style
  * @author Nozibul Islam
  *
- * FIXES:
- * ✅ sectionOrder Redux থেকে নেওয়া — drag করলে preview update হবে
- * ✅ renderSection(key) — switch/case দিয়ে dynamic rendering
- * ✅ All <a> → Next.js <Link>
- * ✅ Skills empty check fixed
- * ✅ CP section — platform + View Profile পাশাপাশি
+ * ✅ sectionOrder from Redux — drag reorder updates preview instantly
+ * ✅ customization from Redux — font + name style + section heading style
+ * ✅ getSectionHeadingStyle — textTransform, fontWeight, borderBottom, fontFamily
+ * ✅ All h2 — uppercase Tailwind class removed, controlled via getSectionHeadingStyle
+ * ✅ personalInfo h1 — position, case, bold, font from Redux nameStyle
+ * ✅ Body italic support
+ * ✅ Dynamic font scaling
+ * ✅ Section visibility check
+ * ✅ Empty bullet/highlight/skill guard
+ * ✅ XSS prevention via sanitizeText
+ * ✅ All <a> replaced with Next.js <Link>
+ * ✅ Unknown section key → null, no crash
  */
 
 'use client';
@@ -16,7 +22,6 @@
 import { memo, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
-import PropTypes from 'prop-types';
 import { formatDate } from '@/shared/lib/utils';
 import {
   useAutoFontSize,
@@ -25,7 +30,7 @@ import {
 import logger from '@/shared/lib/logger';
 
 // ==========================================
-// DEFAULT SECTION ORDER (fallback)
+// CONSTANTS
 // ==========================================
 const DEFAULT_SECTION_ORDER = [
   'personalInfo',
@@ -38,7 +43,10 @@ const DEFAULT_SECTION_ORDER = [
   'certifications',
 ];
 
-function ResumeRenderer({ resumeData, templateId }) {
+// ==========================================
+// COMPONENT
+// ==========================================
+function ResumeRenderer({ resumeData = null, templateId = null }) {
   // ==========================================
   // DYNAMIC FONT SCALING
   // ==========================================
@@ -50,11 +58,18 @@ function ResumeRenderer({ resumeData, templateId }) {
   );
 
   // ==========================================
-  // SECTION ORDER FROM REDUX
-  // fallback to DEFAULT_SECTION_ORDER if Redux not ready
+  // REDUX SELECTORS
   // ==========================================
+
+  // Section order — fallback to DEFAULT_SECTION_ORDER if Redux not ready
   const sectionOrder = useSelector(
     (state) => state.resume.sectionOrder || DEFAULT_SECTION_ORDER
+  );
+
+  // Customization — font family, name style, section heading style
+  // Falls back to safe defaults if not set
+  const customization = useSelector(
+    (state) => state.resume.currentResumeData?.customization
   );
 
   // ==========================================
@@ -62,7 +77,7 @@ function ResumeRenderer({ resumeData, templateId }) {
   // ==========================================
   const validData = useMemo(() => {
     if (!resumeData || typeof resumeData !== 'object') {
-      logger.warn('Invalid resumeData in renderer');
+      logger.warn('[ResumeRenderer] Invalid resumeData');
       return null;
     }
     return resumeData;
@@ -70,6 +85,7 @@ function ResumeRenderer({ resumeData, templateId }) {
 
   // ==========================================
   // SECTION VISIBILITY CHECK
+  // Returns true if sectionVisibility not set (show by default)
   // ==========================================
   const isSectionVisible = useCallback(
     (sectionKey) => {
@@ -96,15 +112,29 @@ function ResumeRenderer({ resumeData, templateId }) {
   }, []);
 
   // ==========================================
-  // EMPTY STATE
+  // SECTION HEADING STYLE
+  //
+  // Applies to all section h2 headings:
+  //   - textTransform from sectionHeadingStyle.case
+  //   - fontWeight from sectionHeadingStyle.fontWeight
+  //   - borderBottom from sectionHeadingStyle.borderStyle
+  //   - fontFamily from fonts.heading
+  //
+  // Note: Tailwind 'uppercase' class removed from all h2 —
+  //       textTransform is fully controlled here
   // ==========================================
-  if (!validData) {
-    return (
-      <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-        <p className="text-gray-500">No data to display</p>
-      </div>
-    );
-  }
+  const getSectionHeadingStyle = useCallback(() => {
+    const s = customization?.sectionHeadingStyle;
+    return {
+      fontFamily: customization?.fonts?.heading || 'Arial',
+      textTransform: s?.case || 'uppercase',
+      fontWeight: s?.fontWeight || 'bold',
+      textAlign: s?.position || 'left',
+      borderBottom: s?.borderStyle === 'none' ? 'none' : '1px solid #d1d5db',
+      paddingBottom: s?.borderStyle === 'none' ? '0' : '4px',
+      marginBottom: '4px',
+    };
+  }, [customization]);
 
   // ==========================================
   // DYNAMIC SPACING
@@ -136,60 +166,81 @@ function ResumeRenderer({ resumeData, templateId }) {
 
   // ==========================================
   // FILTERED DATA
+  // Pre-filter once — avoid filtering inside render functions
   // ==========================================
   const validProjects = useMemo(() => {
-    if (!Array.isArray(validData.projects)) return [];
+    if (!Array.isArray(validData?.projects)) return [];
     return validData.projects.filter(
       (p) => p && typeof p.projectName === 'string' && p.projectName.trim()
     );
-  }, [validData.projects]);
+  }, [validData?.projects]);
 
   const validCPProfiles = useMemo(() => {
-    if (!Array.isArray(validData.competitiveProgramming)) return [];
+    if (!Array.isArray(validData?.competitiveProgramming)) return [];
     return validData.competitiveProgramming.filter(
       (cp) => cp && cp.platform?.trim()
     );
-  }, [validData.competitiveProgramming]);
+  }, [validData?.competitiveProgramming]);
+
+  // ==========================================
+  // EMPTY STATE
+  // ==========================================
+  if (!validData) {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+        <p className="text-gray-500">No data to display</p>
+      </div>
+    );
+  }
 
   // ==========================================
   // SECTION RENDERERS
-  // প্রতিটা section আলাদা function — null return করলে section দেখাবে না
+  // Each returns null if no data — section simply skipped
+  // Note: h2 className no longer has 'uppercase' — handled by getSectionHeadingStyle
   // ==========================================
+
   const renderPersonalInfo = useCallback(() => {
     if (!isSectionVisible('personalInfo') || !validData.personalInfo)
       return null;
     const p = validData.personalInfo;
+    if (!p.fullName?.trim() && !p.email?.trim()) return null;
+
     return (
       <header
         key="personalInfo"
         className={`${spacing.sectionGap} text-center border-b border-gray-800 pb-2`}
       >
+        {/* Name style — position, case, bold, heading font all from Redux
+            Tailwind uppercase class removed — textTransform handles it */}
         <h1
-          className="text-2xl font-semibold text-gray-900 uppercase"
-          style={{ letterSpacing: '0.05em' }}
+          className="text-2xl text-gray-900"
+          style={{
+            letterSpacing: '0.05em',
+            textAlign: customization?.nameStyle?.position || 'center',
+            textTransform: customization?.nameStyle?.case || 'uppercase',
+            fontWeight: customization?.nameStyle?.bold ? 'bold' : 'normal',
+            fontFamily: customization?.fonts?.heading || 'Arial',
+          }}
         >
           {sanitizeText(p.fullName) || 'YOUR NAME'}
         </h1>
-        {p.jobTitle && (
+
+        {p.jobTitle?.trim() && (
           <p className="text-sm text-gray-800 font-semibold mb-1">
             {sanitizeText(p.jobTitle)}
           </p>
         )}
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-600 flex-wrap">
-          {p.email && <span>{sanitizeText(p.email)}</span>}
-          {p.phone && (
-            <>
-              <span>•</span>
-              <span>{sanitizeText(p.phone)}</span>
-            </>
-          )}
-          {p.location && (
-            <>
-              <span>•</span>
-              <span>{sanitizeText(p.location)}</span>
-            </>
-          )}
-        </div>
+
+        {(p.email || p.phone || p.location) && (
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-600 flex-wrap">
+            {p.email && <span>{sanitizeText(p.email)}</span>}
+            {p.email && p.phone && <span>•</span>}
+            {p.phone && <span>{sanitizeText(p.phone)}</span>}
+            {(p.email || p.phone) && p.location && <span>•</span>}
+            {p.location && <span>{sanitizeText(p.location)}</span>}
+          </div>
+        )}
+
         {(p.linkedin || p.github || p.portfolio) && (
           <div className="flex flex-wrap justify-center gap-3 text-xs text-gray-600 mt-1">
             {p.linkedin && (
@@ -228,21 +279,38 @@ function ResumeRenderer({ resumeData, templateId }) {
         )}
       </header>
     );
-  }, [validData.personalInfo, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validData.personalInfo,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    customization,
+  ]);
 
   const renderSummary = useCallback(() => {
-    if (!isSectionVisible('summary') || !validData.summary?.text) return null;
+    const text = validData.summary?.text?.trim();
+    if (!isSectionVisible('summary') || !text) return null;
+
     return (
       <section key="summary" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
           Professional Summary
         </h2>
         <p className="text-xs text-gray-700 leading-relaxed">
-          {sanitizeText(validData.summary.text)}
+          {sanitizeText(text)}
         </p>
       </section>
     );
-  }, [validData.summary, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validData.summary,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
 
   const renderWorkExperience = useCallback(() => {
     if (
@@ -250,110 +318,155 @@ function ResumeRenderer({ resumeData, templateId }) {
       !validData.workExperience?.length
     )
       return null;
+
+    const validExperiences = validData.workExperience.filter(
+      (exp) => exp?.jobTitle?.trim() || exp?.company?.trim()
+    );
+    if (!validExperiences.length) return null;
+
     return (
       <section key="workExperience" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
           Work Experience
         </h2>
         <div className={spacing.listGap}>
-          {validData.workExperience.map((exp, index) => (
-            <div key={exp._id || index}>
-              <div className="flex justify-between items-start mb-0.5">
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-xs">
-                    {sanitizeText(exp.jobTitle)}
-                  </h3>
-                  <p className="text-gray-600 italic text-xs">
-                    {sanitizeText(exp.company)}
-                    {exp.location && ` — ${sanitizeText(exp.location)}`}
-                  </p>
+          {validExperiences.map((exp, index) => {
+            const validResponsibilities = (exp.responsibilities || []).filter(
+              (r) => typeof r === 'string' && r.trim()
+            );
+            return (
+              <div key={exp._id || index}>
+                <div className="flex justify-between items-start mb-0.5">
+                  <div>
+                    {exp.jobTitle?.trim() && (
+                      <h3 className="font-semibold text-gray-900 text-xs">
+                        {sanitizeText(exp.jobTitle)}
+                      </h3>
+                    )}
+                    {exp.company?.trim() && (
+                      <p className="text-gray-600 italic text-xs">
+                        {sanitizeText(exp.company)}
+                        {exp.location?.trim() &&
+                          ` — ${sanitizeText(exp.location)}`}
+                      </p>
+                    )}
+                  </div>
+                  {(exp.startDate || exp.endDate || exp.currentlyWorking) && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                      {formatDate(exp.startDate)} –{' '}
+                      {exp.currentlyWorking
+                        ? 'Present'
+                        : formatDate(exp.endDate)}
+                    </span>
+                  )}
                 </div>
-                <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                  {formatDate(exp.startDate)} –{' '}
-                  {exp.currentlyWorking ? 'Present' : formatDate(exp.endDate)}
-                </span>
+                {validResponsibilities.length > 0 && (
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-700 mt-0.5">
+                    {validResponsibilities.map((resp, idx) => (
+                      <li key={idx} className="text-xs">
+                        {sanitizeText(resp)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              {exp.responsibilities?.length > 0 && (
-                <ul className="list-disc list-inside space-y-0.5 text-gray-700 mt-0.5">
-                  {exp.responsibilities.map((resp, idx) => (
-                    <li key={idx} className="text-xs">
-                      {sanitizeText(resp)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     );
-  }, [validData.workExperience, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validData.workExperience,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
 
   const renderProjects = useCallback(() => {
     if (!isSectionVisible('projects') || !validProjects.length) return null;
+
     return (
       <section key="projects" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
           Projects
         </h2>
         <div className={spacing.listGap}>
-          {validProjects.map((project, index) => (
-            <div key={project._id || index}>
-              <div className="flex items-center justify-between mb-0.5">
-                <h3 className="font-semibold text-gray-900 text-xs">
-                  {sanitizeText(project.projectName)}
-                </h3>
-                <div className="flex items-center gap-2 text-xs">
-                  {project.liveUrl && (
-                    <Link
-                      href={sanitizeText(project.liveUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-teal-600 hover:underline"
-                    >
-                      🔗 Live
-                    </Link>
-                  )}
-                  {project.sourceCode && (
-                    <Link
-                      href={sanitizeText(project.sourceCode)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-teal-600 hover:underline"
-                    >
-                      📂 Code
-                    </Link>
-                  )}
+          {validProjects.map((project, index) => {
+            const validHighlights = (project.highlights || []).filter(
+              (h) => typeof h === 'string' && h.trim()
+            );
+            return (
+              <div key={project._id || index}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <h3 className="font-semibold text-gray-900 text-xs">
+                    {sanitizeText(project.projectName)}
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs">
+                    {project.liveUrl?.trim() && (
+                      <Link
+                        href={sanitizeText(project.liveUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-600 hover:underline"
+                      >
+                        🔗 Live
+                      </Link>
+                    )}
+                    {project.sourceCode?.trim() && (
+                      <Link
+                        href={sanitizeText(project.sourceCode)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-600 hover:underline"
+                      >
+                        📂 Code
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {project.technologies?.length > 0 && (
-                <p className="text-xs text-gray-600 mb-0.5">
-                  <span className="font-semibold">Tech Stack:</span>{' '}
-                  {project.technologies.map((t) => sanitizeText(t)).join(', ')}
-                </p>
-              )}
-              {project.description && (
-                <p className="text-xs text-gray-700 mb-0.5">
-                  {sanitizeText(project.description)}
-                </p>
-              )}
-              {project.highlights?.some((h) => h.trim()) && (
-                <ul className="list-disc list-inside space-y-0.5 text-gray-700">
-                  {project.highlights
-                    .filter((h) => h.trim())
-                    .map((highlight, idx) => (
+                {project.technologies?.length > 0 && (
+                  <p className="text-xs text-gray-600 mb-0.5">
+                    <span className="font-semibold">Tech Stack:</span>{' '}
+                    {project.technologies
+                      .filter((t) => t?.trim())
+                      .map((t) => sanitizeText(t))
+                      .join(', ')}
+                  </p>
+                )}
+                {project.description?.trim() && (
+                  <p className="text-xs text-gray-700 mb-0.5">
+                    {sanitizeText(project.description)}
+                  </p>
+                )}
+                {validHighlights.length > 0 && (
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-700">
+                    {validHighlights.map((highlight, idx) => (
                       <li key={idx} className="text-xs">
                         {sanitizeText(highlight)}
                       </li>
                     ))}
-                </ul>
-              )}
-            </div>
-          ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
     );
-  }, [validProjects, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validProjects,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
 
   const renderSkills = useCallback(() => {
     if (!isSectionVisible('skills') || !validData.skills) return null;
@@ -361,21 +474,27 @@ function ResumeRenderer({ resumeData, templateId }) {
       (v) => Array.isArray(v) && v.length > 0
     );
     if (!hasSkills) return null;
+
     return (
       <section key="skills" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
           Technical Skills
         </h2>
         <div className="space-y-0.5">
           {Object.entries(validData.skills).map(([category, skills]) => {
             if (!Array.isArray(skills) || skills.length === 0) return null;
+            const validSkills = skills.filter((s) => s?.trim());
+            if (!validSkills.length) return null;
             return (
               <div key={category} className="flex gap-1 text-xs">
                 <span className="font-semibold text-gray-800 shrink-0 capitalize">
                   {category.replace(/([A-Z])/g, ' $1').trim()}:
                 </span>
                 <span className="text-gray-700">
-                  {skills.map((s) => sanitizeText(s)).join(', ')}
+                  {validSkills.map((s) => sanitizeText(s)).join(', ')}
                 </span>
               </div>
             );
@@ -383,92 +502,131 @@ function ResumeRenderer({ resumeData, templateId }) {
         </div>
       </section>
     );
-  }, [validData.skills, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validData.skills,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
 
   const renderEducation = useCallback(() => {
     if (!isSectionVisible('education') || !validData.education?.length)
       return null;
+    const validEducation = validData.education.filter(
+      (edu) => edu?.degree?.trim() || edu?.institution?.trim()
+    );
+    if (!validEducation.length) return null;
+
     return (
       <section key="education" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
           Education
         </h2>
         <div className={spacing.listGap}>
-          {validData.education.map((edu, index) => (
+          {validEducation.map((edu, index) => (
             <div key={edu._id || index} className="flex justify-between">
               <div>
-                <h3 className="font-semibold text-gray-900 text-xs">
-                  {sanitizeText(edu.degree)}
-                </h3>
-                <p className="text-gray-600 italic text-xs">
-                  {sanitizeText(edu.institution)}
-                  {edu.location && ` — ${sanitizeText(edu.location)}`}
-                </p>
-                {edu.gpa && (
+                {edu.degree?.trim() && (
+                  <h3 className="font-semibold text-gray-900 text-xs">
+                    {sanitizeText(edu.degree)}
+                  </h3>
+                )}
+                {edu.institution?.trim() && (
+                  <p className="text-gray-600 italic text-xs">
+                    {sanitizeText(edu.institution)}
+                    {edu.location?.trim() && ` — ${sanitizeText(edu.location)}`}
+                  </p>
+                )}
+                {edu.gpa?.trim() && (
                   <p className="text-xs text-gray-500">
                     GPA: {sanitizeText(edu.gpa)}
                   </p>
                 )}
               </div>
-              <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                {formatDate(edu.graduationDate)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }, [validData.education, isSectionVisible, spacing, sanitizeText]);
-
-  const renderCP = useCallback(() => {
-    if (!isSectionVisible('competitiveProgramming') || !validCPProfiles.length)
-      return null;
-    return (
-      <section key="competitiveProgramming" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
-          Competitive Programming
-        </h2>
-        <div className={spacing.listGap}>
-          {validCPProfiles.map((cp, index) => (
-            <div
-              key={cp._id || index}
-              className="flex justify-between items-start"
-            >
-              <div>
-                <h3 className="font-semibold text-gray-900 text-xs flex items-center gap-2">
-                  {sanitizeText(cp.platform)}
-                  {cp.profileUrl && (
-                    <Link
-                      href={sanitizeText(cp.profileUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-teal-600 hover:underline font-normal"
-                    >
-                      View Profile
-                    </Link>
-                  )}
-                </h3>
-                {cp.badges?.length > 0 && (
-                  <p className="text-xs text-gray-600">
-                    <span className="font-semibold">Badges:</span>{' '}
-                    {cp.badges.map((b) => sanitizeText(b)).join(', ')}
-                  </p>
-                )}
-              </div>
-              {cp.problemsSolved > 0 && (
-                <p className="text-xs text-gray-600 text-right">
-                  Solved:{' '}
-                  <span className="font-semibold text-gray-800">
-                    {cp.problemsSolved}
-                  </span>
-                </p>
+              {edu.graduationDate && (
+                <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                  {formatDate(edu.graduationDate)}
+                </span>
               )}
             </div>
           ))}
         </div>
       </section>
     );
-  }, [validCPProfiles, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validData.education,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
+
+  const renderCP = useCallback(() => {
+    if (!isSectionVisible('competitiveProgramming') || !validCPProfiles.length)
+      return null;
+
+    return (
+      <section key="competitiveProgramming" className={spacing.sectionGap}>
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
+          Competitive Programming
+        </h2>
+        <div className={spacing.listGap}>
+          {validCPProfiles.map((cp, index) => {
+            const validBadges = (cp.badges || []).filter((b) => b?.trim());
+            return (
+              <div
+                key={cp._id || index}
+                className="flex justify-between items-start"
+              >
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-xs flex items-center gap-2">
+                    {sanitizeText(cp.platform)}
+                    {cp.profileUrl?.trim() && (
+                      <Link
+                        href={sanitizeText(cp.profileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-600 hover:underline font-normal"
+                      >
+                        View Profile
+                      </Link>
+                    )}
+                  </h3>
+                  {validBadges.length > 0 && (
+                    <p className="text-xs text-gray-600">
+                      <span className="font-semibold">Badges:</span>{' '}
+                      {validBadges.map((b) => sanitizeText(b)).join(', ')}
+                    </p>
+                  )}
+                </div>
+                {cp.problemsSolved > 0 && (
+                  <p className="text-xs text-gray-600 text-right">
+                    Solved:{' '}
+                    <span className="font-semibold text-gray-800">
+                      {cp.problemsSolved}
+                    </span>
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }, [
+    validCPProfiles,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
 
   const renderCertifications = useCallback(() => {
     if (
@@ -476,38 +634,63 @@ function ResumeRenderer({ resumeData, templateId }) {
       !validData.certifications?.length
     )
       return null;
+    const validCerts = validData.certifications.filter((c) =>
+      c?.certificationName?.trim()
+    );
+    if (!validCerts.length) return null;
+
     return (
       <section key="certifications" className={spacing.sectionGap}>
-        <h2 className="text-xs font-semibold text-gray-900 uppercase mb-1 border-b border-gray-300 pb-1 tracking-wide">
+        <h2
+          className="text-xs text-gray-900 tracking-wide"
+          style={getSectionHeadingStyle()}
+        >
           Certifications
         </h2>
         <div className={spacing.listGap}>
-          {validData.certifications.map((cert, index) => (
+          {validCerts.map((cert, index) => (
             <div key={cert._id || index} className="flex justify-between">
               <div>
                 <h3 className="font-semibold text-gray-900 text-xs">
                   {sanitizeText(cert.certificationName)}
                 </h3>
-                {cert.issuer && (
+                {cert.issuer?.trim() && (
                   <p className="text-xs text-gray-500">
                     {sanitizeText(cert.issuer)}
                   </p>
                 )}
+                {cert.credentialUrl?.trim() && (
+                  <Link
+                    href={sanitizeText(cert.credentialUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-teal-600 hover:underline"
+                  >
+                    View Credential
+                  </Link>
+                )}
               </div>
-              <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                {formatDate(cert.issueDate)}
-              </span>
+              {cert.issueDate && (
+                <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                  {formatDate(cert.issueDate)}
+                </span>
+              )}
             </div>
           ))}
         </div>
       </section>
     );
-  }, [validData.certifications, isSectionVisible, spacing, sanitizeText]);
+  }, [
+    validData.certifications,
+    isSectionVisible,
+    spacing,
+    sanitizeText,
+    getSectionHeadingStyle,
+  ]);
 
   // ==========================================
   // RENDER SECTION BY KEY
-  // sectionOrder থেকে key নিয়ে সঠিক renderer call করে
-  // unknown key হলে null return — crash হবে না
+  // Unknown key → null, no crash
   // ==========================================
   const renderSection = useCallback(
     (key) => {
@@ -565,10 +748,17 @@ function ResumeRenderer({ resumeData, templateId }) {
         className="bg-white rounded-lg shadow-2xl"
         style={{ width: '100%', aspectRatio: '210 / 297', margin: '0 auto' }}
       >
+        {/* Body font + italic applied to entire content area
+            Heading font overrides per-element via getSectionHeadingStyle / h1 style */}
         <div
           ref={containerRef}
           className={spacing.padding}
-          style={{ fontSize: `${fontSize}pt`, lineHeight: spacing.lineHeight }}
+          style={{
+            fontSize: `${fontSize}pt`,
+            lineHeight: spacing.lineHeight,
+            fontFamily: customization?.fonts?.body || 'Arial',
+            fontStyle: customization?.fonts?.italic ? 'italic' : 'normal',
+          }}
         >
           {sectionOrder.map((key) => renderSection(key))}
         </div>
@@ -576,15 +766,5 @@ function ResumeRenderer({ resumeData, templateId }) {
     </div>
   );
 }
-
-ResumeRenderer.propTypes = {
-  resumeData: PropTypes.object,
-  templateId: PropTypes.string,
-};
-
-ResumeRenderer.defaultProps = {
-  resumeData: null,
-  templateId: null,
-};
 
 export default memo(ResumeRenderer);

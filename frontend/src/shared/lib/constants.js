@@ -198,13 +198,6 @@ export const ATS_SAFE_FONTS = [
   'Times New Roman',
   'Helvetica',
 ];
-export const ATS_SAFE_COLORS = [
-  { name: 'Black', value: '#000000' },
-  { name: 'Dark Navy', value: '#1a1a2e' },
-  { name: 'Dark Blue', value: '#0d3b66' },
-  { name: 'Dark Green', value: '#1b4332' },
-  { name: 'Dark Gray', value: '#333333' },
-];
 
 // ==========================================
 // LIMITS (Match backend LIMITS)
@@ -250,12 +243,11 @@ export const DEFAULT_SECTION_VISIBILITY = {
 export const DEFAULT_SECTION_ORDER = [
   'personalInfo',
   'summary',
-  'skills',
   'workExperience',
   'projects',
+  'skills',
   'education',
-  'certifications',
   'competitiveProgramming',
+  'certifications',
   'achievements',
-  'languages',
 ];
