@@ -3,18 +3,15 @@
  * @description Resume renderer — dynamic section order, font, name style
  * @author Nozibul Islam
  *
- * ✅ sectionOrder from Redux — drag reorder updates preview instantly
- * ✅ customization from Redux — font + name style + section heading style
- * ✅ getSectionHeadingStyle — textTransform, fontWeight, borderBottom, fontFamily
- * ✅ All h2 — uppercase Tailwind class removed, controlled via getSectionHeadingStyle
- * ✅ personalInfo h1 — position, case, bold, font from Redux nameStyle
- * ✅ Body italic support
- * ✅ Dynamic font scaling
+ * ✅ All styles from resumeStyles.js — single source of truth
+ * ✅ Header alignment (name, contact, social) follows nameStyle.position
+ * ✅ sectionOrder from Redux with fallback
  * ✅ Section visibility check
  * ✅ Empty bullet/highlight/skill guard
  * ✅ XSS prevention via sanitizeText
  * ✅ All <a> replaced with Next.js <Link>
  * ✅ Unknown section key → null, no crash
+ * ✅ No deprecated APIs
  */
 
 'use client';
@@ -27,6 +24,13 @@ import {
   useAutoFontSize,
   getFontSizeLabel,
 } from '@/shared/hooks/useAutoFontSize';
+import {
+  getNameStyle,
+  getSectionHeadingStyle,
+  getBodyStyle,
+  getHeaderStyle,
+  getAlignmentStyle,
+} from '@/shared/lib/resumeStyles';
 import logger from '@/shared/lib/logger';
 
 // ==========================================
@@ -48,7 +52,7 @@ const DEFAULT_SECTION_ORDER = [
 // ==========================================
 function ResumeRenderer({ resumeData = null, templateId = null }) {
   // ==========================================
-  // DYNAMIC FONT SCALING
+  // FONT SCALING
   // ==========================================
   const { fontSize, containerRef, isScaling } = useAutoFontSize(
     resumeData,
@@ -58,18 +62,42 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
   );
 
   // ==========================================
-  // REDUX SELECTORS
+  // REDUX
   // ==========================================
-
-  // Section order — fallback to DEFAULT_SECTION_ORDER if Redux not ready
   const sectionOrder = useSelector(
     (state) => state.resume.sectionOrder || DEFAULT_SECTION_ORDER
   );
 
-  // Customization — font family, name style, section heading style
-  // Falls back to safe defaults if not set
   const customization = useSelector(
     (state) => state.resume.currentResumeData?.customization
+  );
+
+  // ==========================================
+  // MEMOIZED STYLES
+  // Computed once per customization change
+  // Same functions used by PDF generator — guaranteed consistency
+  // ==========================================
+  const nameStyle = useMemo(() => getNameStyle(customization), [customization]);
+
+  const sectionHeadingStyle = useMemo(
+    () => getSectionHeadingStyle(customization),
+    [customization]
+  );
+
+  const bodyStyle = useMemo(
+    () => getBodyStyle(customization, fontSize, null),
+    [customization, fontSize]
+  );
+
+  // Header alignment — drives name, contact info, social links
+  const headerStyle = useMemo(
+    () => getHeaderStyle(customization),
+    [customization]
+  );
+
+  const headerAlignment = useMemo(
+    () => getAlignmentStyle(customization?.nameStyle?.position),
+    [customization]
   );
 
   // ==========================================
@@ -84,17 +112,16 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
   }, [resumeData]);
 
   // ==========================================
-  // SECTION VISIBILITY CHECK
+  // SECTION VISIBILITY
   // Returns true if sectionVisibility not set (show by default)
   // ==========================================
   const isSectionVisible = useCallback(
     (sectionKey) => {
       if (!validData?.sectionVisibility) return true;
-      const visibility = validData.sectionVisibility;
-      if (typeof visibility === 'object' && !Array.isArray(visibility)) {
-        return visibility[sectionKey] !== false;
-      }
-      return true;
+      const v = validData.sectionVisibility;
+      return typeof v === 'object' && !Array.isArray(v)
+        ? v[sectionKey] !== false
+        : true;
     },
     [validData?.sectionVisibility]
   );
@@ -110,31 +137,6 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       .replace(/javascript:/gi, '')
       .trim();
   }, []);
-
-  // ==========================================
-  // SECTION HEADING STYLE
-  //
-  // Applies to all section h2 headings:
-  //   - textTransform from sectionHeadingStyle.case
-  //   - fontWeight from sectionHeadingStyle.fontWeight
-  //   - borderBottom from sectionHeadingStyle.borderStyle
-  //   - fontFamily from fonts.heading
-  //
-  // Note: Tailwind 'uppercase' class removed from all h2 —
-  //       textTransform is fully controlled here
-  // ==========================================
-  const getSectionHeadingStyle = useCallback(() => {
-    const s = customization?.sectionHeadingStyle;
-    return {
-      fontFamily: customization?.fonts?.heading || 'Arial',
-      textTransform: s?.case || 'uppercase',
-      fontWeight: s?.fontWeight || 'bold',
-      textAlign: s?.position || 'left',
-      borderBottom: s?.borderStyle === 'none' ? 'none' : '1px solid #d1d5db',
-      paddingBottom: s?.borderStyle === 'none' ? '0' : '4px',
-      marginBottom: '4px',
-    };
-  }, [customization]);
 
   // ==========================================
   // DYNAMIC SPACING
@@ -165,8 +167,8 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
   }, [fontSize]);
 
   // ==========================================
-  // FILTERED DATA
-  // Pre-filter once — avoid filtering inside render functions
+  // PRE-FILTERED DATA
+  // Filter once — avoid repeated filtering inside renderers
   // ==========================================
   const validProjects = useMemo(() => {
     if (!Array.isArray(validData?.projects)) return [];
@@ -196,7 +198,6 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
   // ==========================================
   // SECTION RENDERERS
   // Each returns null if no data — section simply skipped
-  // Note: h2 className no longer has 'uppercase' — handled by getSectionHeadingStyle
   // ==========================================
 
   const renderPersonalInfo = useCallback(() => {
@@ -208,31 +209,29 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     return (
       <header
         key="personalInfo"
-        className={`${spacing.sectionGap} text-center border-b border-gray-800 pb-2`}
+        className={`${spacing.sectionGap} border-b border-gray-800 pb-2`}
+        // headerStyle drives textAlign for entire header block
+        // job title, contact info, social links all follow name position
+        style={headerStyle}
       >
-        {/* Name style — position, case, bold, heading font all from Redux
-            Tailwind uppercase class removed — textTransform handles it */}
-        <h1
-          className="text-2xl text-gray-900"
-          style={{
-            letterSpacing: '0.05em',
-            textAlign: customization?.nameStyle?.position || 'center',
-            textTransform: customization?.nameStyle?.case || 'uppercase',
-            fontWeight: customization?.nameStyle?.bold ? 'bold' : 'normal',
-            fontFamily: customization?.fonts?.heading || 'Arial',
-          }}
-        >
+        {/* Name — position/case/bold/font from Redux nameStyle */}
+        <h1 className="text-2xl text-gray-900" style={nameStyle}>
           {sanitizeText(p.fullName) || 'YOUR NAME'}
         </h1>
 
+        {/* Job Title — inherits textAlign from header */}
         {p.jobTitle?.trim() && (
           <p className="text-sm text-gray-800 font-semibold mb-1">
             {sanitizeText(p.jobTitle)}
           </p>
         )}
 
+        {/* Contact Info — flex alignment follows name position */}
         {(p.email || p.phone || p.location) && (
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-600 flex-wrap">
+          <div
+            className="flex items-center gap-2 text-xs text-gray-600 flex-wrap"
+            style={headerAlignment}
+          >
             {p.email && <span>{sanitizeText(p.email)}</span>}
             {p.email && p.phone && <span>•</span>}
             {p.phone && <span>{sanitizeText(p.phone)}</span>}
@@ -241,8 +240,12 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
           </div>
         )}
 
+        {/* Social Links — flex alignment follows name position */}
         {(p.linkedin || p.github || p.portfolio) && (
-          <div className="flex flex-wrap justify-center gap-3 text-xs text-gray-600 mt-1">
+          <div
+            className="flex flex-wrap gap-3 text-xs text-gray-600 mt-1"
+            style={headerAlignment}
+          >
             {p.linkedin && (
               <Link
                 href={sanitizeText(p.linkedin)}
@@ -284,7 +287,9 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    customization,
+    nameStyle,
+    headerStyle,
+    headerAlignment,
   ]);
 
   const renderSummary = useCallback(() => {
@@ -295,7 +300,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="summary" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Professional Summary
         </h2>
@@ -309,7 +314,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   const renderWorkExperience = useCallback(() => {
@@ -328,7 +333,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="workExperience" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Work Experience
         </h2>
@@ -383,7 +388,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   const renderProjects = useCallback(() => {
@@ -393,7 +398,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="projects" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Projects
         </h2>
@@ -465,7 +470,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   const renderSkills = useCallback(() => {
@@ -479,7 +484,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="skills" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Technical Skills
         </h2>
@@ -507,7 +512,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   const renderEducation = useCallback(() => {
@@ -522,7 +527,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="education" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Education
         </h2>
@@ -562,7 +567,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   const renderCP = useCallback(() => {
@@ -573,7 +578,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="competitiveProgramming" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Competitive Programming
         </h2>
@@ -625,7 +630,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   const renderCertifications = useCallback(() => {
@@ -643,7 +648,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
       <section key="certifications" className={spacing.sectionGap}>
         <h2
           className="text-xs text-gray-900 tracking-wide"
-          style={getSectionHeadingStyle()}
+          style={sectionHeadingStyle}
         >
           Certifications
         </h2>
@@ -685,7 +690,7 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
     isSectionVisible,
     spacing,
     sanitizeText,
-    getSectionHeadingStyle,
+    sectionHeadingStyle,
   ]);
 
   // ==========================================
@@ -748,18 +753,9 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
         className="bg-white rounded-lg shadow-2xl"
         style={{ width: '100%', aspectRatio: '210 / 297', margin: '0 auto' }}
       >
-        {/* Body font + italic applied to entire content area
-            Heading font overrides per-element via getSectionHeadingStyle / h1 style */}
-        <div
-          ref={containerRef}
-          className={spacing.padding}
-          style={{
-            fontSize: `${fontSize}pt`,
-            lineHeight: spacing.lineHeight,
-            fontFamily: customization?.fonts?.body || 'Arial',
-            fontStyle: customization?.fonts?.italic ? 'italic' : 'normal',
-          }}
-        >
+        {/* bodyStyle — fontSize, lineHeight, fontFamily, italic
+            all from resumeStyles.getBodyStyle — same as PDF generator */}
+        <div ref={containerRef} className={spacing.padding} style={bodyStyle}>
           {sectionOrder.map((key) => renderSection(key))}
         </div>
       </div>

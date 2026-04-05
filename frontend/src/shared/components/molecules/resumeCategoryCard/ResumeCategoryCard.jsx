@@ -37,7 +37,10 @@ const ResumeCategoryCard = memo(
           )}
         >
           {/* Template Header */}
-          <div className="h-8 bg-gradient-to-r rounded-lg mb-3 flex items-center px-3 transition-all duration-300">
+          <div
+            className={`h-8 bg-gradient-to-r ${templates.color} rounded-lg mb-3 flex items-center px-3 transition-all duration-300`}
+          >
+            {' '}
             <div className="w-6 h-6 bg-white rounded-full opacity-90 flex items-center justify-center">
               <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
             </div>
