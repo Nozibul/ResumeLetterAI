@@ -65,7 +65,8 @@ function ResumeRenderer({ resumeData = null, templateId = null }) {
   // REDUX
   // ==========================================
   const sectionOrder = useSelector(
-    (state) => state.resume.sectionOrder || DEFAULT_SECTION_ORDER
+    (state) =>
+      state.resume.currentResumeData?.sectionOrder || DEFAULT_SECTION_ORDER
   );
 
   const customization = useSelector(

@@ -27,18 +27,6 @@ const initialState = {
   loading: false, // Loading state
   error: null, // Error message
   lastFetched: null, // Timestamp for cache invalidation
-
-  // Section ordering
-  sectionOrder: [
-    'personalInfo',
-    'summary',
-    'workExperience',
-    'projects',
-    'skills',
-    'education',
-    'competitiveProgramming',
-    'certifications',
-  ],
 };
 
 // ==========================================
@@ -270,26 +258,28 @@ const resumeSlice = createSlice({
     /**
      * Update section order
      */
-    setSectionOrder: (state, action) => {
-      state.sectionOrder = action.payload;
-    },
+    // setSectionOrder: (state, action) => {
+    //   state.sectionOrder = action.payload;
+    // },
 
     /**
      * Reorder sections (drag and drop)
      */
     reorderSections: (state, action) => {
+      if (!state.currentResumeData) return;
       const { fromIndex, toIndex } = action.payload;
-      const newOrder = [...state.sectionOrder];
+      const newOrder = [...state.currentResumeData.sectionOrder];
       const [movedItem] = newOrder.splice(fromIndex, 1);
       newOrder.splice(toIndex, 0, movedItem);
-      state.sectionOrder = newOrder;
+      state.currentResumeData.sectionOrder = newOrder;
     },
 
     /**
      * Reset section order to default
      */
     resetSectionOrder: (state) => {
-      state.sectionOrder = [
+      if (!state.currentResumeData) return;
+      state.currentResumeData.sectionOrder = [
         'personalInfo',
         'summary',
         'workExperience',
@@ -371,7 +361,6 @@ export const {
   clearCurrentResumeData,
   removeResume,
   updateResumeTitle,
-  setSectionOrder,
   reorderSections,
   resetSectionOrder,
   toggleResumeVisibility,

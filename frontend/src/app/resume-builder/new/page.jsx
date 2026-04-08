@@ -118,6 +118,16 @@ export default function ResumeBuilderPage() {
         education: [],
         competitiveProgramming: [],
         certifications: [],
+        sectionOrder: [
+          'personalInfo',
+          'summary',
+          'workExperience',
+          'projects',
+          'skills',
+          'education',
+          'competitiveProgramming',
+          'certifications',
+        ],
         sectionVisibility: {
           personalInfo: true,
           summary: true,

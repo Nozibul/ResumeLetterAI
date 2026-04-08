@@ -37,6 +37,17 @@ const ATS_TIPS = [
   'Use standard section names for better parsing',
 ];
 
+const DEFAULT_SECTION_ORDER = [
+  'personalInfo',
+  'summary',
+  'workExperience',
+  'projects',
+  'skills',
+  'education',
+  'competitiveProgramming',
+  'certifications',
+];
+
 const INITIAL_VISIBILITY = {
   personalInfo: true,
   summary: true,
@@ -81,8 +92,10 @@ function FinalizeForm() {
   const dispatch = useDispatch();
   const resumeData = useCurrentResumeData();
 
-  // sectionOrder — Redux থেকে নেওয়া
-  const sectionOrder = useSelector((state) => state.resume.sectionOrder);
+  const sectionOrder = useSelector(
+    (state) =>
+      state.resume.currentResumeData?.sectionOrder || DEFAULT_SECTION_ORDER
+  );
 
   // ==========================================
   // LOCAL STATE

@@ -9,6 +9,8 @@
  * - Reusable across components
  */
 
+import { string } from "prop-types";
+
 /**
  * Get entire resume state
  */
@@ -182,8 +184,8 @@ export const selectIsSelectedResumeEditable = (state) => {
 /**
  * Get section order
  */
-export const selectSectionOrder = (state) => state.resume.sectionOrder;
-
+export const selectSectionOrder = (state) =>
+  state.resume.currentResumeData?.sectionOrder || [];
 export const selectCurrentResumeData = (state) =>
   state.resume.currentResumeData;
 export const selectIsSaving = (state) => state.resume.isSaving;
