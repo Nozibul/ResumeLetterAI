@@ -15,7 +15,7 @@ const {
   getBodyStyle,
   getHeaderStyle,
   getAlignmentStyle,
-} = require('../../shared/resumeStyles');
+} = require('../../../shared/utils/resumeStyles');
 
 // ==========================================
 // CONSTANTS

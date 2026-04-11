@@ -12,6 +12,7 @@ const authRoutes = require('../modules/auth/routes/authRoutes');
 const tokenRoutes = require('../modules/auth/routes/tokenRoutes');
 const templateRoutes = require('../modules/templates/routes/templateRoutes');
 const resumeRoutes = require('../modules/resume/routes/resumeRoutes');
+const pdf = require('../modules/pdf/routes/pdfRoutes');
 
 // ==========================================
 // API INFO ENDPOINTS
@@ -91,5 +92,11 @@ router.use('/templates', templateRoutes);
  * @path /api/v1/resumes
  */
 router.use('/resumes', resumeRoutes);
+
+/**
+ * PDF routes
+ * @path /api/v1/pdf
+ */
+router.use('/pdf', pdf);
 
 module.exports = router;

@@ -486,39 +486,42 @@ const achievementSchema = new Schema(
  */
 const customizationSchema = new Schema(
   {
-    namePosition: {
-      type: String,
-      enum: {
-        values: ['left', 'center', 'right'],
-        message: '{VALUE} is not a valid name position',
+    colors: {
+      primary: { type: String, default: '#000000' },
+      secondary: { type: String, default: '#333333' },
+      accent: { type: String, default: '#0066CC' },
+    },
+    fonts: {
+      heading: { type: String, default: 'Arial' },
+      body: { type: String, default: 'Arial' },
+      italic: { type: Boolean, default: false },
+    },
+    nameStyle: {
+      position: {
+        type: String,
+        enum: ['left', 'center', 'right'],
+        default: 'center',
       },
-      default: 'center',
-    },
-    nameCase: {
-      type: String,
-      enum: {
-        values: ['uppercase', 'capitalize', 'normal'],
-        message: '{VALUE} is not a valid name case',
+      case: {
+        type: String,
+        enum: ['uppercase', 'capitalize', 'normal'],
+        default: 'uppercase',
       },
-      default: 'uppercase',
+      bold: { type: Boolean, default: true },
     },
-    colorScheme: {
-      type: String,
-      default: '#000000',
-      validate: {
-        validator: (val) => /^#[0-9A-Fa-f]{6}$/.test(val),
-        message: 'Color scheme must be a valid hex color (e.g., #000000)',
+    sectionHeadingStyle: {
+      position: {
+        type: String,
+        enum: ['left', 'center', 'right'],
+        default: 'left',
       },
-    },
-    fontFamily: {
-      type: String,
-      default: 'Arial',
-      trim: true,
-    },
-    sectionTitles: {
-      type: Map,
-      of: String,
-      default: new Map(),
+      case: {
+        type: String,
+        enum: ['uppercase', 'capitalize', 'normal'],
+        default: 'uppercase',
+      },
+      fontWeight: { type: String, default: 'bold' },
+      borderStyle: { type: String, default: 'bottom' },
     },
   },
   { _id: false }
@@ -645,43 +648,42 @@ const resumeSchema = new Schema(
       default: [
         'personalInfo',
         'summary',
-        'skills',
         'workExperience',
         'projects',
+        'skills',
         'education',
-        'certifications',
         'competitiveProgramming',
-        'achievements',
-        'languages',
+        'certifications',
       ],
     },
 
     sectionVisibility: {
-      type: Map,
-      of: Boolean,
-      default: new Map([
-        ['personalInfo', true],
-        ['summary', true],
-        ['skills', true],
-        ['workExperience', true],
-        ['projects', true],
-        ['education', true],
-        ['certifications', false],
-        ['competitiveProgramming', false],
-        ['achievements', false],
-        ['languages', false],
-      ]),
+      type: Object,
+      default: {
+        personalInfo: true,
+        summary: true,
+        workExperience: true,
+        projects: true,
+        skills: true,
+        education: true,
+        competitiveProgramming: true,
+        certifications: true,
+      },
     },
 
     // User customization
     customization: {
       type: customizationSchema,
       default: () => ({
-        namePosition: 'center',
-        nameCase: 'uppercase',
-        colorScheme: '#000000',
-        fontFamily: 'Arial',
-        sectionTitles: new Map(),
+        colors: { primary: '#000000', secondary: '#333333', accent: '#0066CC' },
+        fonts: { heading: 'Arial', body: 'Arial', italic: false },
+        nameStyle: { position: 'center', case: 'uppercase', bold: true },
+        sectionHeadingStyle: {
+          position: 'left',
+          case: 'uppercase',
+          fontWeight: 'bold',
+          borderStyle: 'bottom',
+        },
       }),
     },
 
@@ -971,38 +973,6 @@ resumeSchema.pre('save', function (next) {
         );
       }
     }
-  }
-
-  next();
-});
-
-/**
- * Ensure default values for Maps
- */
-resumeSchema.pre('save', function (next) {
-  if (!this.sectionVisibility || !(this.sectionVisibility instanceof Map)) {
-    this.sectionVisibility = new Map([
-      ['personalInfo', true],
-      ['summary', true],
-      ['skills', true],
-      ['workExperience', true],
-      ['projects', true],
-      ['education', true],
-      ['certifications', false],
-      ['competitiveProgramming', false],
-      ['achievements', false],
-      ['languages', false],
-    ]);
-  }
-
-  if (
-    !this.customization?.sectionTitles ||
-    !(this.customization.sectionTitles instanceof Map)
-  ) {
-    if (!this.customization) {
-      this.customization = {};
-    }
-    this.customization.sectionTitles = new Map();
   }
 
   next();

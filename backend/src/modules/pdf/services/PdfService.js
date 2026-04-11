@@ -1,6 +1,7 @@
 /**
  * @file PdfService.js
  * @description Generates PDF buffer from resume data using Puppeteer.
+ *              Uploads to Cloudinary and returns URL + buffer.
  * @module modules/pdf/services/PdfService
  * @author Nozibul Islam
  */
@@ -13,12 +14,21 @@ const puppeteer = require('puppeteer');
 
 const { buildResumeHTML } = require('./HtmlBuilderService');
 const { buildInlineStyles } = require('./StyleService');
+const { uploadPdf } = require('./CloudinaryService');
+
+// ==========================================
+// PATHS
+// ==========================================
 
 const TEMPLATE_PATH = path.resolve(
   __dirname,
   '../../../templates/resume-template.html'
 );
 const CSS_PATH = path.resolve(__dirname, '../../../assets/output.css');
+
+// ==========================================
+// OPTIONS
+// ==========================================
 
 const PDF_OPTIONS = {
   format: 'A4',
@@ -36,7 +46,11 @@ const BROWSER_OPTIONS = {
   ],
 };
 
-// Cached after first read — server restart required after template changes
+// ==========================================
+// FILE CACHE
+// Cached after first read — server restart required after changes
+// ==========================================
+
 let _templateHTML = null;
 let _tailwindCSS = null;
 
@@ -54,19 +68,22 @@ const getTailwindCSS = () => {
   if (!fs.existsSync(CSS_PATH)) {
     throw new Error(`PdfService: CSS not found at ${CSS_PATH}`);
   }
-  const cssContent = fs.readFileSync(CSS_PATH, 'utf-8');
-  _tailwindCSS = `<style>${cssContent}</style>`;
+  _tailwindCSS = `<style>${fs.readFileSync(CSS_PATH, 'utf-8')}</style>`;
   return _tailwindCSS;
 };
+
+// ==========================================
+// TEMPLATE INJECTION
+// ==========================================
 
 const resolveConditionals = (html, conditions) => {
   let result = html;
   Object.entries(conditions).forEach(([key, value]) => {
-    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (value) {
       result = result.replace(
         new RegExp(
-          `\\{\\{#if ${escapedKey}\\}\\}([\\s\\S]*?)\\{\\{\\/if\\}\\}`,
+          `\\{\\{#if ${escaped}\\}\\}([\\s\\S]*?)\\{\\{\\/if\\}\\}`,
           'g'
         ),
         '$1'
@@ -74,7 +91,7 @@ const resolveConditionals = (html, conditions) => {
     } else {
       result = result.replace(
         new RegExp(
-          `\\{\\{#if ${escapedKey}\\}\\}[\\s\\S]*?\\{\\{\\/if\\}\\}`,
+          `\\{\\{#if ${escaped}\\}\\}[\\s\\S]*?\\{\\{\\/if\\}\\}`,
           'g'
         ),
         ''
@@ -105,7 +122,7 @@ const injectPlaceholders = (templateHTML, vars) => {
     html = html.replace('{{personalInfo.portfolio}}', p.portfolio || '');
 
     html = resolveConditionals(html, {
-      personalInfo: !!p,
+      personalInfo: true,
       'personalInfo.jobTitle': !!p.jobTitle,
       'personalInfo.hasContact': p.hasContact,
       'personalInfo.email': !!p.email,
@@ -127,10 +144,24 @@ const injectPlaceholders = (templateHTML, vars) => {
   return html;
 };
 
-exports.generatePdf = async (resumeData, customization) => {
+// ==========================================
+// MAIN EXPORT
+// ==========================================
+
+/**
+ * Generate PDF from resume data, upload to Cloudinary.
+ *
+ * @param {Object} resumeData    - Full resume data from Redux
+ * @param {Object} customization - Font, color, alignment settings
+ * @param {string} userId        - Authenticated user ID
+ * @param {string} resumeId      - Resume document ID
+ * @returns {Promise<{ pdfBuffer: Buffer, pdfUrl: string, pdfPublicId: string }>}
+ */
+exports.generatePdf = async (resumeData, customization, userId, resumeId) => {
   let browser = null;
 
   try {
+    // Build HTML
     const { personalInfo, sectionsHTML } = buildResumeHTML(resumeData);
     const inlineStyles = buildInlineStyles(customization);
     const templateHTML = getTemplate();
@@ -143,12 +174,20 @@ exports.generatePdf = async (resumeData, customization) => {
       sectionsHTML,
     });
 
+    // Generate PDF with Puppeteer
     browser = await puppeteer.launch(BROWSER_OPTIONS);
     const page = await browser.newPage();
     await page.setContent(finalHTML, { waitUntil: 'domcontentloaded' });
     const pdfBuffer = await page.pdf(PDF_OPTIONS);
 
-    return pdfBuffer;
+    // Upload to Cloudinary
+    const { pdfUrl, pdfPublicId } = await uploadPdf(
+      pdfBuffer,
+      userId,
+      resumeId
+    );
+
+    return { pdfBuffer, pdfUrl, pdfPublicId };
   } finally {
     if (browser) {
       await browser.close();

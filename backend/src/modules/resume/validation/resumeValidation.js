@@ -492,6 +492,9 @@ exports.updateResumeSchema = z.object({
             .optional(), // ✅ FIXED
         })
         .optional(),
+
+      pdfUrl: z.string().trim().optional(),
+      pdfPublicId: z.string().trim().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: 'At least one field must be provided for update',

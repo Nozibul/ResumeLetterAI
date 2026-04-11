@@ -9,8 +9,7 @@
 
 'use strict';
 
-const { formatDate } = require('../../shared/utils');
-
+const { formatDate } = require('../../../shared/utils/dateUtils');
 // ==========================================
 // CONSTANTS
 // ==========================================
