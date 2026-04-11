@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 export const CompanySuccessCard = React.memo(({ company }) => {
   return (
     <div
-      className={`flex-shrink-0 border border-dashed border-teal-200 rounded-xl p-4 flex flex-col items-center justify-center min-h-[120px] w-[220px] mx-4 hover:scale-102 transition-all duration-400 group bg-gradient-to-br from-[#070d3f8a] to-[#1c463e]`}
+      className={`flex-shrink-0 border border-dashed border-teal-200 rounded-xl p-4 flex flex-col items-center justify-center min-h-[120px] w-[220px] mx-4 hover:scale-102 transition-all duration-400 group bg-gradient-to-br from-[#0d1b3e] to-[#1c463e]`}
     >
       <div className="text-center">
         {/* Company Name */}
