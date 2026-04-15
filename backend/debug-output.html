@@ -1,0 +1,2961 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>nozibul Islam — Resume</title>
+
+    <!--
+      Fix 1: NO <link> tag.
+      Backend reads output.css and injects full content as inline <style>.
+      Puppeteer / WeasyPrint has no path resolution issue.
+
+      Backend:
+        const css = fs.readFileSync('src/assets/output.css', 'utf-8');
+        html = html.replace('<style>*,
+::before,
+::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+/*
+! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com
+*/
+
+/*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  /* 1 */
+  border-width: 0;
+  /* 2 */
+  border-style: solid;
+  /* 2 */
+  border-color: #e5e7eb;
+  /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5;
+  /* 1 */
+  -webkit-text-size-adjust: 100%;
+  /* 2 */
+  -moz-tab-size: 4;
+  /* 3 */
+  -o-tab-size: 4;
+  tab-size: 4;
+  /* 3 */
+  font-family:
+    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  /* 4 */
+  font-feature-settings: normal;
+  /* 5 */
+  font-variation-settings: normal;
+  /* 6 */
+  -webkit-tap-highlight-color: transparent;
+  /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0;
+  /* 1 */
+  line-height: inherit;
+  /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0;
+  /* 1 */
+  color: inherit;
+  /* 2 */
+  border-top-width: 1px;
+  /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  /* 1 */
+  font-feature-settings: normal;
+  /* 2 */
+  font-variation-settings: normal;
+  /* 3 */
+  font-size: 1em;
+  /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0;
+  /* 1 */
+  border-color: inherit;
+  /* 2 */
+  border-collapse: collapse;
+  /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  /* 1 */
+  font-feature-settings: inherit;
+  /* 1 */
+  font-variation-settings: inherit;
+  /* 1 */
+  font-size: 100%;
+  /* 1 */
+  font-weight: inherit;
+  /* 1 */
+  line-height: inherit;
+  /* 1 */
+  letter-spacing: inherit;
+  /* 1 */
+  color: inherit;
+  /* 1 */
+  margin: 0;
+  /* 2 */
+  padding: 0;
+  /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button;
+  /* 1 */
+  background-color: transparent;
+  /* 2 */
+  background-image: none;
+  /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield;
+  /* 1 */
+  outline-offset: -2px;
+  /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  /* 1 */
+  font: inherit;
+  /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role='button'] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  /* 1 */
+  vertical-align: middle;
+  /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+
+[hidden]:where(:not([hidden='until-found'])) {
+  display: none;
+}
+
+.mb-0\.5 {
+  margin-bottom: 0.125rem;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.ml-4 {
+  margin-left: 1rem;
+}
+
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+.block {
+  display: block;
+}
+
+.inline {
+  display: inline;
+}
+
+.flex {
+  display: flex;
+}
+
+.hidden {
+  display: none;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.list-inside {
+  list-style-position: inside;
+}
+
+.list-disc {
+  list-style-type: disc;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.border-b {
+  border-bottom-width: 1px;
+}
+
+.border-gray-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+}
+
+.bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.pb-1 {
+  padding-bottom: 0.25rem;
+}
+
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-normal {
+  font-weight: 400;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.leading-relaxed {
+  line-height: 1.625;
+}
+
+.tracking-wide {
+  letter-spacing: 0.025em;
+}
+
+.text-gray-500 {
+  --tw-text-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-600 {
+  --tw-text-opacity: 1;
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-700 {
+  --tw-text-opacity: 1;
+  color: rgb(55 65 81 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-800 {
+  --tw-text-opacity: 1;
+  color: rgb(31 41 55 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-900 {
+  --tw-text-opacity: 1;
+  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
+}
+
+.text-teal-600 {
+  --tw-text-opacity: 1;
+  color: rgb(13 148 136 / var(--tw-text-opacity, 1));
+}
+</style>', `<style>${css}</style>`);
+    -->
+    <style>*,
+::before,
+::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+/*
+! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com
+*/
+
+/*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  /* 1 */
+  border-width: 0;
+  /* 2 */
+  border-style: solid;
+  /* 2 */
+  border-color: #e5e7eb;
+  /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5;
+  /* 1 */
+  -webkit-text-size-adjust: 100%;
+  /* 2 */
+  -moz-tab-size: 4;
+  /* 3 */
+  -o-tab-size: 4;
+  tab-size: 4;
+  /* 3 */
+  font-family:
+    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  /* 4 */
+  font-feature-settings: normal;
+  /* 5 */
+  font-variation-settings: normal;
+  /* 6 */
+  -webkit-tap-highlight-color: transparent;
+  /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0;
+  /* 1 */
+  line-height: inherit;
+  /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0;
+  /* 1 */
+  color: inherit;
+  /* 2 */
+  border-top-width: 1px;
+  /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  /* 1 */
+  font-feature-settings: normal;
+  /* 2 */
+  font-variation-settings: normal;
+  /* 3 */
+  font-size: 1em;
+  /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0;
+  /* 1 */
+  border-color: inherit;
+  /* 2 */
+  border-collapse: collapse;
+  /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  /* 1 */
+  font-feature-settings: inherit;
+  /* 1 */
+  font-variation-settings: inherit;
+  /* 1 */
+  font-size: 100%;
+  /* 1 */
+  font-weight: inherit;
+  /* 1 */
+  line-height: inherit;
+  /* 1 */
+  letter-spacing: inherit;
+  /* 1 */
+  color: inherit;
+  /* 1 */
+  margin: 0;
+  /* 2 */
+  padding: 0;
+  /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button;
+  /* 1 */
+  background-color: transparent;
+  /* 2 */
+  background-image: none;
+  /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield;
+  /* 1 */
+  outline-offset: -2px;
+  /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  /* 1 */
+  font: inherit;
+  /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role='button'] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  /* 1 */
+  vertical-align: middle;
+  /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+
+[hidden]:where(:not([hidden='until-found'])) {
+  display: none;
+}
+
+.mb-0\.5 {
+  margin-bottom: 0.125rem;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.ml-4 {
+  margin-left: 1rem;
+}
+
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+.block {
+  display: block;
+}
+
+.inline {
+  display: inline;
+}
+
+.flex {
+  display: flex;
+}
+
+.hidden {
+  display: none;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.list-inside {
+  list-style-position: inside;
+}
+
+.list-disc {
+  list-style-type: disc;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.border-b {
+  border-bottom-width: 1px;
+}
+
+.border-gray-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+}
+
+.bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.pb-1 {
+  padding-bottom: 0.25rem;
+}
+
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-normal {
+  font-weight: 400;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.leading-relaxed {
+  line-height: 1.625;
+}
+
+.tracking-wide {
+  letter-spacing: 0.025em;
+}
+
+.text-gray-500 {
+  --tw-text-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-600 {
+  --tw-text-opacity: 1;
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-700 {
+  --tw-text-opacity: 1;
+  color: rgb(55 65 81 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-800 {
+  --tw-text-opacity: 1;
+  color: rgb(31 41 55 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-900 {
+  --tw-text-opacity: 1;
+  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
+}
+
+.text-teal-600 {
+  --tw-text-opacity: 1;
+  color: rgb(13 148 136 / var(--tw-text-opacity, 1));
+}
+</style>
+
+    <!--
+      Fix 2 & 3:
+      Backend injects dynamic styles from resumeStyles.js.
+      Font size is explicitly 10.5pt (replaces useAutoFontSize for PDF).
+
+      Backend:
+        const bodyStyle    = getBodyStyle(customization, 10.5, '1.3');
+        const nameStyle    = getNameStyle(customization);
+        const sectionStyle = getSectionHeadingStyle(customization);
+        const headerStyle  = getHeaderStyle(customization);
+        const alignStyle   = getAlignmentStyle(customization?.nameStyle?.position);
+        → convert style objects to CSS string → inject as <style> block
+    -->
+    <style>
+  /*
+   * Dynamic resume styles — generated by StyleService.js
+   * Source: resumeStyles.js (shared with frontend)
+   * Font size: 10.5pt (fixed for A4 PDF)
+   */
+
+  /* Body — font, size, line-height, italic */
+  .resume-body { font-size:10.5pt;line-height:1.3;font-family:Arial;font-style:italic; }
+
+  /* Header block — text-align from nameStyle.position */
+  .resume-header { text-align:center; }
+
+  /* Name — font, weight, case, alignment, letter-spacing */
+  .resume-name { text-align:center;text-transform:uppercase;font-weight:bold;font-family:Arial;letter-spacing:0.05em; }
+
+  /* Contact/social flex containers — justify-content from nameStyle.position */
+  .resume-header-flex { display:flex;justify-content:center;flex-wrap:wrap;gap:12px;; flex-wrap:wrap; gap:8px; }
+
+  /* Section headings — font, case, weight, border, alignment */
+  .resume-section-h2 { font-family:Arial;text-transform:uppercase;font-weight:bold;text-align:left;border-bottom:1px solid #d1d5db;padding-bottom:4px;margin-bottom:4px; }
+</style>
+
+    <style>
+      /*
+        FALLBACK defaults — if <style>
+  /*
+   * Dynamic resume styles — generated by StyleService.js
+   * Source: resumeStyles.js (shared with frontend)
+   * Font size: 10.5pt (fixed for A4 PDF)
+   */
+
+  /* Body — font, size, line-height, italic */
+  .resume-body { font-size:10.5pt;line-height:1.3;font-family:Arial;font-style:italic; }
+
+  /* Header block — text-align from nameStyle.position */
+  .resume-header { text-align:center; }
+
+  /* Name — font, weight, case, alignment, letter-spacing */
+  .resume-name { text-align:center;text-transform:uppercase;font-weight:bold;font-family:Arial;letter-spacing:0.05em; }
+
+  /* Contact/social flex containers — justify-content from nameStyle.position */
+  .resume-header-flex { display:flex;justify-content:center;flex-wrap:wrap;gap:12px;; flex-wrap:wrap; gap:8px; }
+
+  /* Section headings — font, case, weight, border, alignment */
+  .resume-section-h2 { font-family:Arial;text-transform:uppercase;font-weight:bold;text-align:left;border-bottom:1px solid #d1d5db;padding-bottom:4px;margin-bottom:4px; }
+</style> not injected.
+        Mirrors DEFAULTS from resumeStyles.js.
+        Ensures PDF never renders completely unstyled.
+      */
+      .resume-body {
+        font-size: 10.5pt;
+        line-height: 1.3;
+        font-family: Arial, sans-serif;
+        font-style: inherit;
+      }
+      .resume-name {
+        font-weight: bold;
+        text-transform: uppercase;
+        text-align: center;
+        letter-spacing: 0.05em;
+      }
+      .resume-header {
+        text-align: center;
+      }
+      .resume-header-flex {
+        justify-content: center;
+      }
+      .resume-section-h2 {
+        text-transform: uppercase;
+        font-weight: bold;
+        text-align: left;
+        border-bottom: 1px solid #d1d5db;
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+      }
+
+      /* A4 PDF layout */
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+
+      .resume-page {
+        width: 210mm;
+        min-height: 297mm;
+        background: white;
+        padding: 24px; /* matches Tailwind p-6 */
+      }
+
+      @media print {
+        .resume-page {
+          width: 210mm;
+          padding: 24px;
+        }
+      }
+
+      /* Spacing utilities */
+      .section-gap {
+        margin-bottom: 12px;
+      } /* mb-3 */
+      .section-gap-sm {
+        margin-bottom: 8px;
+      } /* mb-2 */
+      .list-gap > * + * {
+        margin-top: 4px;
+      } /* space-y-1 */
+      .list-gap-sm > * + * {
+        margin-top: 2px;
+      } /* space-y-0.5 */
+    </style>
+  </head>
+
+  <body>
+    <div class="resume-page resume-body">
+      <!-- ==========================================
+           PERSONAL INFO
+           resumeStyles → .resume-header, .resume-name, .resume-header-flex
+           ========================================== -->
+      
+      <header
+        class="resume-header section-gap"
+        style="border-bottom: 1px solid #1f2937; padding-bottom: 8px"
+      >
+        <h1 class="text-2xl text-gray-900 resume-name">
+          nozibul Islam
+        </h1>
+
+        
+        <p class="text-sm text-gray-800 font-semibold mb-1">
+          Frontend Developer
+        </p>
+         
+        <div
+          class="flex items-center gap-2 text-xs text-gray-600 flex-wrap resume-header-flex"
+        >
+          <span>nozibulislamspi@gmail.com</span>
+          <span>•</span> {{#if
+          personalInfo.phone}}<span>+8801406272555</span> {{#if
+          personalInfo.contact_and_location}}<span>•</span> {{#if
+          personalInfo.location}}<span>Dhaka, Bangladesh</span>{{/if}}
+        </div>
+        {{/if}} 
+        <div
+          class="flex flex-wrap gap-3 text-xs text-gray-600 mt-1 resume-header-flex"
+        >
+          
+          <a href="https://github.com/Nozibul">GitHub</a
+          > {{#if
+          personalInfo.social_and_portfolio}}<span>•</span>{{/if}} {{#if
+          personalInfo.portfolio}}<a href="https://github.com/Nozibul"
+            >Portfolio</a
+          >{{/if}}
+        </div>
+        {{/if}}
+      </header>
+      {{/if}}
+
+      <!-- ==========================================
+           SECTIONS
+           Fix 2: NO Handlebars (eq) helper needed.
+           Backend builds sectionsHTML string using
+           switch/case on sectionOrder — much cleaner.
+           Triple braces = unescaped HTML injection.
+           ========================================== -->
+      <section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Professional Summary
+      </h2>
+      <p class="text-xs text-gray-700 leading-relaxed">Full-stack developer with 4+ years of experience building responsive web applications using React, Node.js, and PostgreSQL. Delivered 15+ production-ready projects handling 500K+ monthly active users. Reduced page load times by 60% through code optimization and caching strategies. Strong focus on clean architecture and test-driven development.</p>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Work Experience
+      </h2>
+      <div class="list-gap"><div>
+        <div class="flex justify-between items-start mb-0.5">
+          <div>
+            <h3 class="font-semibold text-gray-900 text-xs">Software Engineer</h3>
+            <p class="text-gray-600 italic text-xs">OrbitDevIT — Dhaka, Bangladesh</p>
+          </div>
+          <span class="text-xs text-gray-500 whitespace-nowrap ml-4">
+             Sep 2023 – Present
+           </span>
+        </div>
+        <ul class="list-disc list-inside list-gap-sm text-gray-700 mt-0.5"><li class="text-xs">Full-stack developer with 4+ years of experience building responsive web applications using React</li></ul>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Projects
+      </h2>
+      <div class="list-gap"><div>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="font-semibold text-gray-900 text-xs">E-commerce</h3>
+          <div class="flex items-center gap-2 text-xs"><a href="https://chatgpt.com/" class="text-teal-600">🔗 Live</a><a href="https://chatgpt.com/" class="text-teal-600">📂 Code</a></div>
+        </div>
+        <p class="text-xs text-gray-600 mb-0.5"><span class="font-semibold">Tech Stack:</span> React.js, Redux, Node.js</p>
+        <p class="text-xs text-gray-700 mb-0.5">Full-stack developer with 4+ years of experience building responsive web applications using React</p>
+        <ul class="list-disc list-inside list-gap-sm text-gray-700"><li class="text-xs">Full-stack developer with 4+ years of experience building responsive web applications using React</li><li class="text-xs">Full-stack developer with 4+ years of experience building responsive web applications using React</li></ul>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Technical Skills
+      </h2>
+      <div class="list-gap-sm"><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">programming Languages:</span>
+          <span class="text-gray-700">JavaScript, Python</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">frontend:</span>
+          <span class="text-gray-700">React.js, SASS</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">backend:</span>
+          <span class="text-gray-700">Node.js, NestJS, FastAPI</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">database:</span>
+          <span class="text-gray-700">MongoDB, MySQL</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">dev Ops:</span>
+          <span class="text-gray-700">Git, Docker</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">tools:</span>
+          <span class="text-gray-700">Postman, VS Code</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">other:</span>
+          <span class="text-gray-700">Agile, OOP</span>
+        </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Education
+      </h2>
+      <div class="list-gap"><div class="flex justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">BSc in CSE</h3>
+          <p class="text-gray-600 italic text-xs">BUBT — Dhaka, Bangladesh</p>
+          <p class="text-xs text-gray-500">GPA: 3.14</p>
+        </div>
+        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">Sep 2022</span>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Competitive Programming
+      </h2>
+      <div class="list-gap"><div class="flex justify-between items-start">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">
+            LeetCode<a href="https://chatgpt.com/" class="text-teal-600 font-normal ml-2">View Profile</a>
+          </h3>
+          <p class="text-xs text-gray-600"><span class="font-semibold">Badges:</span> Expert</p>
+        </div>
+        <p class="text-xs text-gray-600 text-right">Solved: <span class="font-semibold text-gray-800">500</span></p>
+      </div><div class="flex justify-between items-start">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">
+            Codeforces<a href="https://chatgpt.com/" class="text-teal-600 font-normal ml-2">View Profile</a>
+          </h3>
+          
+        </div>
+        <p class="text-xs text-gray-600 text-right">Solved: <span class="font-semibold text-gray-800">100</span></p>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Certifications
+      </h2>
+      <div class="list-gap"><div class="flex justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">AWS</h3>
+          <p class="text-xs text-gray-500">Amazon Web Service</p>
+          
+        </div>
+        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">Feb 2024</span>
+      </div></div>
+    </section>
+    </div>
+  </body>
+</html>
+
+<!--
+=======================================================
+BACKEND DATA CONTRACT — what backend must provide
+=======================================================
+
+VARIABLE          TYPE        SOURCE
+─────────────────────────────────────────────────────
+<style>*,
+::before,
+::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+/*
+! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com
+*/
+
+/*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  /* 1 */
+  border-width: 0;
+  /* 2 */
+  border-style: solid;
+  /* 2 */
+  border-color: #e5e7eb;
+  /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5;
+  /* 1 */
+  -webkit-text-size-adjust: 100%;
+  /* 2 */
+  -moz-tab-size: 4;
+  /* 3 */
+  -o-tab-size: 4;
+  tab-size: 4;
+  /* 3 */
+  font-family:
+    ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  /* 4 */
+  font-feature-settings: normal;
+  /* 5 */
+  font-variation-settings: normal;
+  /* 6 */
+  -webkit-tap-highlight-color: transparent;
+  /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0;
+  /* 1 */
+  line-height: inherit;
+  /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0;
+  /* 1 */
+  color: inherit;
+  /* 2 */
+  border-top-width: 1px;
+  /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+  text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  /* 1 */
+  font-feature-settings: normal;
+  /* 2 */
+  font-variation-settings: normal;
+  /* 3 */
+  font-size: 1em;
+  /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0;
+  /* 1 */
+  border-color: inherit;
+  /* 2 */
+  border-collapse: collapse;
+  /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  /* 1 */
+  font-feature-settings: inherit;
+  /* 1 */
+  font-variation-settings: inherit;
+  /* 1 */
+  font-size: 100%;
+  /* 1 */
+  font-weight: inherit;
+  /* 1 */
+  line-height: inherit;
+  /* 1 */
+  letter-spacing: inherit;
+  /* 1 */
+  color: inherit;
+  /* 1 */
+  margin: 0;
+  /* 2 */
+  padding: 0;
+  /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button;
+  /* 1 */
+  background-color: transparent;
+  /* 2 */
+  background-image: none;
+  /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield;
+  /* 1 */
+  outline-offset: -2px;
+  /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  /* 1 */
+  font: inherit;
+  /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  /* 1 */
+  color: #9ca3af;
+  /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role='button'] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+  /* 1 */
+  vertical-align: middle;
+  /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+
+[hidden]:where(:not([hidden='until-found'])) {
+  display: none;
+}
+
+.mb-0\.5 {
+  margin-bottom: 0.125rem;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.ml-4 {
+  margin-left: 1rem;
+}
+
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+.block {
+  display: block;
+}
+
+.inline {
+  display: inline;
+}
+
+.flex {
+  display: flex;
+}
+
+.hidden {
+  display: none;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.list-inside {
+  list-style-position: inside;
+}
+
+.list-disc {
+  list-style-type: disc;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.border-b {
+  border-bottom-width: 1px;
+}
+
+.border-gray-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
+}
+
+.bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.pb-1 {
+  padding-bottom: 0.25rem;
+}
+
+.pb-2 {
+  padding-bottom: 0.5rem;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-normal {
+  font-weight: 400;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.leading-relaxed {
+  line-height: 1.625;
+}
+
+.tracking-wide {
+  letter-spacing: 0.025em;
+}
+
+.text-gray-500 {
+  --tw-text-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-600 {
+  --tw-text-opacity: 1;
+  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-700 {
+  --tw-text-opacity: 1;
+  color: rgb(55 65 81 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-800 {
+  --tw-text-opacity: 1;
+  color: rgb(31 41 55 / var(--tw-text-opacity, 1));
+}
+
+.text-gray-900 {
+  --tw-text-opacity: 1;
+  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
+}
+
+.text-teal-600 {
+  --tw-text-opacity: 1;
+  color: rgb(13 148 136 / var(--tw-text-opacity, 1));
+}
+</style>   string      fs.readFileSync('src/assets/output.css')
+                              → wrapped in <style> tag
+
+<style>
+  /*
+   * Dynamic resume styles — generated by StyleService.js
+   * Source: resumeStyles.js (shared with frontend)
+   * Font size: 10.5pt (fixed for A4 PDF)
+   */
+
+  /* Body — font, size, line-height, italic */
+  .resume-body { font-size:10.5pt;line-height:1.3;font-family:Arial;font-style:italic; }
+
+  /* Header block — text-align from nameStyle.position */
+  .resume-header { text-align:center; }
+
+  /* Name — font, weight, case, alignment, letter-spacing */
+  .resume-name { text-align:center;text-transform:uppercase;font-weight:bold;font-family:Arial;letter-spacing:0.05em; }
+
+  /* Contact/social flex containers — justify-content from nameStyle.position */
+  .resume-header-flex { display:flex;justify-content:center;flex-wrap:wrap;gap:12px;; flex-wrap:wrap; gap:8px; }
+
+  /* Section headings — font, case, weight, border, alignment */
+  .resume-section-h2 { font-family:Arial;text-transform:uppercase;font-weight:bold;text-align:left;border-bottom:1px solid #d1d5db;padding-bottom:4px;margin-bottom:4px; }
+</style>  string      resumeStyles.js functions called with
+                              user customization object
+                              → wrapped in <style> tag
+                              → font-size: 10.5pt fixed (PDF default)
+
+{{personalInfo.*}} booleans   Pre-computed by backend:
+  hasContact                  = email || phone || location
+  hasSocial                   = linkedin || github || portfolio
+  email_and_phone             = email && phone
+  contact_and_location        = (email || phone) && location
+  linkedin_and_github         = linkedin && github
+  social_and_portfolio        = (linkedin || github) && portfolio
+
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Professional Summary
+      </h2>
+      <p class="text-xs text-gray-700 leading-relaxed">Full-stack developer with 4+ years of experience building responsive web applications using React, Node.js, and PostgreSQL. Delivered 15+ production-ready projects handling 500K+ monthly active users. Reduced page load times by 60% through code optimization and caching strategies. Strong focus on clean architecture and test-driven development.</p>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Work Experience
+      </h2>
+      <div class="list-gap"><div>
+        <div class="flex justify-between items-start mb-0.5">
+          <div>
+            <h3 class="font-semibold text-gray-900 text-xs">Software Engineer</h3>
+            <p class="text-gray-600 italic text-xs">OrbitDevIT — Dhaka, Bangladesh</p>
+          </div>
+          <span class="text-xs text-gray-500 whitespace-nowrap ml-4">
+             Sep 2023 – Present
+           </span>
+        </div>
+        <ul class="list-disc list-inside list-gap-sm text-gray-700 mt-0.5"><li class="text-xs">Full-stack developer with 4+ years of experience building responsive web applications using React</li></ul>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Projects
+      </h2>
+      <div class="list-gap"><div>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="font-semibold text-gray-900 text-xs">E-commerce</h3>
+          <div class="flex items-center gap-2 text-xs"><a href="https://chatgpt.com/" class="text-teal-600">🔗 Live</a><a href="https://chatgpt.com/" class="text-teal-600">📂 Code</a></div>
+        </div>
+        <p class="text-xs text-gray-600 mb-0.5"><span class="font-semibold">Tech Stack:</span> React.js, Redux, Node.js</p>
+        <p class="text-xs text-gray-700 mb-0.5">Full-stack developer with 4+ years of experience building responsive web applications using React</p>
+        <ul class="list-disc list-inside list-gap-sm text-gray-700"><li class="text-xs">Full-stack developer with 4+ years of experience building responsive web applications using React</li><li class="text-xs">Full-stack developer with 4+ years of experience building responsive web applications using React</li></ul>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Technical Skills
+      </h2>
+      <div class="list-gap-sm"><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">programming Languages:</span>
+          <span class="text-gray-700">JavaScript, Python</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">frontend:</span>
+          <span class="text-gray-700">React.js, SASS</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">backend:</span>
+          <span class="text-gray-700">Node.js, NestJS, FastAPI</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">database:</span>
+          <span class="text-gray-700">MongoDB, MySQL</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">dev Ops:</span>
+          <span class="text-gray-700">Git, Docker</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">tools:</span>
+          <span class="text-gray-700">Postman, VS Code</span>
+        </div><div class="flex gap-1 text-xs">
+          <span class="font-semibold text-gray-800 shrink-0 capitalize">other:</span>
+          <span class="text-gray-700">Agile, OOP</span>
+        </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Education
+      </h2>
+      <div class="list-gap"><div class="flex justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">BSc in CSE</h3>
+          <p class="text-gray-600 italic text-xs">BUBT — Dhaka, Bangladesh</p>
+          <p class="text-xs text-gray-500">GPA: 3.14</p>
+        </div>
+        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">Sep 2022</span>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Competitive Programming
+      </h2>
+      <div class="list-gap"><div class="flex justify-between items-start">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">
+            LeetCode<a href="https://chatgpt.com/" class="text-teal-600 font-normal ml-2">View Profile</a>
+          </h3>
+          <p class="text-xs text-gray-600"><span class="font-semibold">Badges:</span> Expert</p>
+        </div>
+        <p class="text-xs text-gray-600 text-right">Solved: <span class="font-semibold text-gray-800">500</span></p>
+      </div><div class="flex justify-between items-start">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">
+            Codeforces<a href="https://chatgpt.com/" class="text-teal-600 font-normal ml-2">View Profile</a>
+          </h3>
+          
+        </div>
+        <p class="text-xs text-gray-600 text-right">Solved: <span class="font-semibold text-gray-800">100</span></p>
+      </div></div>
+    </section>
+<section class="section-gap">
+      <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">
+        Certifications
+      </h2>
+      <div class="list-gap"><div class="flex justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">AWS</h3>
+          <p class="text-xs text-gray-500">Amazon Web Service</p>
+          
+        </div>
+        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">Feb 2024</span>
+      </div></div>
+    </section> string     Backend builds section-by-section:
+                              sectionOrder.forEach(key => {
+                                if (!isSectionVisible(key)) return;
+                                html += renderSection(key, resumeData);
+                              });
+                              renderSection() uses switch/case.
+                              formatDate() from shared/utils.js for dates.
+
+=======================================================
+SECTION HTML STRUCTURE (backend renderSection output)
+=======================================================
+
+summary:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Professional Summary</h2>
+    <p class="text-xs text-gray-700 leading-relaxed">{text}</p>
+  </section>
+
+workExperience:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Work Experience</h2>
+    <div class="list-gap">
+      {forEach exp}
+      <div>
+        <div class="flex justify-between items-start mb-0.5">
+          <div>
+            <h3 class="font-semibold text-gray-900 text-xs">{jobTitle}</h3>
+            <p class="text-gray-600 italic text-xs">{company} — {location}</p>
+          </div>
+          <span class="text-xs text-gray-500 whitespace-nowrap ml-4">
+            {formatDate(startDate)} – {currentlyWorking ? 'Present' : formatDate(endDate)}
+          </span>
+        </div>
+        <ul class="list-disc list-inside list-gap-sm text-gray-700 mt-0.5">
+          {forEach responsibility}<li class="text-xs">{resp}</li>{/forEach}
+        </ul>
+      </div>
+      {/forEach}
+    </div>
+  </section>
+
+projects:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Projects</h2>
+    <div class="list-gap">
+      {forEach project}
+      <div>
+        <div class="flex items-center justify-between mb-0.5">
+          <h3 class="font-semibold text-gray-900 text-xs">{projectName}</h3>
+          <div class="flex items-center gap-2 text-xs">
+            {liveUrl && <a href="{liveUrl}" class="text-teal-600">🔗 Live</a>}
+            {sourceCode && <a href="{sourceCode}" class="text-teal-600">📂 Code</a>}
+          </div>
+        </div>
+        {technologies && <p class="text-xs text-gray-600 mb-0.5"><span class="font-semibold">Tech Stack:</span> {tech.join(', ')}</p>}
+        {description && <p class="text-xs text-gray-700 mb-0.5">{description}</p>}
+        <ul class="list-disc list-inside list-gap-sm text-gray-700">
+          {forEach highlight}<li class="text-xs">{highlight}</li>{/forEach}
+        </ul>
+      </div>
+      {/forEach}
+    </div>
+  </section>
+
+skills:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Technical Skills</h2>
+    <div class="list-gap-sm">
+      {forEach [category, skillsArr] in Object.entries(skills)}
+        {skillsArr.length > 0 &&
+          <div class="flex gap-1 text-xs">
+            <span class="font-semibold text-gray-800 shrink-0 capitalize">{category.replace(/([A-Z])/g, ' $1').trim()}:</span>
+            <span class="text-gray-700">{skillsArr.join(', ')}</span>
+          </div>
+        }
+      {/forEach}
+    </div>
+  </section>
+
+education:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Education</h2>
+    <div class="list-gap">
+      {forEach edu}
+      <div class="flex justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">{degree}</h3>
+          <p class="text-gray-600 italic text-xs">{institution} — {location}</p>
+          {gpa && <p class="text-xs text-gray-500">GPA: {gpa}</p>}
+        </div>
+        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">{formatDate(graduationDate)}</span>
+      </div>
+      {/forEach}
+    </div>
+  </section>
+
+competitiveProgramming:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Competitive Programming</h2>
+    <div class="list-gap">
+      {forEach cp}
+      <div class="flex justify-between items-start">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">
+            {platform}
+            {profileUrl && <a href="{profileUrl}" class="text-teal-600 font-normal ml-2">View Profile</a>}
+          </h3>
+          {badges.length && <p class="text-xs text-gray-600"><span class="font-semibold">Badges:</span> {badges.join(', ')}</p>}
+        </div>
+        {problemsSolved > 0 && <p class="text-xs text-gray-600 text-right">Solved: <span class="font-semibold text-gray-800">{problemsSolved}</span></p>}
+      </div>
+      {/forEach}
+    </div>
+  </section>
+
+certifications:
+  <section class="section-gap">
+    <h2 class="text-xs text-gray-900 tracking-wide resume-section-h2">Certifications</h2>
+    <div class="list-gap">
+      {forEach cert}
+      <div class="flex justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-900 text-xs">{certificationName}</h3>
+          {issuer && <p class="text-xs text-gray-500">{issuer}</p>}
+          {credentialUrl && <a href="{credentialUrl}" class="text-xs text-teal-600">View Credential</a>}
+        </div>
+        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">{formatDate(issueDate)}</span>
+      </div>
+      {/forEach}
+    </div>
+  </section>
+
+=======================================================
+-->

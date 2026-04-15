@@ -180,10 +180,10 @@ const renderProjects = (resumeData) => {
 
     const links = [
       project.liveUrl?.trim()
-        ? `<a href="${sanitizeUrl(project.liveUrl)}" class="text-teal-600">🔗 Live</a>`
+        ? `<a href="${sanitizeUrl(project.liveUrl)}" class="text-gray-900">Live</a>`
         : '',
       project.sourceCode?.trim()
-        ? `<a href="${sanitizeUrl(project.sourceCode)}" class="text-teal-600">📂 Code</a>`
+        ? `<a href="${sanitizeUrl(project.sourceCode)}" class="text-gray-900">Code</a>`
         : '',
     ]
       .filter(Boolean)
@@ -303,7 +303,7 @@ const renderCompetitiveProgramming = (resumeData) => {
       .join(', ');
 
     const profileLink = cp.profileUrl?.trim()
-      ? `<a href="${sanitizeUrl(cp.profileUrl)}" class="text-teal-600 font-normal ml-2">View Profile</a>`
+      ? `<a href="${sanitizeUrl(cp.profileUrl)}" class="text-gray-900 font-normal ml-2">View Profile</a>`
       : '';
 
     return `
@@ -346,7 +346,7 @@ const renderCertifications = (resumeData) => {
         <div>
           <h3 class="font-semibold text-gray-900 text-xs">${sanitize(cert.certificationName)}</h3>
           ${cert.issuer?.trim() ? `<p class="text-xs text-gray-500">${sanitize(cert.issuer)}</p>` : ''}
-          ${cert.credentialUrl?.trim() ? `<a href="${sanitizeUrl(cert.credentialUrl)}" class="text-xs text-teal-600">View Credential</a>` : ''}
+          ${cert.credentialUrl?.trim() ? `<a href="${sanitizeUrl(cert.credentialUrl)}" class="text-xs text-gray-900">View Credential</a>` : ''}
         </div>
         ${cert.issueDate ? `<span class="text-xs text-gray-500 whitespace-nowrap ml-4">${formatDate(cert.issueDate)}</span>` : ''}
       </div>`.trim();
