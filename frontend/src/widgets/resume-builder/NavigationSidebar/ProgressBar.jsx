@@ -86,7 +86,7 @@ function ProgressBar({ progress }) {
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-gray-900">Resume Completeness:</span>
         <span
-          className={`font-bold ${
+          className={`font-bold mt-5 ${
             validProgress === 100 ? 'text-green-600' : 'text-teal-400'
           }`}
           aria-live="polite"

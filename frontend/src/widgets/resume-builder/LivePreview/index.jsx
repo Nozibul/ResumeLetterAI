@@ -116,7 +116,7 @@ function LivePreview({
   // RENDER
   // ==========================================
   return (
-    <div className="pb-1 flex flex-col h-full bg-gray-100">
+    <div className="flex flex-col h-full bg-gray-100">
       {/* ==========================================
           MOBILE CLOSE HEADER (Only on mobile)
       ========================================== */}

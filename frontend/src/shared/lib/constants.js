@@ -216,7 +216,7 @@ export const LIMITS = {
   MAX_HIGHLIGHTS: 5,
   MAX_TECHNOLOGIES: 15,
   SUMMARY_MAX_LENGTH: 500,
-  TITLE_MAX_LENGTH: 50,
+  TITLE_MAX_LENGTH: 30,
 };
 
 // ==========================================

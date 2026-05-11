@@ -51,7 +51,7 @@ const LivePreviewContainer = lazy(
 // LOADING SKELETONS
 // ==========================================
 const SidebarSkeleton = () => (
-  <div className="w-64 bg-white border-r border-gray-200 p-6 animate-pulse">
+  <div className="w-60 bg-white border-r border-gray-200 p-6 animate-pulse">
     <div className="space-y-4">
       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
         <div key={i} className="h-12 bg-gray-200 rounded" />
@@ -213,10 +213,10 @@ export default function ResumeBuilderPage() {
 
   // ==========================================
   // DOWNLOAD HANDLER
-  // ① POST /api/v1/resumes    — save JSON → get _id
-  // ② POST /api/pdf/generate  — generate PDF → get pdfUrl
-  // ③ PATCH /api/v1/resumes/:id — save pdfUrl
-  // ④ Auto download trigger
+  // POST /api/v1/resumes    — save JSON → get _id
+  // POST /api/pdf/generate  — generate PDF → get pdfUrl
+  // PATCH /api/v1/resumes/:id — save pdfUrl
+  // Auto download trigger
   // ==========================================
   const handleDownload = useCallback(async () => {
     if (!resumeData) {
@@ -233,7 +233,7 @@ export default function ResumeBuilderPage() {
     setIsDownloading(true);
 
     try {
-      // ① Save resumeJSON to DB
+      // Save resumeJSON to DB
       const saveResponse = await apiClient.post('/resumes', {
         ...resumeData,
         templateId: templateIdFromQuery,
@@ -248,7 +248,7 @@ export default function ResumeBuilderPage() {
         throw new Error('Resume save failed — no ID returned from server');
       }
 
-      // Redux এ _id update করো
+      // Redux id update 
       dispatch(setCurrentResumeData({ ...resumeData, _id: resumeId }));
 
       logger.info('[handleDownload] Resume saved, ID:', resumeId);
@@ -269,7 +269,7 @@ export default function ResumeBuilderPage() {
 
       logger.info('[handleDownload] PDF generated, URL:', pdfUrl);
 
-      // ③ pdfUrl MongoDB তে update করো
+      // pdfUrl MongoDB update
       if (pdfUrl) {
         await apiClient.patch(`/resumes/${resumeId}`, {
           pdfUrl,
@@ -278,7 +278,7 @@ export default function ResumeBuilderPage() {
         logger.info('[handleDownload] pdfUrl saved to DB');
       }
 
-      // ④ Auto download
+      // Auto download
       const blob = new Blob([pdfResponse.data], { type: 'application/pdf' });
       const filename = buildFilename(resumeData.personalInfo?.fullName);
       triggerDownload(blob, filename);
@@ -385,7 +385,7 @@ export default function ResumeBuilderPage() {
       </aside>
 
       {/* FORM AREA */}
-      <main className="lg:w-[40%] flex-1 overflow-y-auto z-20 relative">
+      <main className="flex-1 overflow-y-auto z-20 relative">
         <Suspense fallback={<FormSkeleton />}>
           <FormArea
             currentStep={currentStep}

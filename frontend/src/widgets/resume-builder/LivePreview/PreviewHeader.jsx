@@ -59,7 +59,7 @@ function PreviewHeader({
   `.trim();
 
   return (
-    <header className="border-b border-gray-200 bg-white px-3 py-4 shadow-sm">
+    <header className="border-b border-gray-200 bg-white px-3 py-[13px] shadow-sm">
       <div className="flex items-center justify-between">
         {/* LEFT - Title + Close */}
         <div className="flex items-center gap-2">

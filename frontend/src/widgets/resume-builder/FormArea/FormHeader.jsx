@@ -16,10 +16,6 @@
 import { memo, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
-/**
- * FormHeader Component
- * Top section of form area with step info
- */
 function FormHeader({
   stepNumber,
   stepTitle,
@@ -27,9 +23,6 @@ function FormHeader({
   isSaving,
   onPreviewToggle,
 }) {
-  // ==========================================
-  // INPUT VALIDATION
-  // ==========================================
   const validStepNumber =
     typeof stepNumber === 'number' && stepNumber >= 1 && stepNumber <= 9
       ? stepNumber
@@ -107,16 +100,16 @@ function FormHeader({
   // RENDER
   // ==========================================
   return (
-    <header className="border-b border-gray-200 bg-white px-6 pt-3">
-      <div className="max-w-3xl mx-auto">
+    <header className="border-b border-gray-200 bg-white px-6 pt-2">
+      <div className="max-w-4xl mx-auto">
         {/* ==========================================
             TOP ROW - Step Number + Auto-Save + Preview Toggle
         ========================================== */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           {/* Step number badge */}
           <div className="flex items-center gap-2">
             <span
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-100 text-teal-600 font-semibold text-sm"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-teal-100 text-teal-600 font-semibold text-sm"
               aria-label={`Step ${validStepNumber} of 9`}
             >
               {validStepNumber}

@@ -36,7 +36,7 @@ function StepItem({
   // DYNAMIC CLASSES
   // ==========================================
   const buttonClasses = `
-    w-full flex items-center gap-4 px-2 py-2 rounded-lg
+    w-full flex items-center gap-2 px-2 py-2 rounded-lg
     transition-all duration-200 ease-in-out
     focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2
     ${
@@ -50,7 +50,7 @@ function StepItem({
 
   const numberClasses = `
     flex items-center justify-center
-    w-7 h-7 rounded-full flex-shrink-0
+    w-5 h-5 rounded-full flex-shrink-0
     font-semibold text-sm
     transition-all duration-200
     ${
@@ -63,7 +63,7 @@ function StepItem({
   `.trim();
 
   const labelClasses = `
-    flex-1 text-left font-medium text-md
+    flex-1 text-left font-medium text-sm
     transition-colors duration-200
     ${isActive ? 'text-black' : isCompleted ? 'text-teal-600' : 'text-gray-700'}
   `.trim();
@@ -84,9 +84,8 @@ function StepItem({
         ========================================== */}
         <div className={numberClasses}>
           {isCompleted ? (
-            // Checkmark SVG (Completed state)
             <svg
-              className="w-5 h-5"
+              className="w-4 h-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -101,7 +100,6 @@ function StepItem({
               />
             </svg>
           ) : (
-            // Step number
             <span aria-hidden="true">{validStepNumber}</span>
           )}
         </div>
@@ -116,7 +114,7 @@ function StepItem({
         ========================================== */}
         {isActive && (
           <div
-            className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"
+            className="w-2 h-2 bg-teal-600 rounded-full animate-pulse"
             aria-hidden="true"
           />
         )}

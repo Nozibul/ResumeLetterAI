@@ -15,7 +15,6 @@ import { useResumeForm } from '@/shared/hooks/useResumeForm';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import SocialLinksSection from './SocialLinksSection';
-import PhotoUpload from './PhotoUpload';
 import { personalInfoValidationRules } from '../model/validation';
 import { sanitizePersonalInfoForm } from '../model/sanitizers';
 import { LIMITS } from '@/shared/lib/constants';
@@ -79,9 +78,9 @@ function PersonalInfoForm() {
     setShowSocialLinks((prev) => !prev);
   }, []);
 
-  const handlePhotoChange = useCallback((file) => {
-    logger.info('Photo selected:', file?.name);
-  }, []);
+  // const handlePhotoChange = useCallback((file) => {
+  //   logger.info('Photo selected:', file?.name);
+  // }, []);
 
   const hasTouchedAnyField = Object.keys(touched).length > 0;
 
@@ -91,10 +90,10 @@ function PersonalInfoForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="ATS-Friendly Tips" tips={ATS_TIPS} />
+      <ATSBanner title="ATS-Friendly Tips using AI in Fututre" tips={ATS_TIPS} />
 
       {/* PROFILE PHOTO */}
-      <PhotoUpload onPhotoChange={handlePhotoChange} initialPhoto={null} />
+      {/* <PhotoUpload onPhotoChange={handlePhotoChange} initialPhoto={null} /> */}
 
       {/* CONTACT FIELDS */}
       <div className="space-y-4">
