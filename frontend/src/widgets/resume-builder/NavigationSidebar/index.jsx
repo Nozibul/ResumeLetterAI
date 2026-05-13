@@ -4,7 +4,7 @@
  * @author Nozibul Islam
  *
  * Features:
- * - 9-step navigation (Personal Info → Finalize)
+ * - 9-step navigation (Personal Info → Customize & Export)
  * - Visual progress indicator
  * - Completed steps tracking (checkmarks)
  */
@@ -34,14 +34,14 @@ function NavigationSidebar({
 
   // Validate currentStep
   const validCurrentStep =
-    typeof currentStep === 'number' && currentStep >= 1 && currentStep <= 9
+    typeof currentStep === 'number' && currentStep >= 1 && currentStep <= 10
       ? currentStep
       : 1;
 
   // Validate completedSteps (ensure array)
   const validCompletedSteps = Array.isArray(completedSteps)
     ? completedSteps.filter(
-        (step) => typeof step === 'number' && step >= 1 && step <= 9
+        (step) => typeof step === 'number' && step >= 1 && step <= 10
       )
     : [];
 
@@ -57,7 +57,7 @@ function NavigationSidebar({
   const handleStepClick = useCallback(
     (stepId) => {
       // Validate before callback
-      if (typeof stepId !== 'number' || stepId < 1 || stepId > 9) {
+      if (typeof stepId !== 'number' || stepId < 1 || stepId > 10) {
         logger.warn('Invalid step click:', stepId);
         return;
       }

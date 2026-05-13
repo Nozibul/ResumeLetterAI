@@ -234,13 +234,32 @@ export default function ResumeBuilderPage() {
 
     try {
       // Save resumeJSON to DB
-      const saveResponse = await apiClient.post('/resumes', {
-        ...resumeData,
-        templateId: templateIdFromQuery,
-        title: resumeData.personalInfo?.fullName?.trim()
-          ? `${resumeData.personalInfo.fullName}'s Resume`
-          : 'My Resume',
-      });
+     const saveResponse = await apiClient.post('/resumes', {
+      ...resumeData,
+      templateId: templateIdFromQuery,
+      title: resumeData.personalInfo?.fullName?.trim()
+        ? `${resumeData.personalInfo.fullName}'s Resume`
+        : 'My Resume',
+
+      // workExperience: endDate null → undefined
+      workExperience: resumeData.workExperience?.map((exp) => ({
+        ...exp,
+        endDate: exp.endDate ?? undefined,
+      })),
+
+      // projects: null → ""
+      projects: resumeData.projects?.map((project) => ({
+        ...project,
+        liveUrl: project.liveUrl || '',
+        sourceCode: project.sourceCode || '',
+      })),
+
+      // CP: problemsSolved number → string
+      competitiveProgramming: resumeData.competitiveProgramming?.map((cp) => ({
+        ...cp,
+        problemsSolved: cp.problemsSolved?.toString() || '',
+      })),
+    });
 
       const resumeId = saveResponse.data?.data?.resume?._id;
 
@@ -364,7 +383,7 @@ export default function ResumeBuilderPage() {
   // PROGRESS (Memoized)
   // ==========================================
   const progress = useMemo(() => {
-    return Math.round((completedSteps.length / 9) * 100);
+    return Math.round((completedSteps.length / 10) * 100);
   }, [completedSteps]);
 
   // ==========================================

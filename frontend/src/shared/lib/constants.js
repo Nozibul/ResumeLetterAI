@@ -29,8 +29,6 @@ export const RESUME_SECTIONS = [
   'education',
   'competitiveProgramming',
   'certifications',
-  'achievements',
-  'languages',
 ];
 
 // ==========================================
@@ -46,7 +44,7 @@ export const FORM_STEPS = [
   { id: 6, key: 'education', label: 'Education' },
   { id: 7, key: 'competitiveProgramming', label: 'Competitive Programming' },
   { id: 8, key: 'certifications', label: 'Certifications' },
-  { id: 9, key: 'finalize', label: 'Finalize' },
+  { id: 9, key: 'finalize', label: 'Customize & Export' },
 ];
 
 // ==========================================

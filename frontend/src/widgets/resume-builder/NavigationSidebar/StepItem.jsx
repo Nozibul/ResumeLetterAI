@@ -25,7 +25,7 @@ function StepItem({
   // INPUT VALIDATION
   // ==========================================
   const validStepNumber =
-    typeof stepNumber === 'number' && stepNumber >= 1 && stepNumber <= 9
+    typeof stepNumber === 'number' && stepNumber >= 1 && stepNumber <= 10
       ? stepNumber
       : 1;
 
@@ -107,7 +107,12 @@ function StepItem({
         {/* ==========================================
             STEP LABEL
         ========================================== */}
-        <span className={labelClasses}>{validLabel}</span>
+        <span className={labelClasses}>
+          {validLabel}
+          {validStepNumber === 9 && (
+            <span className="ml-1" role="img" aria-label="customize">🎨</span>
+          )}
+        </span>
 
         {/* ==========================================
             ACTIVE INDICATOR (Visual only)

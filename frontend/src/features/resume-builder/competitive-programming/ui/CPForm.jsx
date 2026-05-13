@@ -42,7 +42,7 @@ const MAX_PROFILES = LIMITS.MAX_CP_PLATFORMS ?? 5;
 function createEmptyProfile() {
   return {
     platform: '',
-    problemsSolved: 0,
+    problemsSolved: '',
     badges: [],
     profileUrl: '',
   };

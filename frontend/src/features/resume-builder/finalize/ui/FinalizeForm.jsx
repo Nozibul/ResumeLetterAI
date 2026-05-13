@@ -1,12 +1,12 @@
 /**
  * @file features/resume-builder/finalize/ui/FinalizeForm.jsx
- * @description Finalize & Customize form - Step 9
+ * @description Customize & Export form - Step 9
  * @author Nozibul Islam
  *
  * ✅ sectionOrder — Redux connected (reorderSections, resetSectionOrder)
  * ✅ sectionVisibility — debounced save to Redux
  * ✅ customization — fonts, nameStyle, sectionHeadingStyle debounced save
- * ✅ handleSectionHeadingChange — new handler for section heading style
+ * ✅ handleSectionHeadingChange — handler for section heading style
  * ✅ useRef initialize — no loop, logout safe
  */
 
@@ -20,7 +20,6 @@ import {
   resetSectionOrder,
   updateCurrentResumeField,
 } from '@/shared/store/slices/resumeSlice';
-import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
 import SectionVisibilityToggles from './SectionVisibilityToggles';
 import NameStyleOptions from './NameStyleOptions';
 import SectionReorder from './SectionReorder';
@@ -29,14 +28,6 @@ import logger from '@/shared/lib/logger';
 // ==========================================
 // CONSTANTS
 // ==========================================
-const ATS_TIPS = [
-  'Keep colors professional (black, navy, dark gray)',
-  'Use ATS-safe fonts (Arial, Helvetica, Calibri)',
-  'Avoid images, graphics, or complex formatting',
-  'Ensure all sections are visible for ATS scanning',
-  'Use standard section names for better parsing',
-];
-
 const DEFAULT_SECTION_ORDER = [
   'personalInfo',
   'summary',
@@ -86,7 +77,7 @@ const INITIAL_CUSTOMIZATION = {
 
 /**
  * FinalizeForm Component
- * Step 9: Finalize & Customize
+ * Step 9: Customize & Export
  */
 function FinalizeForm() {
   const dispatch = useDispatch();
@@ -229,37 +220,32 @@ function FinalizeForm() {
   // ==========================================
   return (
     <div className="space-y-5">
-      {/* ATS CHECKLIST */}
-      <ATSBanner title="Final ATS Checklist" tips={ATS_TIPS} />
-
-      {/* SUCCESS BANNER */}
-      <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-xl p-4">
+      {/* CUSTOMIZE HEADER BANNER */}
+      <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-teal-50 border border-indigo-200 rounded-xl p-4">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-            <svg
-              className="h-5 w-5 text-teal-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+          <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+            <span className="text-lg" role="img" aria-label="paint">🎨</span>
           </div>
           <div>
-            <h4 className="text-sm font-bold text-teal-900">
-              🎉 Resume Complete!
+            <h4 className="text-sm font-bold text-indigo-900">
+              Customize Your Resume Style
             </h4>
-            <p className="text-xs text-teal-700 mt-0.5">
-              Customize appearance and section order below, then download.
+            <p className="text-xs text-indigo-700 mt-0.5">
+              Personalize fonts, name style, section headings & layout. Changes apply to your live preview instantly.
             </p>
           </div>
         </div>
       </div>
+
+      {/* FONT + NAME STYLE + SECTION HEADING STYLE */}
+      <NameStyleOptions
+        nameStyle={customization.nameStyle}
+        sectionHeadingStyle={customization.sectionHeadingStyle}
+        fonts={customization.fonts}
+        onChange={handleNameStyleChange}
+        onSectionHeadingChange={handleSectionHeadingChange}
+        onFontChange={handleFontChange}
+      />
 
       {/* SECTION REORDER */}
       <SectionReorder
@@ -273,64 +259,6 @@ function FinalizeForm() {
         visibility={sectionVisibility}
         onToggle={handleVisibilityToggle}
       />
-
-      {/* FONT + NAME STYLE + SECTION HEADING STYLE */}
-      <NameStyleOptions
-        nameStyle={customization.nameStyle}
-        sectionHeadingStyle={customization.sectionHeadingStyle}
-        fonts={customization.fonts}
-        onChange={handleNameStyleChange}
-        onSectionHeadingChange={handleSectionHeadingChange}
-        onFontChange={handleFontChange}
-      />
-
-      {/* DOWNLOAD INFO */}
-      <div className="bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-200 rounded-xl p-5">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-            <svg
-              className="h-5 w-5 text-teal-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-teal-800 mb-1">
-              Ready to Download?
-            </h3>
-            <p className="text-xs text-teal-700 mb-3">
-              Use the Download button in the preview panel to export as PDF or
-              DOCX.
-            </p>
-            <div className="flex items-center gap-2 text-xs text-teal-600">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span className="font-medium">
-                All changes are automatically saved
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -74,7 +74,7 @@ function FormArea({ currentStep, onNext, onBack, onPreviewToggle, isSaving }) {
   // INPUT VALIDATION
   // ==========================================
   const validCurrentStep =
-    typeof currentStep === 'number' && currentStep >= 1 && currentStep <= 9
+    typeof currentStep === 'number' && currentStep >= 1 && currentStep <= 10
       ? currentStep
       : 1;
 
@@ -102,7 +102,8 @@ function FormArea({ currentStep, onNext, onBack, onPreviewToggle, isSaving }) {
       6: 'Add your educational background',
       7: 'Include CP achievements (optional)',
       8: 'Add professional certifications (optional)',
-      9: 'Customize your resume and download',
+      9: 'Customize fonts, name style & section headings',
+      10: 'Reorder sections, review ATS tips & download',
     }),
     []
   );

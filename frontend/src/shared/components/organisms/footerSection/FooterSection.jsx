@@ -15,7 +15,6 @@ import FooterLink from '../../atoms/footerLink/FooterLink';
 import SocialLink from '../../molecules/socialLink/SocialLink';
 import Icons from '../../atoms/icons/Icons';
 import Image from 'next/image';
-import Button from '../../atoms/buttons/Button';
 
 // Section component for better organization
 export const FooterSection = React.memo(({ title, links, testIdPrefix }) => (
@@ -92,12 +91,11 @@ const BrandLogo = React.memo(() => (
 
 BrandLogo.displayName = 'BrandLogo';
 
-// CTA Button component
 const CTAButton = React.memo(() => (
   <Link href="/signup">
-    <Button size="md" variant="secondary">
+    <button className="bg-white cursor-pointer border border-teal-600 text-teal-600 hover:bg-teal-50 focus:ring-2 focus:ring-teal-300 hover:border-teal-700 px-4 p-3 rounded-md text-[13px] font-bold transition-colors duration-200">
       {COMPANY_INFO.ctaText}
-    </Button>
+    </button>
   </Link>
 ));
 
@@ -105,7 +103,7 @@ CTAButton.displayName = 'CTAButton';
 
 // Social Links Section component
 const SocialLinksSection = React.memo(() => (
-  <div className="flex space-x-4 pt-6">
+  <div className="flex space-x-2 ">
     {SOCIAL_LINKS.map((social) => (
       <SocialLink key={social.id} social={social} />
     ))}
@@ -118,17 +116,14 @@ SocialLinksSection.displayName = 'SocialLinksSection';
 export const BrandSection = React.memo(() => (
   <div className="lg:col-span-2 space-y-6">
     <BrandLogo />
-
-    {/* Description */}
-    <p className="text-slate-200 text-sm leading-relaxed max-w-sm ">
+    <p className="text-slate-200 text-sm leading-relaxed max-w-sm">
       {COMPANY_INFO.description}
     </p>
 
-    {/* CTA Button */}
-    <CTAButton />
-
-    {/* Social Media Icons */}
-    <SocialLinksSection />
+    <div className="flex flex-row items-center gap-6">
+      <CTAButton />
+      <SocialLinksSection />
+    </div>
   </div>
 ));
 

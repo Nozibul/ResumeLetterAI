@@ -1,8 +1,7 @@
 export const FOOTER_LINKS = {
   tools: [
     { label: 'AI Resume Builder', href: '/resume-builder' },
-    { label: 'AI Cover Letter Generator', href: '/cover-letter-generator' },
-    { label: 'Resume Templates', href: '/resume-templates' },
+    { label: 'AI Cover Letter', href: '/cover-letter-generator' },
     { label: 'Cover Letter Templates', href: '/cover-letter-templates' },
     { label: 'Resume Checker', href: '/resume-checker' },
     { label: 'ATS Scanner', href: '/ats-scanner' },
@@ -13,7 +12,6 @@ export const FOOTER_LINKS = {
     { label: 'Career Advice', href: '/career-advice' },
     { label: 'Resume Tips', href: '/resume-tips' },
     { label: 'Interview Prep', href: '/interview-prep' },
-    { label: 'Job Search Guide', href: '/job-search-guide' },
   ],
   company: [
     { label: 'About Us', href: '/about' },
