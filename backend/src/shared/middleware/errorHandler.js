@@ -79,7 +79,6 @@ const errorHandler = (err, req, res, _) => {
   // Log Error
   // ==============================================
   if (statusCode >= 500) {
-    // Server errors - full stack trace log করো
     logger.error('Server Error:', {
       message: err.message,
       stack: err.stack,
@@ -89,7 +88,8 @@ const errorHandler = (err, req, res, _) => {
       userId: req.user?.id,
     });
   } else {
-    // Client errors - simple log
+    console.log('🔴 VALIDATION ERRORS:', JSON.stringify(err.errors, null, 2)); // ADD
+
     logger.warn('Client Error:', {
       message: err.message,
       url: req.originalUrl,

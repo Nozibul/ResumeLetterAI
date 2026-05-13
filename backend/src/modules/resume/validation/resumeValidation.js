@@ -14,56 +14,45 @@ const { z } = require('zod');
 // ==========================================
 
 const LIMITS = {
-  MAX_WORK_EXPERIENCES: 50,
-  MAX_PROJECTS: 30,
-  MAX_EDUCATIONS: 10,
-  MAX_CERTIFICATIONS: 30,
-  MAX_ACHIEVEMENTS: 30,
-  MAX_LANGUAGES: 20,
-  MAX_CP_PLATFORMS: 10,
-  MAX_SKILLS_PER_CATEGORY: 20,
-  MAX_RESPONSIBILITIES: 20,
-  MAX_HIGHLIGHTS: 10,
-  MAX_TECHNOLOGIES: 30,
+  MAX_WORK_EXPERIENCES: 5,
+  MAX_PROJECTS: 5,
+  MAX_EDUCATIONS: 3,
+  MAX_CERTIFICATIONS: 5,
+  MAX_CP_PLATFORMS: 5,
+  MAX_SKILLS_PER_CATEGORY: 15,
+  MAX_RESPONSIBILITIES: 5,
+  MAX_HIGHLIGHTS: 5,
+  MAX_TECHNOLOGIES: 15,
+  SUMMARY_MAX_LENGTH: 500,
+  TITLE_MAX_LENGTH: 30,
 };
 
-/**
- * Valid section names enum
- */
 const sectionNameSchema = z.enum(
   [
     'personalInfo',
     'summary',
-    'skills',
     'workExperience',
     'projects',
+    'skills',
     'education',
-    'certifications',
     'competitiveProgramming',
-    'achievements',
-    'languages',
+    'certifications',
   ],
   {
     errorMap: () => ({ message: 'Invalid section name' }),
   }
 );
 
-/**
- * Section Visibility Schema (Enum-based, Reusable)
- * ✅ FIXED - Manual definition instead of dynamic
- */
 const sectionVisibilitySchema = z
   .object({
     personalInfo: z.boolean().optional(),
     summary: z.boolean().optional(),
-    skills: z.boolean().optional(),
     workExperience: z.boolean().optional(),
     projects: z.boolean().optional(),
+    skills: z.boolean().optional(),
     education: z.boolean().optional(),
-    certifications: z.boolean().optional(),
     competitiveProgramming: z.boolean().optional(),
-    achievements: z.boolean().optional(),
-    languages: z.boolean().optional(),
+    certifications: z.boolean().optional(),
   })
   .partial();
 
@@ -71,27 +60,21 @@ const sectionVisibilitySchema = z
 // REUSABLE SCHEMAS
 // ==========================================
 
-/**
- * MongoDB ObjectId validation (Optimized with length check)
- */
 const objectIdSchema = z
   .string()
   .trim()
   .length(24, 'ID must be 24 characters')
   .regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId format');
 
-/**
- * URL validation - Only HTTP/HTTPS (Security enhanced)
- */
 const urlOrEmpty = z
   .string()
   .trim()
+  .nullable()
   .refine(
     (val) => {
       if (!val) return true;
       try {
         const url = new URL(val);
-        // শুধু HTTP/HTTPS allow - Security improvement
         return url.protocol === 'http:' || url.protocol === 'https:';
       } catch {
         return false;
@@ -102,18 +85,11 @@ const urlOrEmpty = z
   .optional()
   .default('');
 
-/**
- * Date schema - Complete (month AND year)
- */
 const completeDateSchema = z.object({
   month: z.number().int().min(1).max(12),
   year: z.number().int().min(1).max(2100),
 });
 
-/**
- * Non-empty string array helper (Performance optimized)
- * ✅ FIXED - Added default parameter
- */
 const nonEmptyStringArray = (max = 50) =>
   z.array(z.string().trim().min(1)).max(max);
 
@@ -121,9 +97,6 @@ const nonEmptyStringArray = (max = 50) =>
 // MAIN SCHEMAS
 // ==========================================
 
-/**
- * Personal Info Schema (Enhanced validation)
- */
 const personalInfoSchema = z.object({
   fullName: z.string().trim().min(1, 'Full name is required').max(100),
   jobTitle: z.string().trim().min(1, 'Job title is required').max(100),
@@ -159,9 +132,6 @@ const personalInfoSchema = z.object({
   photoUrl: urlOrEmpty,
 });
 
-/**
- * Summary Schema
- */
 const summarySchema = z
   .object({
     text: z.string().trim().max(2000).optional().default(''),
@@ -170,9 +140,6 @@ const summarySchema = z
   .optional()
   .default({ text: '', isVisible: true });
 
-/**
- * Work Experience Schema (Fixed date validation logic)
- */
 const workExperienceSchema = z
   .object({
     _id: objectIdSchema.optional(),
@@ -180,20 +147,15 @@ const workExperienceSchema = z
     company: z.string().trim().min(1, 'Company name is required'),
     location: z.string().trim().optional().default(''),
     startDate: completeDateSchema,
-    endDate: completeDateSchema.optional(),
+    endDate: completeDateSchema.optional().nullable(),
     currentlyWorking: z.boolean().default(false),
     responsibilities: nonEmptyStringArray(LIMITS.MAX_RESPONSIBILITIES),
     order: z.number().int().min(0).default(0),
   })
   .refine(
     (data) => {
-      // FIX: Clear conflict handling
-      if (data.currentlyWorking && data.endDate) {
-        return false; // Cannot have both
-      }
-      if (!data.currentlyWorking && !data.endDate) {
-        return false; // Must have endDate if not working
-      }
+      if (data.currentlyWorking && data.endDate) return false;
+      if (!data.currentlyWorking && !data.endDate) return false;
       return true;
     },
     {
@@ -205,11 +167,8 @@ const workExperienceSchema = z
   .refine(
     (data) => {
       if (!data.endDate || data.currentlyWorking) return true;
-
       const start = data.startDate.year * 12 + data.startDate.month;
       const end = data.endDate.year * 12 + data.endDate.month;
-
-      // FIX: Allow same month (>= instead of >)
       return end >= start;
     },
     {
@@ -218,9 +177,6 @@ const workExperienceSchema = z
     }
   );
 
-/**
- * Project Schema
- */
 const projectSchema = z.object({
   _id: objectIdSchema.optional(),
   projectName: z.string().trim().min(1, 'Project name is required').max(150),
@@ -232,9 +188,6 @@ const projectSchema = z.object({
   order: z.number().int().min(0).default(0),
 });
 
-/**
- * Education Schema
- */
 const educationSchema = z.object({
   _id: objectIdSchema.optional(),
   degree: z.string().trim().min(1, 'Degree is required').max(150),
@@ -246,26 +199,19 @@ const educationSchema = z.object({
     .trim()
     .refine(
       (val) => {
-        if (!val) return true; // Optional field
-
+        if (!val) return true;
         const numericMatch = val.match(/^[0-4](\.\d{1,2})?$/);
         if (!numericMatch) return false;
-
         const num = parseFloat(val);
         return num >= 0 && num <= 4;
       },
-      {
-        message: 'GPA must be a number between 0 and 4 (e.g., 3.75, 3.5, 4.00)',
-      }
+      { message: 'GPA must be a number between 0 and 4 (e.g., 3.75, 3.5, 4.00)' }
     )
     .optional()
     .default(''),
   order: z.number().int().min(0).default(0),
 });
 
-/**
- * Skills Schema
- */
 const skillsSchema = z
   .object({
     programmingLanguages: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY),
@@ -287,22 +233,16 @@ const skillsSchema = z
     other: [],
   });
 
-/**
- * Competitive Programming Schema
- */
 const competitiveProgrammingSchema = z.object({
   _id: objectIdSchema.optional(),
   platform: z.string().trim().min(1, 'Platform name is required').max(50),
   problemsSolved: z.string().trim().optional().default(''),
-  badges: z.string().trim().optional().default(''),
+  badges: z.array(z.string().trim()).optional().default([]),
   profileUrl: urlOrEmpty,
   description: z.string().trim().max(500).optional().default(''),
   order: z.number().int().min(0).default(0),
 });
 
-/**
- * Certification Schema
- */
 const certificationSchema = z.object({
   _id: objectIdSchema.optional(),
   certificationName: z
@@ -316,9 +256,6 @@ const certificationSchema = z.object({
   order: z.number().int().min(0).default(0),
 });
 
-/**
- * Language Schema
- */
 const languageSchema = z.object({
   _id: objectIdSchema.optional(),
   language: z.string().trim().min(1, 'Language is required').max(50),
@@ -327,9 +264,6 @@ const languageSchema = z.object({
     .default('Professional'),
 });
 
-/**
- * Achievement Schema
- */
 const achievementSchema = z.object({
   _id: objectIdSchema.optional(),
   title: z.string().trim().min(1, 'Achievement title is required').max(200),
@@ -338,44 +272,67 @@ const achievementSchema = z.object({
   order: z.number().int().min(0).default(0),
 });
 
-/**
- * Customization Schema
- * ✅ FIXED - z.record() signature for Zod v4
- */
+// ==========================================
+// CUSTOMIZATION SCHEMA
+// ✅ UPDATED - Matches frontend shape
+// ==========================================
+
+const hexColor = z
+  .string()
+  .trim()
+  .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format');
+
 const customizationSchema = z
   .object({
-    namePosition: z.enum(['left', 'center', 'right']).default('center'),
-    nameCase: z
-      .enum(['uppercase', 'capitalize', 'normal'])
-      .default('uppercase'),
-    colorScheme: z
-      .string()
-      .trim()
-      .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format')
-      .default('#000000'),
-    fontFamily: z.string().trim().default('Arial'),
-    sectionTitles: z
-      .record(z.string(), z.string().trim().min(1).max(50)) // ✅ FIXED
+    colors: z
+      .object({
+        primary: hexColor.default('#000000'),
+        secondary: hexColor.default('#333333'),
+        accent: hexColor.default('#0066CC'),
+      })
       .optional()
-      .default({}),
+      .default({ primary: '#000000', secondary: '#333333', accent: '#0066CC' }),
+
+    fonts: z
+      .object({
+        heading: z.string().trim().default('Arial'),
+        body: z.string().trim().default('Arial'),
+        italic: z.boolean().default(false),
+      })
+      .optional()
+      .default({ heading: 'Arial', body: 'Arial', italic: false }),
+
+    nameStyle: z
+      .object({
+        position: z.enum(['left', 'center', 'right']).default('center'),
+        case: z.enum(['uppercase', 'capitalize', 'normal']).default('uppercase'),
+        bold: z.boolean().default(true),
+      })
+      .optional()
+      .default({ position: 'center', case: 'uppercase', bold: true }),
+
+    sectionHeadingStyle: z
+      .object({
+        position: z.enum(['left', 'center', 'right']).default('left'),
+        case: z.enum(['uppercase', 'capitalize', 'normal']).default('uppercase'),
+        fontWeight: z.string().trim().default('bold'),
+        borderStyle: z.string().trim().default('bottom'),
+      })
+      .optional()
+      .default({
+        position: 'left',
+        case: 'uppercase',
+        fontWeight: 'bold',
+        borderStyle: 'bottom',
+      }),
   })
   .optional()
-  .default({
-    namePosition: 'center',
-    nameCase: 'uppercase',
-    colorScheme: '#000000',
-    fontFamily: 'Arial',
-    sectionTitles: {},
-  });
+  .default({});
 
 // ==========================================
 // MAIN VALIDATION SCHEMAS
 // ==========================================
 
-/**
- * Create Resume Validation
- * ✅ REMOVED .strict() - Zod v4 issue
- */
 exports.createResumeSchema = z.object({
   body: z.object({
     templateId: objectIdSchema,
@@ -408,10 +365,6 @@ exports.createResumeSchema = z.object({
   }),
 });
 
-/**
- * Update Resume Validation (Fixed: Removed defaults from optional fields)
- * ✅ REMOVED .strict()
- */
 exports.updateResumeSchema = z.object({
   params: z.object({
     id: objectIdSchema,
@@ -420,24 +373,18 @@ exports.updateResumeSchema = z.object({
     .object({
       title: z.string().trim().min(1).max(100).optional(),
       personalInfo: personalInfoSchema.optional(),
-
-      // FIX: No defaults in update schema to prevent data loss
       summary: z
         .object({
           text: z.string().trim().max(2000).optional(),
           isVisible: z.boolean().optional(),
         })
         .optional(),
-
       workExperience: z
         .array(workExperienceSchema)
         .max(LIMITS.MAX_WORK_EXPERIENCES)
         .optional(),
-
       projects: z.array(projectSchema).max(LIMITS.MAX_PROJECTS).optional(),
-
       education: z.array(educationSchema).max(LIMITS.MAX_EDUCATIONS).optional(),
-
       skills: z
         .object({
           programmingLanguages: nonEmptyStringArray(
@@ -455,41 +402,54 @@ exports.updateResumeSchema = z.object({
           other: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY).optional(),
         })
         .optional(),
-
       competitiveProgramming: z
         .array(competitiveProgrammingSchema)
         .max(LIMITS.MAX_CP_PLATFORMS)
         .optional(),
-
       certifications: z
         .array(certificationSchema)
         .max(LIMITS.MAX_CERTIFICATIONS)
         .optional(),
-
       languages: z.array(languageSchema).max(LIMITS.MAX_LANGUAGES).optional(),
-
       achievements: z
         .array(achievementSchema)
         .max(LIMITS.MAX_ACHIEVEMENTS)
         .optional(),
-
       sectionOrder: z.array(z.string().trim()).optional(),
-
       sectionVisibility: sectionVisibilitySchema.optional(),
 
+      // ✅ UPDATED - Matches frontend shape
       customization: z
         .object({
-          namePosition: z.enum(['left', 'center', 'right']).optional(),
-          nameCase: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
-          colorScheme: z
-            .string()
-            .trim()
-            .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format')
+          colors: z
+            .object({
+              primary: hexColor.optional(),
+              secondary: hexColor.optional(),
+              accent: hexColor.optional(),
+            })
             .optional(),
-          fontFamily: z.string().trim().optional(),
-          sectionTitles: z
-            .record(z.string(), z.string().trim().min(1).max(50))
-            .optional(), // ✅ FIXED
+          fonts: z
+            .object({
+              heading: z.string().trim().optional(),
+              body: z.string().trim().optional(),
+              italic: z.boolean().optional(),
+            })
+            .optional(),
+          nameStyle: z
+            .object({
+              position: z.enum(['left', 'center', 'right']).optional(),
+              case: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
+              bold: z.boolean().optional(),
+            })
+            .optional(),
+          sectionHeadingStyle: z
+            .object({
+              position: z.enum(['left', 'center', 'right']).optional(),
+              case: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
+              fontWeight: z.string().trim().optional(),
+              borderStyle: z.string().trim().optional(),
+            })
+            .optional(),
         })
         .optional(),
 
@@ -501,27 +461,18 @@ exports.updateResumeSchema = z.object({
     }),
 });
 
-/**
- * Get Resume by ID Validation
- */
 exports.getResumeByIdSchema = z.object({
   params: z.object({
     id: objectIdSchema,
   }),
 });
 
-/**
- * Delete Resume Validation
- */
 exports.deleteResumeSchema = z.object({
   params: z.object({
     id: objectIdSchema,
   }),
 });
 
-/**
- * Duplicate Resume Validation
- */
 exports.duplicateResumeSchema = z.object({
   params: z.object({
     id: objectIdSchema,
@@ -534,9 +485,6 @@ exports.duplicateResumeSchema = z.object({
     .default({}),
 });
 
-/**
- * Get User Resumes Query Validation (Optimized edge case handling)
- */
 exports.getUserResumesQuerySchema = z.object({
   query: z
     .object({
@@ -545,7 +493,6 @@ exports.getUserResumesQuerySchema = z.object({
         .trim()
         .refine(
           (val) => {
-            // Check if it's a valid positive integer
             if (!/^\d+$/.test(val)) return false;
             const num = parseInt(val);
             return num > 0 && num <= 100;
@@ -555,20 +502,12 @@ exports.getUserResumesQuerySchema = z.object({
         .transform(Number)
         .optional()
         .default('10'),
-
       sort: z.enum(['newest', 'oldest', 'title']).optional().default('newest'),
     })
     .optional()
     .default({ limit: '10', sort: 'newest' }),
 });
 
-// ==========================================
-// ADDITIONAL VALIDATION SCHEMAS
-// ==========================================
-
-/**
- * Update Section Order Validation
- */
 exports.updateSectionOrderSchema = z.object({
   params: z.object({
     id: objectIdSchema,
@@ -595,9 +534,6 @@ exports.updateSectionOrderSchema = z.object({
   }),
 });
 
-/**
- * Update Section Visibility Validation
- */
 exports.updateSectionVisibilitySchema = z.object({
   params: z.object({
     id: objectIdSchema,
@@ -612,9 +548,6 @@ exports.updateSectionVisibilitySchema = z.object({
   }),
 });
 
-/**
- * Switch Template Validation
- */
 exports.switchTemplateSchema = z.object({
   params: z.object({
     id: objectIdSchema,

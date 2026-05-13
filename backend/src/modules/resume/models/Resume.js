@@ -361,7 +361,7 @@ const competitiveProgrammingSchema = new Schema(
       maxlength: [50, 'Platform name cannot exceed 50 characters'],
     },
     problemsSolved: { type: String, trim: true, default: '' },
-    badges: { type: String, trim: true, default: '' },
+    badges: { type: [String], default: [] },
     profileUrl: { type: String, trim: true, default: '' },
     description: {
       type: String,
