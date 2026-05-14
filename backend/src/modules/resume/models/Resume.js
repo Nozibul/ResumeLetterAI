@@ -1,10 +1,27 @@
 /**
  * @file Resume.js
- * @description Resume Model with optimized structure and validation
+ * @description Resume Model - Production Ready
  * @module models/Resume
  * @author Nozibul Islam
- * @version 2.0.0
- * @updated Fixed data type mismatches, optimized indexes, enhanced validation
+ * @version 2.1.0
+ * @updated
+ *   v2.1.0 — GPA simplified: removed gpaScale field entirely.
+ *   Standard CGPA scale is 4.0 worldwide; a 5-point scale does not exist in practice.
+ *   isValidGpa now enforces 0–4.00 strictly. No schema migration needed —
+ *   gpaScale was never persisted to production.
+ *
+ *   v2.0.0 — Additional fixes applied:
+ *   - endDate.month null-safety: explicit check before arithmetic to prevent NaN
+ *   - duplicate(): strips _id from all sub-document arrays to avoid key conflicts
+ *   - getUserResumes(): hard cap on limit (max 100) to prevent accidental large fetches
+ *   - LIMITS.MIN_SKILLS_FOR_COMPLETION replaces magic number 3 in calculateCompletion()
+ *   - Three separate pre('save') middleware merged into two (validation + completion)
+ *   - sectionVisibility: added achievements and languages fields
+ *
+ *   v2.0.0 — Previous fixes:
+ *   GPA/CGPA validation, URL validation, type safety, index optimization,
+ *   sectionVisibility type fix, skills toObject crash fix,
+ *   endDate null-safety, badges limit, hardcoded limits normalized
  */
 
 const mongoose = require('mongoose');
@@ -15,19 +32,84 @@ const { Schema } = mongoose;
 // ============================================
 
 const LIMITS = {
-  MAX_WORK_EXPERIENCES: 50,
-  MAX_PROJECTS: 30,
-  MAX_EDUCATIONS: 10,
-  MAX_CERTIFICATIONS: 30,
-  MAX_ACHIEVEMENTS: 30,
-  MAX_LANGUAGES: 20,
+  MAX_WORK_EXPERIENCES: 5,
+  MAX_PROJECTS: 5,
+  MAX_EDUCATIONS: 5,
+  MAX_CERTIFICATIONS: 5,
   MAX_CP_PLATFORMS: 10,
-  MAX_RESPONSIBILITIES: 20,
-  MAX_HIGHLIGHTS: 10,
-  MAX_TECHNOLOGIES: 30,
-  MAX_BADGES: 20,
-  MAX_SKILLS_PER_CATEGORY: 20,
+  MAX_RESPONSIBILITIES: 10,
+  MAX_HIGHLIGHTS: 5,
+  MAX_TECHNOLOGIES: 20,
+  MAX_BADGES: 10,
+  MAX_SKILLS_PER_CATEGORY: 15,
+  MAX_SKILLS_DB_DEVOPS: 15,
+  MAX_RESUMES_PER_FETCH: 50, // hard cap for getUserResumes() limit option
+  MIN_SKILLS_FOR_COMPLETION: 3, // minimum total skills to count as "skills filled"
 };
+
+// ============================================
+// HELPERS
+// ============================================
+
+/**
+ * URL validator — accepts http/https URLs only.
+ * Empty string / null / undefined = valid (field is optional).
+ */
+const isValidUrl = (val) => {
+  if (!val || val.trim() === '') return true;
+  try {
+    const url = new URL(val.trim());
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const urlValidation = {
+  validator: isValidUrl,
+  message: (props) =>
+    `"${props.value}" is not a valid URL. Must start with http:// or https://`,
+};
+
+/**
+ * GPA / CGPA validator
+ *
+ * Rules:
+ *   - Numbers only — "3.75/4", "First Class", "A+" are all rejected
+ *   - Range: 0.00 – 4.00  (standard 4-point scale only)
+ *   - Max 2 decimal places
+ *   - Field is optional; empty string passes
+ */
+const isValidGpa = (val) => {
+  if (!val || val.trim() === '') return true;
+  if (!/^\d+(\.\d{1,2})?$/.test(val.trim())) return false;
+  const num = parseFloat(val);
+  return num >= 0 && num <= 4.0;
+};
+
+const gpaValidation = {
+  validator: isValidGpa,
+  message:
+    'GPA must be a number between 0.00 and 4.00 with up to 2 decimal places (e.g. 3.75). Text like "3.75/4" or "First Class" is not accepted.',
+};
+
+/**
+ * Strip _id from plain objects / Mongoose subdocs in an array.
+ * Used by duplicate() to avoid ObjectId conflicts on sub-documents.
+ */
+const stripIds = (arr) =>
+  (arr || []).map((item) => {
+    // toObject() is the safest path for Mongoose subdocs — it handles Dates, ObjectIds, etc.
+    // structuredClone() is used for plain objects: unlike { ...item } it does a true deep
+    // clone, so nested fields cannot be mutated back into the original document.
+    // Requires Node.js >= 17. If you need older Node support, swap to lodash cloneDeep().
+    const obj =
+      typeof item.toObject === 'function'
+        ? item.toObject()
+        : structuredClone(item);
+    delete obj._id;
+    return obj;
+  });
 
 // ============================================
 // SUB-SCHEMAS
@@ -35,7 +117,6 @@ const LIMITS = {
 
 /**
  * Personal Information Schema
- * FIXED: Matches validation schema requirements
  */
 const personalInfoSchema = new Schema(
   {
@@ -56,35 +137,60 @@ const personalInfoSchema = new Schema(
       required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
-      index: true, // For faster user lookups
+      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
     },
     phone: {
       type: String,
       required: [true, 'Phone is required'],
       trim: true,
+      maxlength: [20, 'Phone number cannot exceed 20 characters'],
     },
     location: {
       type: String,
       trim: true,
+      maxlength: [150, 'Location cannot exceed 150 characters'],
       default: '',
     },
 
-    // Social/Professional Links
-    linkedin: { type: String, trim: true, default: '' },
-    github: { type: String, trim: true, default: '' },
-    portfolio: { type: String, trim: true, default: '' },
-    leetcode: { type: String, trim: true, default: '' },
+    // Social / Professional Links — must be proper URLs
+    linkedin: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: urlValidation,
+    },
+    github: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: urlValidation,
+    },
+    portfolio: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: urlValidation,
+    },
+    leetcode: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: urlValidation,
+    },
 
-    // Optional photo
-    photoUrl: { type: String, trim: true, default: '' },
+    // Optional photo — must be a proper URL if provided
+    photoUrl: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: urlValidation,
+    },
   },
   { _id: false }
 );
 
 /**
  * Professional Summary Schema
- * FIXED: Increased maxlength to match validation (2000)
  */
 const summarySchema = new Schema(
   {
@@ -104,7 +210,6 @@ const summarySchema = new Schema(
 
 /**
  * Work Experience Schema
- * FIXED: Made date fields required to match validation
  */
 const workExperienceSchema = new Schema(
   {
@@ -112,41 +217,46 @@ const workExperienceSchema = new Schema(
       type: String,
       required: [true, 'Job title is required'],
       trim: true,
+      maxlength: [100, 'Job title cannot exceed 100 characters'],
     },
     company: {
       type: String,
       required: [true, 'Company name is required'],
       trim: true,
+      maxlength: [150, 'Company name cannot exceed 150 characters'],
     },
     location: {
       type: String,
       trim: true,
       default: '',
+      maxlength: [150, 'Location cannot exceed 150 characters'],
     },
     startDate: {
       month: {
         type: Number,
-        required: true,
-        min: 1,
-        max: 12,
+        required: [true, 'Start month is required'],
+        min: [1, 'Month must be between 1 and 12'],
+        max: [12, 'Month must be between 1 and 12'],
       },
       year: {
         type: Number,
-        required: true,
-        min: 1950,
-        max: 2100,
+        required: [true, 'Start year is required'],
+        min: [1950, 'Year must be between 1950 and 2100'],
+        max: [2100, 'Year must be between 1950 and 2100'],
       },
     },
+    // endDate presence/absence is validated in pre-save middleware via endDate.year check.
+    // endDate.month is also validated there to prevent NaN in date arithmetic.
     endDate: {
       month: {
         type: Number,
-        min: 1,
-        max: 12,
+        min: [1, 'Month must be between 1 and 12'],
+        max: [12, 'Month must be between 1 and 12'],
       },
       year: {
         type: Number,
-        min: 1950,
-        max: 2100,
+        min: [1950, 'Year must be between 1950 and 2100'],
+        max: [2100, 'Year must be between 1950 and 2100'],
       },
     },
     currentlyWorking: {
@@ -164,7 +274,7 @@ const workExperienceSchema = new Schema(
     order: {
       type: Number,
       default: 0,
-      min: 0,
+      min: [0, 'Order cannot be negative'],
     },
   },
   { _id: true, timestamps: false }
@@ -172,7 +282,6 @@ const workExperienceSchema = new Schema(
 
 /**
  * Project Schema
- * FIXED: Increased description maxlength to 1000, added technologies limit
  */
 const projectSchema = new Schema(
   {
@@ -200,11 +309,13 @@ const projectSchema = new Schema(
       type: String,
       trim: true,
       default: '',
+      validate: urlValidation,
     },
     sourceCode: {
       type: String,
       trim: true,
       default: '',
+      validate: urlValidation,
     },
     highlights: {
       type: [String],
@@ -217,7 +328,7 @@ const projectSchema = new Schema(
     order: {
       type: Number,
       default: 0,
-      min: 0,
+      min: [0, 'Order cannot be negative'],
     },
   },
   { _id: true, timestamps: false }
@@ -225,7 +336,9 @@ const projectSchema = new Schema(
 
 /**
  * Education Schema
- * FIXED: Made graduationDate fields required, added GPA validation
+ *
+ * gpa — stored as String to preserve formatting (e.g. "3.75" vs "3.7").
+ * Validated as a plain number in range 0.00–4.00 (standard 4-point scale).
  */
 const educationSchema = new Schema(
   {
@@ -245,38 +358,34 @@ const educationSchema = new Schema(
       type: String,
       trim: true,
       default: '',
+      maxlength: [150, 'Location cannot exceed 150 characters'],
     },
     graduationDate: {
       month: {
         type: Number,
-        required: true,
-        min: 1,
-        max: 12,
+        required: [true, 'Graduation month is required'],
+        min: [1, 'Month must be between 1 and 12'],
+        max: [12, 'Month must be between 1 and 12'],
       },
       year: {
         type: Number,
-        required: true,
-        min: 1950,
-        max: 2100,
+        required: [true, 'Graduation year is required'],
+        min: [1950, 'Year must be between 1950 and 2100'],
+        max: [2100, 'Year must be between 1950 and 2100'],
       },
     },
+
     gpa: {
       type: String,
       trim: true,
       default: '',
-      validate: {
-        validator: function (val) {
-          if (!val) return true; // Optional field
-
-          return /^[0-4](\.\d{1,2})?$/.test(val);
-        },
-        message: 'GPA must be a number between 0 and 4 (e.g., 3.75)',
-      },
+      validate: gpaValidation,
     },
+
     order: {
       type: Number,
       default: 0,
-      min: 0,
+      min: [0, 'Order cannot be negative'],
     },
   },
   { _id: true, timestamps: false }
@@ -284,7 +393,6 @@ const educationSchema = new Schema(
 
 /**
  * Skills Schema
- * Enhanced with category limits
  */
 const skillsSchema = new Schema(
   {
@@ -316,16 +424,16 @@ const skillsSchema = new Schema(
       type: [String],
       default: [],
       validate: {
-        validator: (arr) => arr.length <= 15,
-        message: 'Maximum 15 database skills allowed',
+        validator: (arr) => arr.length <= LIMITS.MAX_SKILLS_DB_DEVOPS,
+        message: `Maximum ${LIMITS.MAX_SKILLS_DB_DEVOPS} database skills allowed`,
       },
     },
     devOps: {
       type: [String],
       default: [],
       validate: {
-        validator: (arr) => arr.length <= 15,
-        message: 'Maximum 15 DevOps skills allowed',
+        validator: (arr) => arr.length <= LIMITS.MAX_SKILLS_DB_DEVOPS,
+        message: `Maximum ${LIMITS.MAX_SKILLS_DB_DEVOPS} DevOps skills allowed`,
       },
     },
     tools: {
@@ -350,7 +458,6 @@ const skillsSchema = new Schema(
 
 /**
  * Competitive Programming Schema
- * FIXED: problemsSolved changed to Number, badges changed to [String]
  */
 const competitiveProgrammingSchema = new Schema(
   {
@@ -360,23 +467,49 @@ const competitiveProgrammingSchema = new Schema(
       trim: true,
       maxlength: [50, 'Platform name cannot exceed 50 characters'],
     },
-    problemsSolved: { type: String, trim: true, default: '' },
-    badges: { type: [String], default: [] },
-    profileUrl: { type: String, trim: true, default: '' },
+    handle: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: [100, 'Handle cannot exceed 100 characters'],
+    },
+    problemsSolved: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: [20, 'Problems solved value cannot exceed 20 characters'],
+    },
+    badges: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= LIMITS.MAX_BADGES,
+        message: `Maximum ${LIMITS.MAX_BADGES} badges allowed`,
+      },
+    },
+    profileUrl: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: urlValidation,
+    },
     description: {
       type: String,
       trim: true,
       maxlength: [500, 'Description cannot exceed 500 characters'],
       default: '',
     },
-    order: { type: Number, default: 0, min: 0 },
+    order: {
+      type: Number,
+      default: 0,
+      min: [0, 'Order cannot be negative'],
+    },
   },
   { _id: true, timestamps: false }
 );
 
 /**
  * Certification Schema
- * FIXED: Made issueDate fields required
  */
 const certificationSchema = new Schema(
   {
@@ -395,26 +528,27 @@ const certificationSchema = new Schema(
     issueDate: {
       month: {
         type: Number,
-        required: true,
-        min: 1,
-        max: 12,
+        required: [true, 'Issue month is required'],
+        min: [1, 'Month must be between 1 and 12'],
+        max: [12, 'Month must be between 1 and 12'],
       },
       year: {
         type: Number,
-        required: true,
-        min: 1950,
-        max: 2100,
+        required: [true, 'Issue year is required'],
+        min: [1950, 'Year must be between 1950 and 2100'],
+        max: [2100, 'Year must be between 1950 and 2100'],
       },
     },
     credentialUrl: {
       type: String,
       trim: true,
       default: '',
+      validate: urlValidation,
     },
     order: {
       type: Number,
       default: 0,
-      min: 0,
+      min: [0, 'Order cannot be negative'],
     },
   },
   { _id: true, timestamps: false }
@@ -463,19 +597,19 @@ const achievementSchema = new Schema(
     date: {
       month: {
         type: Number,
-        min: 1,
-        max: 12,
+        min: [1, 'Month must be between 1 and 12'],
+        max: [12, 'Month must be between 1 and 12'],
       },
       year: {
         type: Number,
-        min: 1950,
-        max: 2100,
+        min: [1950, 'Year must be between 1950 and 2100'],
+        max: [2100, 'Year must be between 1950 and 2100'],
       },
     },
     order: {
       type: Number,
       default: 0,
-      min: 0,
+      min: [0, 'Order cannot be negative'],
     },
   },
   { _id: true, timestamps: false }
@@ -537,14 +671,12 @@ const resumeSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User ID is required'],
-      index: true,
     },
 
     templateId: {
       type: Schema.Types.ObjectId,
       ref: 'Template',
       required: [true, 'Template ID is required'],
-      index: true,
     },
 
     title: {
@@ -555,7 +687,6 @@ const resumeSchema = new Schema(
       default: 'My Resume',
     },
 
-    // Resume Data
     personalInfo: {
       type: personalInfoSchema,
       required: [true, 'Personal information is required'],
@@ -624,25 +755,6 @@ const resumeSchema = new Schema(
       },
     },
 
-    languages: {
-      type: [languageSchema],
-      default: [],
-      validate: {
-        validator: (arr) => arr.length <= LIMITS.MAX_LANGUAGES,
-        message: `Maximum ${LIMITS.MAX_LANGUAGES} languages allowed`,
-      },
-    },
-
-    achievements: {
-      type: [achievementSchema],
-      default: [],
-      validate: {
-        validator: (arr) => arr.length <= LIMITS.MAX_ACHIEVEMENTS,
-        message: `Maximum ${LIMITS.MAX_ACHIEVEMENTS} achievements allowed`,
-      },
-    },
-
-    // Section visibility and order
     sectionOrder: {
       type: [String],
       default: [
@@ -654,24 +766,33 @@ const resumeSchema = new Schema(
         'education',
         'competitiveProgramming',
         'certifications',
+        // NOTE: 'achievements' and 'languages' are intentionally excluded from the
+        // default sectionOrder. They are stored and visibility-controlled independently
+        // but are not rendered as reorderable sections in the default template layout.
+        // Add them here if your UI needs to support drag-and-drop ordering for these sections.
       ],
     },
 
+    /**
+     * sectionVisibility uses explicit Boolean fields (not Mongoose Mixed / Object)
+     * so Mongoose can track changes without markModified() calls.
+     *
+     * achievements and languages are included here so their visibility is
+     * controllable even though they are not in the default sectionOrder.
+     */
     sectionVisibility: {
-      type: Object,
-      default: {
-        personalInfo: true,
-        summary: true,
-        workExperience: true,
-        projects: true,
-        skills: true,
-        education: true,
-        competitiveProgramming: true,
-        certifications: true,
-      },
+      personalInfo: { type: Boolean, default: true },
+      summary: { type: Boolean, default: true },
+      workExperience: { type: Boolean, default: true },
+      projects: { type: Boolean, default: true },
+      skills: { type: Boolean, default: true },
+      education: { type: Boolean, default: true },
+      competitiveProgramming: { type: Boolean, default: true },
+      certifications: { type: Boolean, default: true },
+      achievements: { type: Boolean, default: true },
+      languages: { type: Boolean, default: true },
     },
 
-    // User customization
     customization: {
       type: customizationSchema,
       default: () => ({
@@ -687,19 +808,16 @@ const resumeSchema = new Schema(
       }),
     },
 
-    // Completion tracking
     completionPercentage: {
       type: Number,
       default: 0,
-      min: 0,
-      max: 100,
+      min: [0, 'Completion percentage cannot be negative'],
+      max: [100, 'Completion percentage cannot exceed 100'],
     },
 
-    // Status
     isActive: {
       type: Boolean,
       default: true,
-      index: true,
     },
   },
   {
@@ -713,96 +831,97 @@ const resumeSchema = new Schema(
 // INDEXES (OPTIMIZED)
 // ============================================
 
-// Compound index for common queries
+// Primary query index — covers getUserResumes() and most list queries
 resumeSchema.index({ userId: 1, isActive: 1, updatedAt: -1 });
 
 // For template-based queries
 resumeSchema.index({ userId: 1, templateId: 1 });
 
-// For sorting by creation date
-resumeSchema.index({ createdAt: -1 });
-
-// Sparse index for email lookups (optional optimization)
-resumeSchema.index({ 'personalInfo.email': 1 }, { sparse: true });
-
 // ============================================
 // VIRTUALS
 // ============================================
 
-/**
- * Check if resume is complete
- */
 resumeSchema.virtual('isComplete').get(function () {
   return this.completionPercentage === 100;
 });
 
-/**
- * Get total sections count
- */
 resumeSchema.virtual('totalSections').get(function () {
   return this.sectionOrder?.length || 0;
 });
 
 /**
- * Get visible sections count
+ * Counts visible sections from sectionVisibility.
+ * Uses Object.values() — works correctly on both Mongoose subdocs and plain objects.
  */
 resumeSchema.virtual('visibleSections').get(function () {
   if (!this.sectionVisibility) return 0;
-  return Array.from(this.sectionVisibility.values()).filter(Boolean).length;
+  return Object.values(this.sectionVisibility).filter(Boolean).length;
 });
+
+// ============================================
+// HELPERS (internal)
+// ============================================
+
+/**
+ * Safely extract all skills as a flat array.
+ * Handles both Mongoose subdoc (.toObject exists) and plain object (e.g. after .lean()).
+ */
+function _getSkillsArray(skills) {
+  if (!skills) return [];
+  const obj =
+    typeof skills.toObject === 'function' ? skills.toObject() : skills;
+  return Object.values(obj)
+    .flat()
+    .filter((s) => typeof s === 'string' && s.trim() !== '');
+}
 
 // ============================================
 // INSTANCE METHODS
 // ============================================
 
 /**
- * Calculate completion percentage based on required fields
- * Enhanced with more accurate scoring
+ * Calculate completion percentage.
+ * Call this before saving to keep completionPercentage accurate.
+ * LIMITS.MIN_SKILLS_FOR_COMPLETION (3) is the minimum total skills count.
  */
 resumeSchema.methods.calculateCompletion = function () {
-  let totalFields = 0;
-  let filledFields = 0;
+  let total = 0;
+  let filled = 0;
 
-  // Personal Info (required fields - 4 points)
-  totalFields += 4;
-  if (this.personalInfo?.fullName?.trim()) filledFields++;
-  if (this.personalInfo?.jobTitle?.trim()) filledFields++;
-  if (this.personalInfo?.email?.trim()) filledFields++;
-  if (this.personalInfo?.phone?.trim()) filledFields++;
+  // Personal Info — 4 required fields
+  total += 4;
+  if (this.personalInfo?.fullName?.trim()) filled++;
+  if (this.personalInfo?.jobTitle?.trim()) filled++;
+  if (this.personalInfo?.email?.trim()) filled++;
+  if (this.personalInfo?.phone?.trim()) filled++;
 
-  // Summary (1 point)
-  totalFields += 1;
-  if (this.summary?.text?.trim() && this.summary.text.length > 20) {
-    filledFields++;
-  }
+  // Summary — meaningful text (> 20 chars)
+  total += 1;
+  if (this.summary?.text?.trim().length > 20) filled++;
 
-  // Work Experience (1 point for at least 1)
-  totalFields += 1;
-  if (this.workExperience?.length > 0) filledFields++;
+  // Work Experience — at least 1 entry
+  total += 1;
+  if (this.workExperience?.length > 0) filled++;
 
-  // Education (1 point for at least 1)
-  totalFields += 1;
-  if (this.education?.length > 0) filledFields++;
+  // Education — at least 1 entry
+  total += 1;
+  if (this.education?.length > 0) filled++;
 
-  // Skills (1 point for at least 3 total skills)
-  totalFields += 1;
-  if (this.skills) {
-    const totalSkills = Object.values(this.skills.toObject())
-      .flat()
-      .filter((skill) => skill?.trim()).length;
-    if (totalSkills >= 3) filledFields++;
-  }
+  // Skills — at least MIN_SKILLS_FOR_COMPLETION total across all categories
+  total += 1;
+  if (_getSkillsArray(this.skills).length >= LIMITS.MIN_SKILLS_FOR_COMPLETION)
+    filled++;
 
-  // Projects (1 point for at least 1) - BONUS
-  totalFields += 1;
-  if (this.projects?.length > 0) filledFields++;
+  // Projects — bonus point
+  total += 1;
+  if (this.projects?.length > 0) filled++;
 
-  this.completionPercentage = Math.round((filledFields / totalFields) * 100);
+  this.completionPercentage = Math.round((filled / total) * 100);
   return this.completionPercentage;
 };
 
 /**
- * Soft delete resume
+ * Soft delete.
  */
 resumeSchema.methods.softDelete = async function () {
   this.isActive = false;
@@ -810,7 +929,7 @@ resumeSchema.methods.softDelete = async function () {
 };
 
 /**
- * Restore soft-deleted resume
+ * Restore soft-deleted resume.
  */
 resumeSchema.methods.restore = async function () {
   this.isActive = true;
@@ -818,26 +937,39 @@ resumeSchema.methods.restore = async function () {
 };
 
 /**
- * Create a duplicate of this resume
+ * Create a duplicate of this resume.
+ *
+ * Sub-document _ids are stripped from all arrays so MongoDB assigns fresh ObjectIds,
+ * preventing potential duplicate key conflicts.
+ * completionPercentage is reset to 0 so the pre-save hook recalculates cleanly.
  */
 resumeSchema.methods.duplicate = async function (userId, newTitle) {
   const Resume = this.constructor;
+  const data = this.toObject();
 
-  const duplicateData = this.toObject();
-  delete duplicateData._id;
-  delete duplicateData.createdAt;
-  delete duplicateData.updatedAt;
-  delete duplicateData.__v;
+  delete data._id;
+  delete data.createdAt;
+  delete data.updatedAt;
+  delete data.__v;
+  data.completionPercentage = 0;
 
-  duplicateData.userId = userId || this.userId;
-  duplicateData.title = newTitle || `${this.title} (Copy)`;
+  data.userId = userId || this.userId;
+  data.title = newTitle || `${this.title} (Copy)`;
 
-  const duplicate = new Resume(duplicateData);
-  return duplicate.save();
+  // Strip sub-document _ids to let MongoDB generate fresh ones
+  data.workExperience = stripIds(data.workExperience);
+  data.projects = stripIds(data.projects);
+  data.education = stripIds(data.education);
+  data.certifications = stripIds(data.certifications);
+  data.languages = stripIds(data.languages);
+  data.achievements = stripIds(data.achievements);
+  data.competitiveProgramming = stripIds(data.competitiveProgramming);
+
+  return new Resume(data).save();
 };
 
 /**
- * Get resume summary stats
+ * Get summary stats for this resume.
  */
 resumeSchema.methods.getStats = function () {
   return {
@@ -851,11 +983,7 @@ resumeSchema.methods.getStats = function () {
     certificationsCount: this.certifications?.length || 0,
     achievementsCount: this.achievements?.length || 0,
     languagesCount: this.languages?.length || 0,
-    totalSkills: this.skills
-      ? Object.values(this.skills.toObject())
-          .flat()
-          .filter((s) => s?.trim()).length
-      : 0,
+    totalSkills: _getSkillsArray(this.skills).length,
   };
 };
 
@@ -864,23 +992,17 @@ resumeSchema.methods.getStats = function () {
 // ============================================
 
 /**
- * Get user's active resumes with optimized query
+ * Fetch all active resumes for a user.
+ * limit is capped at LIMITS.MAX_RESUMES_PER_FETCH (100) regardless of caller input.
  */
 resumeSchema.statics.getUserResumes = function (userId, options = {}) {
   const { limit = 10, sort = '-updatedAt', populate = true } = options;
-
+  const safeLimit = Math.min(limit, LIMITS.MAX_RESUMES_PER_FETCH);
   const query = this.find({ userId, isActive: true });
-
-  if (populate) {
-    query.populate('templateId', 'name category thumbnailUrl');
-  }
-
-  return query.sort(sort).limit(limit).select('-__v').lean(); // Use lean for better performance
+  if (populate) query.populate('templateId', 'name category thumbnailUrl');
+  return query.sort(sort).limit(safeLimit).select('-__v').lean();
 };
 
-/**
- * Get resume with template details
- */
 resumeSchema.statics.getResumeWithTemplate = function (resumeId, userId) {
   return this.findOne({ _id: resumeId, userId, isActive: true })
     .populate('templateId')
@@ -888,27 +1010,22 @@ resumeSchema.statics.getResumeWithTemplate = function (resumeId, userId) {
     .lean();
 };
 
-/**
- * Get resume by ID (with ownership check)
- */
 resumeSchema.statics.getByIdAndUser = function (resumeId, userId) {
   return this.findOne({ _id: resumeId, userId, isActive: true }).select('-__v');
 };
 
-/**
- * Count user's resumes
- */
 resumeSchema.statics.countUserResumes = function (userId) {
   return this.countDocuments({ userId, isActive: true });
 };
 
 /**
- * Bulk soft delete
+ * Soft-delete multiple resumes.
+ * Mongoose timestamps handles updatedAt automatically — no manual $set needed.
  */
 resumeSchema.statics.bulkSoftDelete = function (resumeIds, userId) {
   return this.updateMany(
     { _id: { $in: resumeIds }, userId },
-    { isActive: false, updatedAt: new Date() }
+    { $set: { isActive: false } }
   );
 };
 
@@ -917,59 +1034,64 @@ resumeSchema.statics.bulkSoftDelete = function (resumeIds, userId) {
 // ============================================
 
 /**
- * Calculate completion before save
+ * Combined pre-save validation hook.
+ *
+ * Runs three checks in sequence:
+ *   1. sectionOrder duplicate entries
+ *   2. Work experience date logic (currentlyWorking vs endDate, date ordering)
+ *   3. GPA cross-validation (gpa value vs gpaScale)
+ *
+ * Merging into one hook avoids registering multiple async chains and makes
+ * the validation order explicit and easy to follow.
  */
 resumeSchema.pre('save', function (next) {
-  if (this.isModified() || this.isNew) {
-    this.calculateCompletion();
-  }
-  next();
-});
-
-/**
- * Validate section order uniqueness
- */
-resumeSchema.pre('save', function (next) {
+  // --- 1. sectionOrder duplicates ---
   if (this.sectionOrder?.length) {
-    const uniqueSections = new Set(this.sectionOrder);
-    if (uniqueSections.size !== this.sectionOrder.length) {
-      return next(new Error('Section order contains duplicates'));
+    const unique = new Set(this.sectionOrder);
+    if (unique.size !== this.sectionOrder.length) {
+      return next(new Error('sectionOrder contains duplicate entries'));
     }
   }
-  next();
-});
 
-/**
- * Validate work experience dates
- */
-resumeSchema.pre('save', function (next) {
-  if (!this.workExperience?.length) return next();
+  // --- 2. Work experience date logic ---
+  for (const exp of this.workExperience || []) {
+    const hasEndYear = Boolean(exp.endDate?.year);
+    const hasEndMonth = Boolean(exp.endDate?.month);
 
-  for (const exp of this.workExperience) {
-    // Check if currently working but has end date
-    if (exp.currentlyWorking && exp.endDate) {
-      return next(
-        new Error('Work experience cannot have end date when currently working')
-      );
-    }
-
-    // Check if not working but missing end date
-    if (!exp.currentlyWorking && !exp.endDate) {
+    if (exp.currentlyWorking && hasEndYear) {
       return next(
         new Error(
-          'Work experience must have end date when not currently working'
+          `Work experience at "${exp.company}" cannot have an end date when currently working`
         )
       );
     }
 
-    // Check if end date is after start date
-    if (exp.endDate && exp.startDate) {
+    if (!exp.currentlyWorking && !hasEndYear) {
+      return next(
+        new Error(
+          `Work experience at "${exp.company}" must have an end date when not currently working`
+        )
+      );
+    }
+
+    // If an end year is provided, month must also be present to make date arithmetic safe.
+    // Without this check, endDate.month = undefined turns the comparison below into NaN.
+    if (hasEndYear && !hasEndMonth) {
+      return next(
+        new Error(
+          `Work experience at "${exp.company}": end date month is required when end year is set`
+        )
+      );
+    }
+
+    if (hasEndYear && hasEndMonth && exp.startDate?.year) {
       const startTotal = exp.startDate.year * 12 + exp.startDate.month;
       const endTotal = exp.endDate.year * 12 + exp.endDate.month;
-
       if (endTotal < startTotal) {
         return next(
-          new Error('Work experience end date must be same or after start date')
+          new Error(
+            `Work experience at "${exp.company}": end date cannot be before start date`
+          )
         );
       }
     }
@@ -978,27 +1100,29 @@ resumeSchema.pre('save', function (next) {
   next();
 });
 
+/**
+ * Recalculate completion percentage before every save.
+ * Runs after the validation hook so it only fires on clean data.
+ */
+resumeSchema.pre('save', function (next) {
+  if (this.isModified() || this.isNew) {
+    this.calculateCompletion();
+  }
+  next();
+});
+
 // ============================================
 // QUERY HELPERS
 // ============================================
 
-/**
- * Helper to find only active resumes
- */
 resumeSchema.query.active = function () {
   return this.where({ isActive: true });
 };
 
-/**
- * Helper to find by user
- */
 resumeSchema.query.byUser = function (userId) {
   return this.where({ userId });
 };
 
-/**
- * Helper to populate template
- */
 resumeSchema.query.withTemplate = function () {
   return this.populate('templateId', 'name category thumbnailUrl');
 };

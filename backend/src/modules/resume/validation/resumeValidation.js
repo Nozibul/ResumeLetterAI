@@ -1,71 +1,93 @@
 /**
  * @file resumeValidation.js
- * @description Validation schemas for resume operations (Production-Ready v2.1)
+ * @description Zod validation schemas for all resume API operations
  * @module modules/resume/validation/resumeValidation
  * @author Nozibul Islam
- * @version 2.1.0
- * @updated Fixed all validation issues, improved performance & security
+ * @version 5.0.0
+ * @updated
+ *   v5.0.0 — Final clean version:
+ *   - LIMITS synced with current model (achievements/languages removed from model)
+ *   - gpaScale removed — only 4.0 scale supported (5-point scale does not exist in practice)
+ *   - gpa: format + range validated in one refine via parseFloat (no regex shortcut)
+ *   - achievements and languages removed from all schemas
+ *   - sectionVisibility: only 8 core sections, no .partial() (was a no-op)
+ *   - endDateSchema: if year present, month required (prevents NaN in model middleware)
+ *   - nonEmptyStringArray: .default([]) moved into helper — no repetition at call sites
+ *   - getUserResumesQuerySchema: z.number() instead of string parse + transform
+ *   - updateSectionOrderSchema: max driven by VALID_SECTIONS.length, not a magic number
+ *   - pdfUrl / pdfPublicId removed from updateResumeSchema (not in model)
+ *   - personalInfo: location/company maxlengths added to match model
+ *   - competitiveProgrammingSchema: problemsSolved max(20) added to match model
+ *   - email domain blocklist removed (fragile; use a dedicated library if needed)
+ *   - workExperienceSchema: jobTitle/company maxlengths added to match model
  */
 
 const { z } = require('zod');
 
-// ==========================================
-// CONSTANTS
-// ==========================================
+// ============================================================
+// CONSTANTS — keep in sync with Resume model LIMITS
+// ============================================================
 
 const LIMITS = {
   MAX_WORK_EXPERIENCES: 5,
   MAX_PROJECTS: 5,
-  MAX_EDUCATIONS: 3,
+  MAX_EDUCATIONS: 5,
   MAX_CERTIFICATIONS: 5,
-  MAX_CP_PLATFORMS: 5,
-  MAX_SKILLS_PER_CATEGORY: 15,
-  MAX_RESPONSIBILITIES: 5,
+  MAX_CP_PLATFORMS: 10,
+  MAX_RESPONSIBILITIES: 10,
   MAX_HIGHLIGHTS: 5,
-  MAX_TECHNOLOGIES: 15,
-  SUMMARY_MAX_LENGTH: 500,
-  TITLE_MAX_LENGTH: 30,
+  MAX_TECHNOLOGIES: 20,
+  MAX_BADGES: 10,
+  MAX_SKILLS_PER_CATEGORY: 15,
+  MAX_SKILLS_DB_DEVOPS: 15,
+  MAX_RESUMES_PER_FETCH: 50,
+  MIN_SKILLS_FOR_COMPLETION: 3, // informational — not used in validation logic
+  SUMMARY_MAX_LENGTH: 2000,
+  TITLE_MAX_LENGTH: 100,
 };
 
-const sectionNameSchema = z.enum(
-  [
-    'personalInfo',
-    'summary',
-    'workExperience',
-    'projects',
-    'skills',
-    'education',
-    'competitiveProgramming',
-    'certifications',
-  ],
-  {
-    errorMap: () => ({ message: 'Invalid section name' }),
-  }
-);
+// Single source of truth for all valid section names.
+// sectionNameSchema, sectionVisibilitySchema, and updateSectionOrderSchema
+// all derive from this — they can never drift apart.
+const VALID_SECTIONS = [
+  'personalInfo',
+  'summary',
+  'workExperience',
+  'projects',
+  'skills',
+  'education',
+  'competitiveProgramming',
+  'certifications',
+];
 
-const sectionVisibilitySchema = z
-  .object({
-    personalInfo: z.boolean().optional(),
-    summary: z.boolean().optional(),
-    workExperience: z.boolean().optional(),
-    projects: z.boolean().optional(),
-    skills: z.boolean().optional(),
-    education: z.boolean().optional(),
-    competitiveProgramming: z.boolean().optional(),
-    certifications: z.boolean().optional(),
-  })
-  .partial();
+// ============================================================
+// SHARED PRIMITIVE SCHEMAS
+// ============================================================
 
-// ==========================================
-// REUSABLE SCHEMAS
-// ==========================================
+const sectionNameSchema = z.enum(VALID_SECTIONS, {
+  errorMap: () => ({ message: 'Invalid section name' }),
+});
+
+// All fields optional — .partial() was previously used here but is a no-op
+// when every field is already .optional(), so it has been removed.
+const sectionVisibilitySchema = z.object({
+  personalInfo: z.boolean().optional(),
+  summary: z.boolean().optional(),
+  workExperience: z.boolean().optional(),
+  projects: z.boolean().optional(),
+  skills: z.boolean().optional(),
+  education: z.boolean().optional(),
+  competitiveProgramming: z.boolean().optional(),
+  certifications: z.boolean().optional(),
+});
 
 const objectIdSchema = z
   .string()
   .trim()
-  .length(24, 'ID must be 24 characters')
+  .length(24, 'ID must be exactly 24 characters')
   .regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId format');
 
+// Accepts a valid http/https URL, empty string, or null/undefined.
 const urlOrEmpty = z
   .string()
   .trim()
@@ -74,8 +96,8 @@ const urlOrEmpty = z
     (val) => {
       if (!val) return true;
       try {
-        const url = new URL(val);
-        return url.protocol === 'http:' || url.protocol === 'https:';
+        const { protocol } = new URL(val);
+        return protocol === 'http:' || protocol === 'https:';
       } catch {
         return false;
       }
@@ -85,46 +107,67 @@ const urlOrEmpty = z
   .optional()
   .default('');
 
+// year min 1950 matches the model schema constraint (previously was min(1)).
 const completeDateSchema = z.object({
   month: z.number().int().min(1).max(12),
-  year: z.number().int().min(1).max(2100),
+  year: z.number().int().min(1950).max(2100),
 });
 
-const nonEmptyStringArray = (max = 50) =>
-  z.array(z.string().trim().min(1)).max(max);
+// endDate is optional as a whole, but year and month must appear together.
+// This mirrors the model pre-save middleware check that prevents NaN arithmetic:
+//   const endTotal = exp.endDate.year * 12 + exp.endDate.month;
+// If month is undefined, endTotal becomes NaN and the comparison silently passes.
+const endDateSchema = z
+  .object({
+    month: z.number().int().min(1).max(12).optional(),
+    year: z.number().int().min(1950).max(2100).optional(),
+  })
+  .refine(
+    (d) => {
+      const hasYear = d.year !== undefined;
+      const hasMonth = d.month !== undefined;
+      return hasYear === hasMonth; // both present or both absent
+    },
+    { message: 'End date must include both month and year, or neither' }
+  )
+  .nullable()
+  .optional();
 
-// ==========================================
-// MAIN SCHEMAS
-// ==========================================
+// .default([]) lives here so every call site stays clean.
+const nonEmptyStringArray = (max) =>
+  z
+    .array(z.string().trim().min(1, 'Value cannot be empty'))
+    .max(max)
+    .default([]);
+
+const hexColor = z
+  .string()
+  .trim()
+  .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color (e.g. #0066CC)');
+
+// ============================================================
+// SECTION SCHEMAS
+// ============================================================
 
 const personalInfoSchema = z.object({
   fullName: z.string().trim().min(1, 'Full name is required').max(100),
   jobTitle: z.string().trim().min(1, 'Job title is required').max(100),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Invalid email format')
-    .refine(
-      (val) =>
-        !val.endsWith('@example.com') &&
-        !val.endsWith('@test.com') &&
-        !val.endsWith('@temp.com'),
-      { message: 'Please use a real email address' }
-    ),
+  email: z.string().trim().toLowerCase().email('Invalid email format'),
+  // NOTE: if disposable-email blocking is needed, use a dedicated library
+  // (e.g. disposable-email-domains). A hardcoded domain blocklist is fragile
+  // and can reject legitimate addresses.
   phone: z
     .string()
     .trim()
-    .min(10, 'Phone number must be at least 10 digits')
-    .regex(/^[\d\s\-\+\(\)]+$/, 'Invalid phone format')
+    .regex(/^[\d\s\-\+\(\)]+$/, 'Phone number contains invalid characters')
     .refine(
       (val) => {
         const digits = val.replace(/\D/g, '');
         return digits.length >= 10 && digits.length <= 15;
       },
-      { message: 'Phone must contain 10-15 digits' }
+      { message: 'Phone must contain 10–15 digits' }
     ),
-  location: z.string().trim().optional().default(''),
+  location: z.string().trim().max(150).optional().default(''),
   linkedin: urlOrEmpty,
   github: urlOrEmpty,
   portfolio: urlOrEmpty,
@@ -134,7 +177,12 @@ const personalInfoSchema = z.object({
 
 const summarySchema = z
   .object({
-    text: z.string().trim().max(2000).optional().default(''),
+    text: z
+      .string()
+      .trim()
+      .max(LIMITS.SUMMARY_MAX_LENGTH)
+      .optional()
+      .default(''),
     isVisible: z.boolean().default(true),
   })
   .optional()
@@ -143,36 +191,36 @@ const summarySchema = z
 const workExperienceSchema = z
   .object({
     _id: objectIdSchema.optional(),
-    jobTitle: z.string().trim().min(1, 'Job title is required'),
-    company: z.string().trim().min(1, 'Company name is required'),
-    location: z.string().trim().optional().default(''),
+    jobTitle: z.string().trim().min(1, 'Job title is required').max(100),
+    company: z.string().trim().min(1, 'Company name is required').max(150),
+    location: z.string().trim().max(150).optional().default(''),
     startDate: completeDateSchema,
-    endDate: completeDateSchema.optional().nullable(),
+    endDate: endDateSchema,
     currentlyWorking: z.boolean().default(false),
     responsibilities: nonEmptyStringArray(LIMITS.MAX_RESPONSIBILITIES),
     order: z.number().int().min(0).default(0),
   })
   .refine(
-    (data) => {
-      if (data.currentlyWorking && data.endDate) return false;
-      if (!data.currentlyWorking && !data.endDate) return false;
+    (d) => {
+      if (d.currentlyWorking && d.endDate?.year) return false; // working but has end date
+      if (!d.currentlyWorking && !d.endDate?.year) return false; // not working, no end date
       return true;
     },
     {
       message:
-        'Cannot have end date when currently working, or missing end date when not currently working',
+        'Provide an end date when not currently working; remove end date when currently working',
       path: ['endDate'],
     }
   )
   .refine(
-    (data) => {
-      if (!data.endDate || data.currentlyWorking) return true;
-      const start = data.startDate.year * 12 + data.startDate.month;
-      const end = data.endDate.year * 12 + data.endDate.month;
+    (d) => {
+      if (!d.endDate?.year || d.currentlyWorking) return true;
+      const start = d.startDate.year * 12 + d.startDate.month;
+      const end = d.endDate.year * 12 + d.endDate.month;
       return end >= start;
     },
     {
-      message: 'End date must be same or after start date',
+      message: 'End date must be the same as or after start date',
       path: ['endDate'],
     }
   );
@@ -188,11 +236,14 @@ const projectSchema = z.object({
   order: z.number().int().min(0).default(0),
 });
 
+// gpa: plain numeric string, 0.00–4.00, max 2 decimal places.
+// gpaScale field removed — 5-point scale does not exist in practice.
+// One refine does both format and range checks, mirroring the model's isValidGpa helper.
 const educationSchema = z.object({
   _id: objectIdSchema.optional(),
   degree: z.string().trim().min(1, 'Degree is required').max(150),
   institution: z.string().trim().min(1, 'Institution is required').max(200),
-  location: z.string().trim().optional().default(''),
+  location: z.string().trim().max(150).optional().default(''),
   graduationDate: completeDateSchema,
   gpa: z
     .string()
@@ -200,12 +251,15 @@ const educationSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        const numericMatch = val.match(/^[0-4](\.\d{1,2})?$/);
-        if (!numericMatch) return false;
+        if (!/^\d+(\.\d{1,2})?$/.test(val)) return false;
         const num = parseFloat(val);
-        return num >= 0 && num <= 4;
+        return num >= 0 && num <= 4.0;
       },
-      { message: 'GPA must be a number between 0 and 4 (e.g., 3.75, 3.5, 4.00)' }
+      {
+        message:
+          'GPA must be a number between 0.00 and 4.00 with up to 2 decimal places ' +
+          '(e.g. 3.75). Text like "3.75/4" or "First Class" is not accepted.',
+      }
     )
     .optional()
     .default(''),
@@ -217,8 +271,8 @@ const skillsSchema = z
     programmingLanguages: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY),
     frontend: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY),
     backend: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY),
-    database: nonEmptyStringArray(15),
-    devOps: nonEmptyStringArray(15),
+    database: nonEmptyStringArray(LIMITS.MAX_SKILLS_DB_DEVOPS),
+    devOps: nonEmptyStringArray(LIMITS.MAX_SKILLS_DB_DEVOPS),
     tools: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY),
     other: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY),
   })
@@ -236,8 +290,9 @@ const skillsSchema = z
 const competitiveProgrammingSchema = z.object({
   _id: objectIdSchema.optional(),
   platform: z.string().trim().min(1, 'Platform name is required').max(50),
-  problemsSolved: z.string().trim().optional().default(''),
-  badges: z.array(z.string().trim()).optional().default([]),
+  handle: z.string().trim().max(100).optional().default(''),
+  problemsSolved: z.string().trim().max(20).optional().default(''),
+  badges: z.array(z.string().trim().min(1)).max(LIMITS.MAX_BADGES).default([]),
   profileUrl: urlOrEmpty,
   description: z.string().trim().max(500).optional().default(''),
   order: z.number().int().min(0).default(0),
@@ -256,33 +311,47 @@ const certificationSchema = z.object({
   order: z.number().int().min(0).default(0),
 });
 
-const languageSchema = z.object({
-  _id: objectIdSchema.optional(),
-  language: z.string().trim().min(1, 'Language is required').max(50),
-  proficiency: z
-    .enum(['Native', 'Fluent', 'Professional', 'Intermediate', 'Basic'])
-    .default('Professional'),
-});
-
-const achievementSchema = z.object({
-  _id: objectIdSchema.optional(),
-  title: z.string().trim().min(1, 'Achievement title is required').max(200),
-  description: z.string().trim().max(1000).optional().default(''),
-  date: completeDateSchema.optional(),
-  order: z.number().int().min(0).default(0),
-});
-
-// ==========================================
+// ============================================================
 // CUSTOMIZATION SCHEMA
-// ✅ UPDATED - Matches frontend shape
-// ==========================================
+// ============================================================
 
-const hexColor = z
-  .string()
-  .trim()
-  .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color format');
+// Reusable partial version for PATCH updates (all fields optional).
+const customizationPartialSchema = z
+  .object({
+    colors: z
+      .object({
+        primary: hexColor.optional(),
+        secondary: hexColor.optional(),
+        accent: hexColor.optional(),
+      })
+      .optional(),
+    fonts: z
+      .object({
+        heading: z.string().trim().optional(),
+        body: z.string().trim().optional(),
+        italic: z.boolean().optional(),
+      })
+      .optional(),
+    nameStyle: z
+      .object({
+        position: z.enum(['left', 'center', 'right']).optional(),
+        case: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
+        bold: z.boolean().optional(),
+      })
+      .optional(),
+    sectionHeadingStyle: z
+      .object({
+        position: z.enum(['left', 'center', 'right']).optional(),
+        case: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
+        fontWeight: z.string().trim().optional(),
+        borderStyle: z.string().trim().optional(),
+      })
+      .optional(),
+  })
+  .optional();
 
-const customizationSchema = z
+// Full version with defaults for CREATE.
+const customizationFullSchema = z
   .object({
     colors: z
       .object({
@@ -292,7 +361,6 @@ const customizationSchema = z
       })
       .optional()
       .default({ primary: '#000000', secondary: '#333333', accent: '#0066CC' }),
-
     fonts: z
       .object({
         heading: z.string().trim().default('Arial'),
@@ -301,20 +369,22 @@ const customizationSchema = z
       })
       .optional()
       .default({ heading: 'Arial', body: 'Arial', italic: false }),
-
     nameStyle: z
       .object({
         position: z.enum(['left', 'center', 'right']).default('center'),
-        case: z.enum(['uppercase', 'capitalize', 'normal']).default('uppercase'),
+        case: z
+          .enum(['uppercase', 'capitalize', 'normal'])
+          .default('uppercase'),
         bold: z.boolean().default(true),
       })
       .optional()
       .default({ position: 'center', case: 'uppercase', bold: true }),
-
     sectionHeadingStyle: z
       .object({
         position: z.enum(['left', 'center', 'right']).default('left'),
-        case: z.enum(['uppercase', 'capitalize', 'normal']).default('uppercase'),
+        case: z
+          .enum(['uppercase', 'capitalize', 'normal'])
+          .default('uppercase'),
         fontWeight: z.string().trim().default('bold'),
         borderStyle: z.string().trim().default('bottom'),
       })
@@ -329,14 +399,19 @@ const customizationSchema = z
   .optional()
   .default({});
 
-// ==========================================
-// MAIN VALIDATION SCHEMAS
-// ==========================================
+// ============================================================
+// EXPORTED VALIDATION SCHEMAS
+// ============================================================
 
 exports.createResumeSchema = z.object({
   body: z.object({
     templateId: objectIdSchema,
-    title: z.string().trim().min(1).max(100).default('My Resume'),
+    title: z
+      .string()
+      .trim()
+      .min(1)
+      .max(LIMITS.TITLE_MAX_LENGTH)
+      .default('My Resume'),
     personalInfo: personalInfoSchema,
     summary: summarySchema,
     workExperience: z
@@ -354,14 +429,9 @@ exports.createResumeSchema = z.object({
       .array(certificationSchema)
       .max(LIMITS.MAX_CERTIFICATIONS)
       .default([]),
-    languages: z.array(languageSchema).max(LIMITS.MAX_LANGUAGES).default([]),
-    achievements: z
-      .array(achievementSchema)
-      .max(LIMITS.MAX_ACHIEVEMENTS)
-      .default([]),
-    sectionOrder: z.array(z.string().trim()).optional().default([]),
+    sectionOrder: z.array(sectionNameSchema).optional().default([]),
     sectionVisibility: sectionVisibilitySchema.optional().default({}),
-    customization: customizationSchema,
+    customization: customizationFullSchema,
   }),
 });
 
@@ -371,11 +441,11 @@ exports.updateResumeSchema = z.object({
   }),
   body: z
     .object({
-      title: z.string().trim().min(1).max(100).optional(),
+      title: z.string().trim().min(1).max(LIMITS.TITLE_MAX_LENGTH).optional(),
       personalInfo: personalInfoSchema.optional(),
       summary: z
         .object({
-          text: z.string().trim().max(2000).optional(),
+          text: z.string().trim().max(LIMITS.SUMMARY_MAX_LENGTH).optional(),
           isVisible: z.boolean().optional(),
         })
         .optional(),
@@ -396,8 +466,8 @@ exports.updateResumeSchema = z.object({
           backend: nonEmptyStringArray(
             LIMITS.MAX_SKILLS_PER_CATEGORY
           ).optional(),
-          database: nonEmptyStringArray(15).optional(),
-          devOps: nonEmptyStringArray(15).optional(),
+          database: nonEmptyStringArray(LIMITS.MAX_SKILLS_DB_DEVOPS).optional(),
+          devOps: nonEmptyStringArray(LIMITS.MAX_SKILLS_DB_DEVOPS).optional(),
           tools: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY).optional(),
           other: nonEmptyStringArray(LIMITS.MAX_SKILLS_PER_CATEGORY).optional(),
         })
@@ -410,51 +480,9 @@ exports.updateResumeSchema = z.object({
         .array(certificationSchema)
         .max(LIMITS.MAX_CERTIFICATIONS)
         .optional(),
-      languages: z.array(languageSchema).max(LIMITS.MAX_LANGUAGES).optional(),
-      achievements: z
-        .array(achievementSchema)
-        .max(LIMITS.MAX_ACHIEVEMENTS)
-        .optional(),
-      sectionOrder: z.array(z.string().trim()).optional(),
+      sectionOrder: z.array(sectionNameSchema).optional(),
       sectionVisibility: sectionVisibilitySchema.optional(),
-
-      // ✅ UPDATED - Matches frontend shape
-      customization: z
-        .object({
-          colors: z
-            .object({
-              primary: hexColor.optional(),
-              secondary: hexColor.optional(),
-              accent: hexColor.optional(),
-            })
-            .optional(),
-          fonts: z
-            .object({
-              heading: z.string().trim().optional(),
-              body: z.string().trim().optional(),
-              italic: z.boolean().optional(),
-            })
-            .optional(),
-          nameStyle: z
-            .object({
-              position: z.enum(['left', 'center', 'right']).optional(),
-              case: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
-              bold: z.boolean().optional(),
-            })
-            .optional(),
-          sectionHeadingStyle: z
-            .object({
-              position: z.enum(['left', 'center', 'right']).optional(),
-              case: z.enum(['uppercase', 'capitalize', 'normal']).optional(),
-              fontWeight: z.string().trim().optional(),
-              borderStyle: z.string().trim().optional(),
-            })
-            .optional(),
-        })
-        .optional(),
-
-      pdfUrl: z.string().trim().optional(),
-      pdfPublicId: z.string().trim().optional(),
+      customization: customizationPartialSchema,
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: 'At least one field must be provided for update',
@@ -479,33 +507,31 @@ exports.duplicateResumeSchema = z.object({
   }),
   body: z
     .object({
-      title: z.string().trim().min(1).max(100).optional(),
+      title: z.string().trim().min(1).max(LIMITS.TITLE_MAX_LENGTH).optional(),
     })
     .optional()
     .default({}),
 });
 
+// limit is z.number() directly — cleaner than parsing a query string and
+// avoids the string-default vs .transform() edge case from previous versions.
 exports.getUserResumesQuerySchema = z.object({
   query: z
     .object({
       limit: z
-        .string()
-        .trim()
-        .refine(
-          (val) => {
-            if (!/^\d+$/.test(val)) return false;
-            const num = parseInt(val);
-            return num > 0 && num <= 100;
-          },
-          { message: 'Limit must be between 1 and 100' }
+        .number()
+        .int()
+        .min(1, 'Limit must be at least 1')
+        .max(
+          LIMITS.MAX_RESUMES_PER_FETCH,
+          `Limit cannot exceed ${LIMITS.MAX_RESUMES_PER_FETCH}`
         )
-        .transform(Number)
         .optional()
-        .default('10'),
+        .default(10),
       sort: z.enum(['newest', 'oldest', 'title']).optional().default('newest'),
     })
     .optional()
-    .default({ limit: '10', sort: 'newest' }),
+    .default({ limit: 10, sort: 'newest' }),
 });
 
 exports.updateSectionOrderSchema = z.object({
@@ -514,23 +540,15 @@ exports.updateSectionOrderSchema = z.object({
   }),
   body: z.object({
     sectionOrder: z
-      .array(z.string())
+      .array(sectionNameSchema)
       .min(1, 'At least one section is required')
-      .max(10, 'Maximum 10 sections allowed')
-      .refine(
-        (arr) => {
-          const validSections = sectionNameSchema.options;
-          return arr.every((item) => validSections.includes(item));
-        },
-        { message: 'Invalid section name in sectionOrder' }
+      .max(
+        VALID_SECTIONS.length,
+        `Maximum ${VALID_SECTIONS.length} sections allowed`
       )
-      .refine(
-        (arr) => {
-          const uniqueSections = new Set(arr);
-          return uniqueSections.size === arr.length;
-        },
-        { message: 'Section order contains duplicate sections' }
-      ),
+      .refine((arr) => new Set(arr).size === arr.length, {
+        message: 'Duplicate sections are not allowed',
+      }),
   }),
 });
 
@@ -541,9 +559,7 @@ exports.updateSectionVisibilitySchema = z.object({
   body: z.object({
     sectionVisibility: sectionVisibilitySchema.refine(
       (obj) => Object.keys(obj).length > 0,
-      {
-        message: 'At least one valid section name visibility must be provided',
-      }
+      { message: 'At least one section visibility field must be provided' }
     ),
   }),
 });
