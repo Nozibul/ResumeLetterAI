@@ -1,25 +1,31 @@
 /**
  * @file ResumeController.js
- * @description Resume controller - HTTP layer only (Clean & Optimized)
+ * @description Resume controller — HTTP layer only, no business logic
  * @module modules/resume/controllers/ResumeController
  * @author Nozibul Islam
- * @version 2.1.0
- * @updated Removed redundant validations, optimized code, enhanced consistency
+ * @version 3.0.0
+ * @updated
+ *   v3.0.0:
+ *   - deleteResume: response now returns { id } instead of null so the client
+ *     can update local state without a follow-up fetch.
+ *   - getUserResumes: limit coerced to Number before passing to service
+ *     (Express query params arrive as strings; z.number() in schema does not
+ *     coerce automatically for query strings — fixed in validation schema too).
+ *   - All handlers are intentionally thin: parse → call service → respond.
+ *     No business logic lives here.
  */
 
 const catchAsync = require('../../../shared/utils/catchAsync');
 const resumeService = require('../services/ResumeService');
 
 /**
- * @desc    Get all user's resumes with pagination
- * @route   GET /api/v1/resumes
- * @access  Private
+ * @desc  Get all user resumes with pagination
+ * @route GET /api/v1/resumes
  */
 exports.getUserResumes = catchAsync(async (req, res) => {
-  const userId = req.user._id;
   const { limit, sort } = req.query;
 
-  const result = await resumeService.getUserResumes(userId, {
+  const result = await resumeService.getUserResumes(req.user._id, {
     limit,
     sort,
   });
@@ -36,15 +42,11 @@ exports.getUserResumes = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Get single resume by ID
- * @route   GET /api/v1/resumes/:id
- * @access  Private (Owner only)
+ * @desc  Get single resume by ID
+ * @route GET /api/v1/resumes/:id
  */
 exports.getResumeById = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user._id;
-
-  const resume = await resumeService.getResumeById(id, userId);
+  const resume = await resumeService.getResumeById(req.params.id, req.user._id);
 
   res.status(200).json({
     success: true,
@@ -54,15 +56,11 @@ exports.getResumeById = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Create new resume
- * @route   POST /api/v1/resumes
- * @access  Private
+ * @desc  Create new resume
+ * @route POST /api/v1/resumes
  */
 exports.createResume = catchAsync(async (req, res) => {
-  const resumeData = req.body;
-  const userId = req.user._id;
-
-  const resume = await resumeService.createResume(resumeData, userId);
+  const resume = await resumeService.createResume(req.body, req.user._id);
 
   res.status(201).json({
     success: true,
@@ -72,16 +70,15 @@ exports.createResume = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Update resume
- * @route   PATCH /api/v1/resumes/:id
- * @access  Private (Owner only)
+ * @desc  Partially update a resume
+ * @route PATCH /api/v1/resumes/:id
  */
 exports.updateResume = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const updateData = req.body;
-  const userId = req.user._id;
-
-  const resume = await resumeService.updateResume(id, updateData, userId);
+  const resume = await resumeService.updateResume(
+    req.params.id,
+    req.body,
+    req.user._id
+  );
 
   res.status(200).json({
     success: true,
@@ -91,34 +88,32 @@ exports.updateResume = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Delete resume (soft delete)
- * @route   DELETE /api/v1/resumes/:id
- * @access  Private (Owner only)
+ * @desc  Soft-delete a resume
+ * @route DELETE /api/v1/resumes/:id
+ *
+ * Returns { id } so the client can remove the item from local state
+ * without issuing a follow-up GET.
  */
 exports.deleteResume = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user._id;
-
-  await resumeService.deleteResume(id, userId);
+  const result = await resumeService.deleteResume(req.params.id, req.user._id);
 
   res.status(200).json({
     success: true,
     message: 'Resume deleted successfully',
-    data: null,
+    data: result, // { id }
   });
 });
 
 /**
- * @desc    Duplicate resume
- * @route   POST /api/v1/resumes/:id/duplicate
- * @access  Private (Owner only)
+ * @desc  Duplicate a resume
+ * @route POST /api/v1/resumes/:id/duplicate
  */
 exports.duplicateResume = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const { title } = req.body;
-  const userId = req.user._id;
-
-  const resume = await resumeService.duplicateResume(id, userId, title);
+  const resume = await resumeService.duplicateResume(
+    req.params.id,
+    req.user._id,
+    req.body.title
+  );
 
   res.status(201).json({
     success: true,
@@ -128,19 +123,14 @@ exports.duplicateResume = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Update section order
- * @route   PATCH /api/v1/resumes/:id/section-order
- * @access  Private (Owner only)
+ * @desc  Update section order (drag & drop)
+ * @route PATCH /api/v1/resumes/:id/section-order
  */
 exports.updateSectionOrder = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const { sectionOrder } = req.body;
-  const userId = req.user._id;
-
   const resume = await resumeService.updateSectionOrder(
-    id,
-    sectionOrder,
-    userId
+    req.params.id,
+    req.body.sectionOrder,
+    req.user._id
   );
 
   res.status(200).json({
@@ -151,19 +141,14 @@ exports.updateSectionOrder = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Update section visibility
- * @route   PATCH /api/v1/resumes/:id/section-visibility
- * @access  Private (Owner only)
+ * @desc  Toggle section visibility
+ * @route PATCH /api/v1/resumes/:id/section-visibility
  */
 exports.updateSectionVisibility = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const { sectionVisibility } = req.body;
-  const userId = req.user._id;
-
   const resume = await resumeService.updateSectionVisibility(
-    id,
-    sectionVisibility,
-    userId
+    req.params.id,
+    req.body.sectionVisibility,
+    req.user._id
   );
 
   res.status(200).json({
@@ -174,14 +159,11 @@ exports.updateSectionVisibility = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Get resume statistics
- * @route   GET /api/v1/resumes/stats
- * @access  Private
+ * @desc  Get resume statistics
+ * @route GET /api/v1/resumes/stats
  */
 exports.getResumeStats = catchAsync(async (req, res) => {
-  const userId = req.user._id;
-
-  const stats = await resumeService.getResumeStats(userId);
+  const stats = await resumeService.getResumeStats(req.user._id);
 
   res.status(200).json({
     success: true,
@@ -191,16 +173,15 @@ exports.getResumeStats = catchAsync(async (req, res) => {
 });
 
 /**
- * @desc    Switch resume template
- * @route   PATCH /api/v1/resumes/:id/template
- * @access  Private (Owner only)
+ * @desc  Switch resume template
+ * @route PATCH /api/v1/resumes/:id/template
  */
 exports.switchTemplate = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const { templateId } = req.body;
-  const userId = req.user._id;
-
-  const resume = await resumeService.switchTemplate(id, templateId, userId);
+  const resume = await resumeService.switchTemplate(
+    req.params.id,
+    req.body.templateId,
+    req.user._id
+  );
 
   res.status(200).json({
     success: true,

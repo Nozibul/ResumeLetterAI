@@ -518,7 +518,7 @@ exports.duplicateResumeSchema = z.object({
 exports.getUserResumesQuerySchema = z.object({
   query: z
     .object({
-      limit: z
+      limit: z.coerce
         .number()
         .int()
         .min(1, 'Limit must be at least 1')

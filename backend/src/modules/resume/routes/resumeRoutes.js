@@ -1,20 +1,26 @@
 /**
  * @file resumeRoutes.js
- * @description Resume management routes (Complete & Optimized)
+ * @description Resume management routes
  * @module modules/resume/routes/resumeRoutes
  * @author Nozibul Islam
- * @version 2.1.0
- * @updated Added missing validations, fixed import path, enhanced security
+ * @version 3.0.0
+ * @updated
+ *   v3.0.0:
+ *   - Rate limiting added to POST / and POST /:id/duplicate to prevent
+ *     resume-creation abuse (e.g. loop creating thousands of documents).
+ *   - Route ordering preserved: collection routes before /:id routes so
+ *     /stats is never swallowed by the dynamic :id segment.
+ *   - All routes require authentication via router.use(protect).
  */
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
+
 const router = express.Router();
 
-// Middleware
 const { protect } = require('../../auth/middlewares/authMiddleware');
 const { validate } = require('../../middleware/validate');
 
-// Validation schemas
 const {
   createResumeSchema,
   updateResumeSchema,
@@ -27,33 +33,50 @@ const {
   switchTemplateSchema,
 } = require('../validation/resumeValidation');
 
-// Controller
 const resumeController = require('../controllers/ResumeController');
 
-// ==========================================
-// ALL ROUTES REQUIRE AUTHENTICATION
-// ==========================================
+// ============================================================
+// RATE LIMITERS
+// ============================================================
+
+// Limits resume creation and duplication to 20 requests per hour per user.
+// Without this, a single user could loop-create thousands of resumes.
+// Adjust windowMs / max based on your product's expected usage patterns.
+const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+  message: {
+    success: false,
+    message: 'Too many resumes created. Please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ============================================================
+// AUTHENTICATION — all resume routes require a valid token
+// ============================================================
+
 router.use(protect);
 
-// ==========================================
-// COLLECTION ROUTES (No :id)
-// ⚠️ IMPORTANT: These MUST come before /:id routes
-// ==========================================
+// ============================================================
+// COLLECTION ROUTES
+// IMPORTANT: these must come before /:id routes so that /stats
+// is not matched as a resume ID.
+// ============================================================
 
 /**
  * GET /api/v1/resumes/stats
- * @description Get user's resume statistics
- * @returns {object} resume stats (total, completed, avg completion)
- * @access Private
+ * Returns aggregated statistics for the authenticated user's resumes.
  */
 router.get('/stats', resumeController.getResumeStats);
 
 /**
  * GET /api/v1/resumes
- * @description Get all user's resumes with pagination
- * @query {number} limit - Results per page (default: 10, max: 100)
- * @query {string} sort - Sort option (newest|oldest|title)
- * @access Private
+ * Returns all active resumes for the user with pagination.
+ * @query limit {number} 1–50, default 10
+ * @query sort  {string} newest | oldest | title
  */
 router.get(
   '/',
@@ -63,20 +86,23 @@ router.get(
 
 /**
  * POST /api/v1/resumes
- * @description Create new resume
- * @access Private
+ * Creates a new resume.
+ * Rate-limited: 20 per hour per user.
  */
-router.post('/', validate(createResumeSchema), resumeController.createResume);
+router.post(
+  '/',
+  createLimiter,
+  validate(createResumeSchema),
+  resumeController.createResume
+);
 
-// ==========================================
-// SINGLE RESOURCE ROUTES (With :id)
-// ==========================================
+// ============================================================
+// SINGLE RESOURCE ROUTES /:id
+// ============================================================
 
 /**
  * GET /api/v1/resumes/:id
- * @description Get single resume by ID
- * @param {string} id - Resume ID (24-char hex)
- * @access Private (Owner only)
+ * Returns a single resume with full template details.
  */
 router.get(
   '/:id',
@@ -86,9 +112,7 @@ router.get(
 
 /**
  * PATCH /api/v1/resumes/:id
- * @description Update resume (partial update)
- * @param {string} id - Resume ID
- * @access Private (Owner only)
+ * Partially updates a resume. At least one field required.
  */
 router.patch(
   '/:id',
@@ -98,9 +122,8 @@ router.patch(
 
 /**
  * DELETE /api/v1/resumes/:id
- * @description Soft delete resume (sets isActive: false)
- * @param {string} id - Resume ID
- * @access Private (Owner only)
+ * Soft-deletes a resume (sets isActive: false).
+ * Returns { id } so clients can update local state without a follow-up fetch.
  */
 router.delete(
   '/:id',
@@ -108,27 +131,25 @@ router.delete(
   resumeController.deleteResume
 );
 
-// ==========================================
-// RESOURCE ACTIONS (With :id + action)
-// ==========================================
+// ============================================================
+// RESOURCE ACTION ROUTES /:id/action
+// ============================================================
 
 /**
  * POST /api/v1/resumes/:id/duplicate
- * @description Duplicate existing resume
- * @param {string} id - Resume ID to duplicate
- * @access Private (Owner only)
+ * Duplicates an existing resume.
+ * Rate-limited: shares the same 20/hour window as creation.
  */
 router.post(
   '/:id/duplicate',
+  createLimiter,
   validate(duplicateResumeSchema),
   resumeController.duplicateResume
 );
 
 /**
  * PATCH /api/v1/resumes/:id/section-order
- * @description Update section order (drag & drop)
- * @param {string} id - Resume ID
- * @access Private (Owner only)
+ * Updates the display order of resume sections (drag & drop).
  */
 router.patch(
   '/:id/section-order',
@@ -138,9 +159,8 @@ router.patch(
 
 /**
  * PATCH /api/v1/resumes/:id/section-visibility
- * @description Toggle section visibility (show/hide)
- * @param {string} id - Resume ID
- * @access Private (Owner only)
+ * Toggles visibility of one or more resume sections.
+ * Partial update — only provided sections are affected.
  */
 router.patch(
   '/:id/section-visibility',
@@ -150,9 +170,7 @@ router.patch(
 
 /**
  * PATCH /api/v1/resumes/:id/template
- * @description Switch resume template
- * @param {string} id - Resume ID
- * @access Private (Owner only)
+ * Switches the resume to a different template.
  */
 router.patch(
   '/:id/template',

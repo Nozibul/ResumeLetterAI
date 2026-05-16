@@ -3,14 +3,14 @@
  * @description Resume Model - Production Ready
  * @module models/Resume
  * @author Nozibul Islam
- * @version 2.1.0
+ * @version 4.1.0
  * @updated
- *   v2.1.0 — GPA simplified: removed gpaScale field entirely.
+ *   v4.1.0 — GPA simplified: removed gpaScale field entirely.
  *   Standard CGPA scale is 4.0 worldwide; a 5-point scale does not exist in practice.
  *   isValidGpa now enforces 0–4.00 strictly. No schema migration needed —
  *   gpaScale was never persisted to production.
  *
- *   v2.0.0 — Additional fixes applied:
+ *   v4.0.0 — Additional fixes applied:
  *   - endDate.month null-safety: explicit check before arithmetic to prevent NaN
  *   - duplicate(): strips _id from all sub-document arrays to avoid key conflicts
  *   - getUserResumes(): hard cap on limit (max 100) to prevent accidental large fetches
@@ -18,7 +18,7 @@
  *   - Three separate pre('save') middleware merged into two (validation + completion)
  *   - sectionVisibility: added achievements and languages fields
  *
- *   v2.0.0 — Previous fixes:
+ *   v3.0.0 — Previous fixes:
  *   GPA/CGPA validation, URL validation, type safety, index optimization,
  *   sectionVisibility type fix, skills toObject crash fix,
  *   endDate null-safety, badges limit, hardcoded limits normalized
@@ -32,18 +32,20 @@ const { Schema } = mongoose;
 // ============================================
 
 const LIMITS = {
-  MAX_WORK_EXPERIENCES: 5,
-  MAX_PROJECTS: 5,
-  MAX_EDUCATIONS: 5,
-  MAX_CERTIFICATIONS: 5,
+  MAX_WORK_EXPERIENCES: 50,
+  MAX_PROJECTS: 30,
+  MAX_EDUCATIONS: 10,
+  MAX_CERTIFICATIONS: 30,
+  MAX_ACHIEVEMENTS: 30,
+  MAX_LANGUAGES: 20,
   MAX_CP_PLATFORMS: 10,
-  MAX_RESPONSIBILITIES: 10,
-  MAX_HIGHLIGHTS: 5,
-  MAX_TECHNOLOGIES: 20,
-  MAX_BADGES: 10,
-  MAX_SKILLS_PER_CATEGORY: 15,
+  MAX_RESPONSIBILITIES: 20,
+  MAX_HIGHLIGHTS: 10,
+  MAX_TECHNOLOGIES: 30,
+  MAX_BADGES: 20,
+  MAX_SKILLS_PER_CATEGORY: 20,
   MAX_SKILLS_DB_DEVOPS: 15,
-  MAX_RESUMES_PER_FETCH: 50, // hard cap for getUserResumes() limit option
+  MAX_RESUMES_PER_FETCH: 100, // hard cap for getUserResumes() limit option
   MIN_SKILLS_FOR_COMPLETION: 3, // minimum total skills to count as "skills filled"
 };
 
@@ -752,6 +754,24 @@ const resumeSchema = new Schema(
       validate: {
         validator: (arr) => arr.length <= LIMITS.MAX_CERTIFICATIONS,
         message: `Maximum ${LIMITS.MAX_CERTIFICATIONS} certifications allowed`,
+      },
+    },
+
+    languages: {
+      type: [languageSchema],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= LIMITS.MAX_LANGUAGES,
+        message: `Maximum ${LIMITS.MAX_LANGUAGES} languages allowed`,
+      },
+    },
+
+    achievements: {
+      type: [achievementSchema],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= LIMITS.MAX_ACHIEVEMENTS,
+        message: `Maximum ${LIMITS.MAX_ACHIEVEMENTS} achievements allowed`,
       },
     },
 
