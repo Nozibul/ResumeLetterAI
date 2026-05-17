@@ -36,8 +36,6 @@ const LIMITS = {
   MAX_PROJECTS: 30,
   MAX_EDUCATIONS: 10,
   MAX_CERTIFICATIONS: 30,
-  MAX_ACHIEVEMENTS: 30,
-  MAX_LANGUAGES: 20,
   MAX_CP_PLATFORMS: 10,
   MAX_RESPONSIBILITIES: 20,
   MAX_HIGHLIGHTS: 10,
@@ -150,7 +148,7 @@ const personalInfoSchema = new Schema(
     location: {
       type: String,
       trim: true,
-      maxlength: [150, 'Location cannot exceed 150 characters'],
+      maxlength: [100, 'Location cannot exceed 100 characters'],
       default: '',
     },
 
@@ -231,7 +229,7 @@ const workExperienceSchema = new Schema(
       type: String,
       trim: true,
       default: '',
-      maxlength: [150, 'Location cannot exceed 150 characters'],
+      maxlength: [100, 'Location cannot exceed 100 characters'],
     },
     startDate: {
       month: {
@@ -754,24 +752,6 @@ const resumeSchema = new Schema(
       validate: {
         validator: (arr) => arr.length <= LIMITS.MAX_CERTIFICATIONS,
         message: `Maximum ${LIMITS.MAX_CERTIFICATIONS} certifications allowed`,
-      },
-    },
-
-    languages: {
-      type: [languageSchema],
-      default: [],
-      validate: {
-        validator: (arr) => arr.length <= LIMITS.MAX_LANGUAGES,
-        message: `Maximum ${LIMITS.MAX_LANGUAGES} languages allowed`,
-      },
-    },
-
-    achievements: {
-      type: [achievementSchema],
-      default: [],
-      validate: {
-        validator: (arr) => arr.length <= LIMITS.MAX_ACHIEVEMENTS,
-        message: `Maximum ${LIMITS.MAX_ACHIEVEMENTS} achievements allowed`,
       },
     },
 

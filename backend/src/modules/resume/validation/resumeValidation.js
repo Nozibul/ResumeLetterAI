@@ -150,9 +150,51 @@ const hexColor = z
 // ============================================================
 
 const personalInfoSchema = z.object({
-  fullName: z.string().trim().min(1, 'Full name is required').max(100),
-  jobTitle: z.string().trim().min(1, 'Job title is required').max(100),
-  email: z.string().trim().toLowerCase().email('Invalid email format'),
+  fullName: z
+    .string()
+    .transform((val) => val.trim())
+    .pipe(
+      z
+        .string()
+        .min(2, 'Full name must be at least 2 characters')
+        .max(100, 'Full name cannot exceed 100 characters')
+        .regex(
+          /^[a-zA-Z\s\.\-\']+$/,
+          'Full name can only contain letters, spaces, dots, hyphens, and apostrophes'
+        )
+    ),
+
+  jobTitle: z
+    .string()
+    .transform((val) => val.trim())
+    .pipe(
+      z
+        .string()
+        .min(3, 'Job title must be at least 3 characters')
+        .max(100, 'Job title cannot exceed 100 characters')
+        .regex(
+          /^[a-zA-Z0-9\s\.\-\/\+\#]+$/,
+          'Job title contains invalid characters'
+        )
+    ),
+
+  email: z
+    .string()
+    .transform((val) => val.trim().toLowerCase())
+    .pipe(
+      z
+        .string()
+        .email('Invalid email format')
+        .max(254, 'Email cannot exceed 254 characters')
+        .refine(
+          (val) => {
+            // local part (before @) max 64 chars — RFC 5321
+            const [local] = val.split('@');
+            return local.length <= 64;
+          },
+          { message: 'Email local part cannot exceed 64 characters' }
+        )
+    ),
   // NOTE: if disposable-email blocking is needed, use a dedicated library
   // (e.g. disposable-email-domains). A hardcoded domain blocklist is fragile
   // and can reject legitimate addresses.
