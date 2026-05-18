@@ -2,193 +2,125 @@
  * @file store/selectors/resumeSelectors.js
  * @description Resume state selectors
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Architecture:
- * - All resume-related selectors
- * - Memoization for performance
- * - Reusable across components
+ * Design decisions:
+ * - No memoization library needed at this scale — selectors are simple
+ *   property access or lightweight array operations. Add reselect only
+ *   if profiling shows re-render issues.
+ * - isCompleted/isPublic/downloadCount selectors removed (not in backend model).
+ * - "completed" derived from completionPercentage === 100 (backend calculates this).
+ * - sort keys match backend query param values: 'newest' | 'oldest' | 'title'.
+ * - title field matches backend model ('title', not 'resumeTitle').
  */
 
-import { string } from "prop-types";
+// ── Raw state ─────────────────────────────────────────────────────────────────
 
-/**
- * Get entire resume state
- */
-export const selectResume = (state) => state.resume;
-
-/**
- * Get all resumes array
- */
 export const selectAllResumes = (state) => state.resume.resumes;
-
-/**
- * Get resume by ID
- */
-export const selectResumeById = (state, id) => {
-  return state.resume.resumes.find((resume) => resume._id === id);
-};
-
-/**
- * Get selected resume
- */
+export const selectResumeTotal = (state) => state.resume.total;
 export const selectSelectedResume = (state) => state.resume.selectedResume;
-
-/**
- * Get draft resumes
- */
-export const selectDraftResumes = (state) => state.resume.drafts;
-
-/**
- * Get completed resumes
- */
-export const selectCompletedResumes = (state) => state.resume.completed;
-
-/**
- * Get loading state
- */
 export const selectResumeLoading = (state) => state.resume.loading;
-
-/**
- * Get error
- */
 export const selectResumeError = (state) => state.resume.error;
+export const selectLastFetched = (state) => state.resume.lastFetched;
 
-/**
- * Get total resumes count
- */
+// ── Editor ────────────────────────────────────────────────────────────────────
+
+export const selectCurrentResumeData = (state) =>
+  state.resume.currentResumeData;
+export const selectIsSaving = (state) => state.resume.isSaving;
+export const selectCurrentStep = (state) => state.resume.currentStep;
+export const selectSectionOrder = (state) =>
+  state.resume.currentResumeData?.sectionOrder ?? [];
+export const selectSectionVisibility = (state) =>
+  state.resume.currentResumeData?.sectionVisibility ?? {};
+export const selectCompletionPercentage = (state) =>
+  state.resume.currentResumeData?.completionPercentage ?? 0;
+
+// ── Derived ───────────────────────────────────────────────────────────────────
+
+export const selectHasResumes = (state) => state.resume.resumes.length > 0;
+
 export const selectTotalResumes = (state) => state.resume.resumes.length;
 
-/**
- * Get total drafts count
- */
-export const selectTotalDrafts = (state) => state.resume.drafts.length;
+/** Resume whose completionPercentage is exactly 100 */
+export const selectCompletedResumes = (state) =>
+  state.resume.resumes.filter((r) => r.completionPercentage === 100);
+
+/** Resume with any work still remaining */
+export const selectIncompleteResumes = (state) =>
+  state.resume.resumes.filter((r) => r.completionPercentage < 100);
+
+/** Find a single resume from the cached list */
+export const selectResumeById = (state, id) =>
+  state.resume.resumes.find((r) => r._id === id) ?? null;
+
+/** Filter by template (useful for template-usage stats) */
+export const selectResumesByTemplate = (state, templateId) =>
+  state.resume.resumes.filter((r) => r.templateId?._id === templateId);
 
 /**
- * Get total completed count
+ * Sort keys intentionally match backend query param values
+ * so the same value can be passed to both the API and this selector.
+ * 'newest' | 'oldest' | 'title'
  */
-export const selectTotalCompleted = (state) => state.resume.completed.length;
-
-/**
- * Get public resumes
- */
-export const selectPublicResumes = (state) => {
-  return state.resume.resumes.filter((resume) => resume.isPublic);
-};
-
-/**
- * Get private resumes
- */
-export const selectPrivateResumes = (state) => {
-  return state.resume.resumes.filter((resume) => !resume.isPublic);
-};
-
-/**
- * Get resumes by template ID
- */
-export const selectResumesByTemplate = (state, templateId) => {
-  return state.resume.resumes.filter(
-    (resume) => resume.templateId?._id === templateId
-  );
-};
-
-/**
- * Get recently updated resumes (last 7 days)
- */
-export const selectRecentResumes = (state) => {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  return state.resume.resumes
-    .filter((resume) => new Date(resume.updatedAt) > sevenDaysAgo)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-};
-
-/**
- * Get most downloaded resumes
- */
-export const selectMostDownloadedResumes = (state) => {
-  return [...state.resume.resumes]
-    .filter((resume) => resume.downloadCount > 0)
-    .sort((a, b) => b.downloadCount - a.downloadCount);
-};
-
-/**
- * Check if resumes are cached (within 5 minutes)
- */
-export const selectIsResumesCached = (state) => {
-  const lastFetched = state.resume.lastFetched;
-  if (!lastFetched) return false;
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  return Date.now() - lastFetched < CACHE_DURATION;
-};
-
-/**
- * Get resume statistics
- */
-export const selectResumeStats = (state) => {
-  const resumes = state.resume.resumes;
-
-  return {
-    total: resumes.length,
-    drafts: resumes.filter((r) => !r.isCompleted).length,
-    completed: resumes.filter((r) => r.isCompleted).length,
-    public: resumes.filter((r) => r.isPublic).length,
-    private: resumes.filter((r) => !r.isPublic).length,
-    totalDownloads: resumes.reduce((sum, r) => sum + (r.downloadCount || 0), 0),
-  };
-};
-
-/**
- * Get resumes sorted by criteria
- */
-export const selectSortedResumes = (state, sortBy = 'updatedAt') => {
+export const selectSortedResumes = (state, sortBy = 'newest') => {
   const resumes = [...state.resume.resumes];
-
   switch (sortBy) {
-    case 'updatedAt':
-      return resumes.sort(
-        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-      );
-    case 'createdAt':
+    case 'newest':
       return resumes.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
-    case 'title':
-      return resumes.sort((a, b) => a.resumeTitle.localeCompare(b.resumeTitle));
-    case 'downloads':
+    case 'oldest':
       return resumes.sort(
-        (a, b) => (b.downloadCount || 0) - (a.downloadCount || 0)
+        (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+      );
+    case 'title':
+      return resumes.sort((a, b) =>
+        (a.title ?? '').localeCompare(b.title ?? '')
       );
     default:
       return resumes;
   }
 };
 
-/**
- * Check if user has any resumes
- */
-export const selectHasResumes = (state) => {
-  return state.resume.resumes.length > 0;
+/** Resumes updated within the last 7 days, newest first */
+export const selectRecentResumes = (state) => {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return [...state.resume.resumes]
+    .filter((r) => new Date(r.updatedAt).getTime() > cutoff)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 };
 
 /**
- * Check if selected resume is editable (not public or user owns it)
+ * Returns true if resumes were fetched within the last 5 minutes.
+ * Use this to skip redundant API calls on component mount.
  */
-export const selectIsSelectedResumeEditable = (state) => {
-  const selected = state.resume.selectedResume;
-  if (!selected) return false;
-  // Add more conditions as needed
-  return true;
+export const selectIsResumesCached = (state) => {
+  const { lastFetched } = state.resume;
+  return lastFetched !== null && Date.now() - lastFetched < 5 * 60 * 1000;
 };
 
 /**
- * Get section order
+ * Client-side stats derived from the cached resumes array.
+ * No separate API call needed for dashboard display.
  */
-export const selectSectionOrder = (state) =>
-  state.resume.currentResumeData?.sectionOrder || [];
-export const selectCurrentResumeData = (state) =>
-  state.resume.currentResumeData;
-export const selectIsSaving = (state) => state.resume.isSaving;
-export const selectCurrentStep = (state) => state.resume.currentStep;
-export const selectCompletionPercentage = (state) =>
-  state.resume.completionPercentage;
+export const selectResumeStats = (state) => {
+  const { resumes } = state.resume;
+  if (!resumes.length)
+    return { total: 0, completed: 0, incomplete: 0, avgCompletion: 0 };
+
+  const completed = resumes.filter(
+    (r) => r.completionPercentage === 100
+  ).length;
+  const avgCompletion = Math.round(
+    resumes.reduce((sum, r) => sum + (r.completionPercentage ?? 0), 0) /
+      resumes.length
+  );
+
+  return {
+    total: resumes.length,
+    completed,
+    incomplete: resumes.length - completed,
+    avgCompletion,
+  };
+};

@@ -1,41 +1,42 @@
 /**
  * @file store/rootReducer.js
- * @description Combine all slice reducers for ResumeLetterAI
+ * @description Root reducer
  * @author Nozibul Islam
+ * @version 2.0.0
+ *
+ * Design decisions:
+ * - auth uses persistedAuthReducer (nested persist config) so only
+ *   'user' and 'isAuthenticated' are written to localStorage.
+ * - On 'auth/logout/fulfilled', state is reset to undefined so every
+ *   slice returns its own initialState — no data leaks between sessions.
+ * - persistor.purge() must be called from the logout thunk alongside
+ *   this reset to also clear what is already written in localStorage.
  */
 
 import { combineReducers } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice';
+import { persistedAuthReducer } from './utils/persistConfig';
 import templateReducer from './slices/templateSlice';
 import resumeReducer from './slices/resumeSlice';
 // import coverLetterReducer from './slices/coverLetterSlice';
 
-/**
- * Combine all reducers into one root reducer
- * The keys here become the state shape in your Redux store
- */
 const appReducer = combineReducers({
-  // These will be persisted (as per persistConfig whitelist)
-  auth: authReducer, // Authentication state
-  resume: resumeReducer, // User's resume data
-  // coverLetter: coverLetterReducer,          // Cover letter data
-
-  // These will NOT be persisted (as per persistConfig blacklist)
-  template: templateReducer, // Templates & preferences
+  auth: persistedAuthReducer,
+  resume: resumeReducer,
+  template: templateReducer,
+  // coverLetter: coverLetterReducer,
 });
 
 /**
- * Root reducer with reset capability
- * This allows clearing state on specific actions (e.g., logout)
+ * Wraps appReducer to wipe ALL state on logout.
+ * Passing undefined causes every slice to fall back to its initialState.
+ *
+ * NOTE: This handles in-memory state only.
+ * Call persistor.purge() in the logout thunk to also clear localStorage.
  */
 const rootReducer = (state, action) => {
-  // Example: Reset state on logout
-  // if (action.type === 'auth/logout') {
-  //   // Keep only user preferences
-  //   const { userPreferences } = state;
-  //   state = { userPreferences };
-  // }
-
+  if (action.type === 'auth/logout/fulfilled') {
+    return appReducer(undefined, action);
+  }
   return appReducer(state, action);
 };
 

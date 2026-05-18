@@ -1,205 +1,96 @@
 /**
  * @file store/slices/resumeSlice.js
- * @description Resume state management (Reducer only)
+ * @description Resume state management
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Architecture:
- * - Pure state management (no async logic)
- * - Selectors moved to selectors/resumeSelectors.js
- * - Async thunks moved to actions/resumeActions.js
+ * Design decisions:
+ * - drafts/completed arrays removed — backend has no isCompleted field.
+ *   Use selectCompletedResumes / selectIncompleteResumes selectors instead
+ *   (derived from completionPercentage which backend calculates).
+ * - isPublic/downloadCount removed — not in backend model.
+ * - resumeTitle → title (matches backend model field).
+ * - loading state managed entirely in extraReducers (pending/fulfilled/rejected).
+ *   No manual setResumeLoading dispatch in thunks.
+ * - updateResumeAction does NOT set loading=true to support silent auto-save.
+ *   Use isSaving for auto-save UI feedback instead.
+ * - reorderSections is an optimistic local update; the thunk persists to backend.
  */
 
 import { createSlice } from '@reduxjs/toolkit';
+import {
+  fetchAllResumes,
+  fetchResumeById,
+  createResumeAction,
+  updateResumeAction,
+  deleteResumeAction,
+  duplicateResumeAction,
+  updateSectionOrderAction,
+  updateSectionVisibilityAction,
+  switchTemplateAction,
+} from '../actions/resumeActions';
 
-// ==========================================
-// INITIAL STATE
-// ==========================================
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-const initialState = {
-  resumes: [], // All user's resumes
-  selectedResume: null, // Currently selected resume (for editing/viewing)
-  drafts: [], // Draft resumes (cached)
-  completed: [], // Completed resumes (cached)
-  currentResumeData: null, // Current editing resume
-  isSaving: false, // Auto-save indicator
-  currentStep: 1, // Current form step (1-9)
-  completionPercentage: 0, // Progress (0-100)
-  loading: false, // Loading state
-  error: null, // Error message
-  lastFetched: null, // Timestamp for cache invalidation
+/**
+ * Sync an updated resume into the resumes array and selectedResume.
+ * Extracted so multiple cases can call it without repetition.
+ */
+const syncUpdatedResume = (state, updated) => {
+  const idx = state.resumes.findIndex((r) => r._id === updated._id);
+  if (idx !== -1) state.resumes[idx] = updated;
+  if (state.selectedResume?._id === updated._id) state.selectedResume = updated;
 };
 
-// ==========================================
-// SLICE
-// ==========================================
+// ── Initial state ─────────────────────────────────────────────────────────────
+
+const initialState = {
+  /** All active resumes for the user (from GET /resumes) */
+  resumes: [],
+  /** Total count as reported by the backend */
+  total: 0,
+  /** Resume currently open for viewing */
+  selectedResume: null,
+  /**
+   * Resume being actively edited.
+   * Kept separate from selectedResume so editor changes don't
+   * affect the list view until explicitly saved.
+   */
+  currentResumeData: null,
+  /** Auto-save in-progress indicator for editor UI */
+  isSaving: false,
+  /** Current step in the multi-step resume form (1–9) */
+  currentStep: 1,
+  loading: false,
+  error: null,
+  /** Unix timestamp — used for 5-minute cache check */
+  lastFetched: null,
+};
+
+// ── Slice ─────────────────────────────────────────────────────────────────────
 
 const resumeSlice = createSlice({
   name: 'resume',
   initialState,
+
   reducers: {
-    /**
-     * Set all resumes
-     */
-    setResumes: (state, action) => {
-      state.resumes = action.payload;
-      state.lastFetched = Date.now();
-      state.error = null;
-    },
+    // ── Editor ───────────────────────────────────────────────────────────────
 
-    /**
-     * Set selected resume
-     */
-    setSelectedResume: (state, action) => {
-      state.selectedResume = action.payload;
-      state.error = null;
-    },
-
-    /**
-     * Set draft resumes
-     */
-    setDraftResumes: (state, action) => {
-      state.drafts = action.payload;
-      state.error = null;
-    },
-
-    /**
-     * Set completed resumes
-     */
-    setCompletedResumes: (state, action) => {
-      state.completed = action.payload;
-      state.error = null;
-    },
-
-    /**
-     * Set loading state
-     */
-    setResumeLoading: (state, action) => {
-      state.loading = action.payload;
-    },
-
-    /**
-     * Set error
-     */
-    setResumeError: (state, action) => {
-      state.error = action.payload;
-      state.loading = false;
-    },
-
-    // Set current resume being edited
+    /** Load a resume into the editor */
     setCurrentResumeData: (state, action) => {
       state.currentResumeData = action.payload;
     },
 
-    // Set saving state
-    setIsSaving: (state, action) => {
-      state.isSaving = action.payload;
-    },
-
-    // Set current step
-    setCurrentStep: (state, action) => {
-      state.currentStep = action.payload;
-    },
-
-    // Update completion percentage
-    setCompletionPercentage: (state, action) => {
-      state.completionPercentage = action.payload;
-    },
-
-    /**
-     * Clear error
-     */
-    clearResumeError: (state) => {
-      state.error = null;
-    },
-
-    /**
-     * Clear selected resume
-     */
-    clearSelectedResume: (state) => {
-      state.selectedResume = null;
-    },
-
-    /**
-     * Clear all resume state
-     */
-    clearResumeState: (state) => {
-      state.resumes = [];
-      state.selectedResume = null;
-      state.drafts = [];
-      state.completed = [];
-      state.loading = false;
-      state.error = null;
-      state.lastFetched = null;
-    },
-
-    // Clear current resume data
+    /** Clear editor state when navigating away */
     clearCurrentResumeData: (state) => {
       state.currentResumeData = null;
       state.currentStep = 1;
-      state.completionPercentage = 0;
     },
 
     /**
-     * Add new resume
+     * Update a single field in the editor (used by auto-save).
+     * Only mutates currentResumeData — does not touch resumes array.
      */
-    addResume: (state, action) => {
-      state.resumes.unshift(action.payload);
-      // Add to drafts if incomplete
-      if (!action.payload.isCompleted) {
-        state.drafts.unshift(action.payload);
-      } else {
-        state.completed.unshift(action.payload);
-      }
-    },
-
-    /**
-     * Update resume
-     */
-    updateResume: (state, action) => {
-      const index = state.resumes.findIndex(
-        (r) => r._id === action.payload._id
-      );
-      if (index !== -1) {
-        state.resumes[index] = action.payload;
-      }
-
-      // Update in drafts/completed arrays
-      const draftIndex = state.drafts.findIndex(
-        (r) => r._id === action.payload._id
-      );
-      const completedIndex = state.completed.findIndex(
-        (r) => r._id === action.payload._id
-      );
-
-      if (action.payload.isCompleted) {
-        // Move to completed
-        if (draftIndex !== -1) {
-          state.drafts.splice(draftIndex, 1);
-        }
-        if (completedIndex === -1) {
-          state.completed.unshift(action.payload);
-        } else {
-          state.completed[completedIndex] = action.payload;
-        }
-      } else {
-        // Keep in drafts
-        if (draftIndex !== -1) {
-          state.drafts[draftIndex] = action.payload;
-        } else {
-          state.drafts.unshift(action.payload);
-        }
-        if (completedIndex !== -1) {
-          state.completed.splice(completedIndex, 1);
-        }
-      }
-
-      // Update selected resume if it's the same one
-      if (state.selectedResume?._id === action.payload._id) {
-        state.selectedResume = action.payload;
-      }
-    },
-
-    // Update current resume field (for auto-save)
     updateCurrentResumeField: (state, action) => {
       const { field, value } = action.payload;
       if (state.currentResumeData) {
@@ -207,76 +98,31 @@ const resumeSlice = createSlice({
       }
     },
 
-    /**
-     * Remove resume
-     */
-    removeResume: (state, action) => {
-      state.resumes = state.resumes.filter((r) => r._id !== action.payload);
-      state.drafts = state.drafts.filter((r) => r._id !== action.payload);
-      state.completed = state.completed.filter((r) => r._id !== action.payload);
+    /** Mark auto-save in progress */
+    setIsSaving: (state, action) => {
+      state.isSaving = action.payload;
+    },
 
-      // Clear selected resume if it's the deleted one
-      if (state.selectedResume?._id === action.payload) {
-        state.selectedResume = null;
-      }
+    /** Advance or retreat the multi-step form */
+    setCurrentStep: (state, action) => {
+      state.currentStep = action.payload;
     },
 
     /**
-     * Update resume title only
-     */
-    updateResumeTitle: (state, action) => {
-      const { id, resumeTitle } = action.payload;
-
-      // Update in resumes array
-      const index = state.resumes.findIndex((r) => r._id === id);
-      if (index !== -1) {
-        state.resumes[index].resumeTitle = resumeTitle;
-      }
-
-      // Update in drafts/completed
-      const draftIndex = state.drafts.findIndex((r) => r._id === id);
-      if (draftIndex !== -1) {
-        state.drafts[draftIndex].resumeTitle = resumeTitle;
-      }
-
-      const completedIndex = state.completed.findIndex((r) => r._id === id);
-      if (completedIndex !== -1) {
-        state.completed[completedIndex].resumeTitle = resumeTitle;
-      }
-
-      // Update selected resume
-      if (state.selectedResume?._id === id) {
-        state.selectedResume.resumeTitle = resumeTitle;
-      }
-    },
-
-    // ==========================================
-    // 2. ADD NEW REDUCERS (After line ~225, before exports)
-    // Add these THREE new actions
-    // ==========================================
-
-    /**
-     * Update section order
-     */
-    // setSectionOrder: (state, action) => {
-    //   state.sectionOrder = action.payload;
-    // },
-
-    /**
-     * Reorder sections (drag and drop)
+     * Optimistic drag-and-drop reorder.
+     * The caller is responsible for dispatching updateSectionOrderAction
+     * immediately after to persist the change.
      */
     reorderSections: (state, action) => {
-      if (!state.currentResumeData) return;
+      if (!state.currentResumeData?.sectionOrder) return;
       const { fromIndex, toIndex } = action.payload;
-      const newOrder = [...state.currentResumeData.sectionOrder];
-      const [movedItem] = newOrder.splice(fromIndex, 1);
-      newOrder.splice(toIndex, 0, movedItem);
-      state.currentResumeData.sectionOrder = newOrder;
+      const order = [...state.currentResumeData.sectionOrder];
+      const [moved] = order.splice(fromIndex, 1);
+      order.splice(toIndex, 0, moved);
+      state.currentResumeData.sectionOrder = order;
     },
 
-    /**
-     * Reset section order to default
-     */
+    /** Reset section order to the backend default */
     resetSectionOrder: (state) => {
       if (!state.currentResumeData) return;
       state.currentResumeData.sectionOrder = [
@@ -291,80 +137,182 @@ const resumeSlice = createSlice({
       ];
     },
 
-    /**
-     * Toggle resume visibility
-     */
-    toggleResumeVisibility: (state, action) => {
-      const { id, isPublic } = action.payload;
+    // ── Selection ─────────────────────────────────────────────────────────────
 
-      // Update in all arrays
-      const updateVisibility = (resume) => {
-        if (resume._id === id) {
-          resume.isPublic = isPublic;
-        }
-      };
-
-      state.resumes.forEach(updateVisibility);
-      state.drafts.forEach(updateVisibility);
-      state.completed.forEach(updateVisibility);
-
-      if (state.selectedResume?._id === id) {
-        state.selectedResume.isPublic = isPublic;
-      }
+    setSelectedResume: (state, action) => {
+      state.selectedResume = action.payload;
     },
 
-    /**
-     * Increment download count
-     */
-    incrementDownloadCount: (state, action) => {
-      const id = action.payload;
-
-      const incrementCount = (resume) => {
-        if (resume._id === id) {
-          resume.downloadCount = (resume.downloadCount || 0) + 1;
-        }
-      };
-
-      state.resumes.forEach(incrementCount);
-      state.drafts.forEach(incrementCount);
-      state.completed.forEach(incrementCount);
-
-      if (state.selectedResume?._id === id) {
-        state.selectedResume.downloadCount =
-          (state.selectedResume.downloadCount || 0) + 1;
-      }
+    clearSelectedResume: (state) => {
+      state.selectedResume = null;
     },
+
+    // ── Error / Reset ─────────────────────────────────────────────────────────
+
+    clearResumeError: (state) => {
+      state.error = null;
+    },
+
+    /** Full state reset — call on logout */
+    clearResumeState: () => initialState,
+  },
+
+  // ── Async (extraReducers) ──────────────────────────────────────────────────
+
+  extraReducers: (builder) => {
+    // fetchAllResumes
+    builder
+      .addCase(fetchAllResumes.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllResumes.fulfilled, (state, { payload }) => {
+        state.loading = false;
+        state.resumes = payload.resumes;
+        state.total = payload.total;
+        state.lastFetched = Date.now();
+      })
+      .addCase(fetchAllResumes.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = payload;
+      });
+
+    // fetchResumeById
+    builder
+      .addCase(fetchResumeById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchResumeById.fulfilled, (state, { payload }) => {
+        state.loading = false;
+        state.selectedResume = payload;
+      })
+      .addCase(fetchResumeById.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = payload;
+      });
+
+    // createResumeAction
+    builder
+      .addCase(createResumeAction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createResumeAction.fulfilled, (state, { payload }) => {
+        state.loading = false;
+        state.resumes.unshift(payload);
+        state.total += 1;
+      })
+      .addCase(createResumeAction.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = payload;
+      });
+
+    // updateResumeAction — no loading flag (supports silent auto-save)
+    builder
+      .addCase(updateResumeAction.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(updateResumeAction.fulfilled, (state, { payload }) => {
+        syncUpdatedResume(state, payload);
+      })
+      .addCase(updateResumeAction.rejected, (state, { payload }) => {
+        state.error = payload;
+      });
+
+    // deleteResumeAction
+    builder
+      .addCase(deleteResumeAction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteResumeAction.fulfilled, (state, { payload: id }) => {
+        state.loading = false;
+        state.resumes = state.resumes.filter((r) => r._id !== id);
+        state.total = Math.max(0, state.total - 1);
+        if (state.selectedResume?._id === id) state.selectedResume = null;
+      })
+      .addCase(deleteResumeAction.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = payload;
+      });
+
+    // duplicateResumeAction
+    builder
+      .addCase(duplicateResumeAction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(duplicateResumeAction.fulfilled, (state, { payload }) => {
+        state.loading = false;
+        state.resumes.unshift(payload);
+        state.total += 1;
+      })
+      .addCase(duplicateResumeAction.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = payload;
+      });
+
+    // updateSectionOrderAction
+    builder
+      .addCase(updateSectionOrderAction.fulfilled, (state, { payload }) => {
+        syncUpdatedResume(state, payload);
+        // Also keep currentResumeData in sync if it's the same resume
+        if (state.currentResumeData?._id === payload._id) {
+          state.currentResumeData.sectionOrder = payload.sectionOrder;
+        }
+      })
+      .addCase(updateSectionOrderAction.rejected, (state, { payload }) => {
+        state.error = payload;
+      });
+
+    // updateSectionVisibilityAction
+    builder
+      .addCase(
+        updateSectionVisibilityAction.fulfilled,
+        (state, { payload }) => {
+          syncUpdatedResume(state, payload);
+          if (state.currentResumeData?._id === payload._id) {
+            state.currentResumeData.sectionVisibility =
+              payload.sectionVisibility;
+          }
+        }
+      )
+      .addCase(updateSectionVisibilityAction.rejected, (state, { payload }) => {
+        state.error = payload;
+      });
+
+    // switchTemplateAction
+    builder
+      .addCase(switchTemplateAction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(switchTemplateAction.fulfilled, (state, { payload }) => {
+        state.loading = false;
+        syncUpdatedResume(state, payload);
+      })
+      .addCase(switchTemplateAction.rejected, (state, { payload }) => {
+        state.loading = false;
+        state.error = payload;
+      });
   },
 });
 
-// ==========================================
-// EXPORTS
-// ==========================================
+// ── Exports ───────────────────────────────────────────────────────────────────
 
 export const {
-  setResumes,
-  setSelectedResume,
-  setDraftResumes,
-  setCompletedResumes,
   setCurrentResumeData,
+  clearCurrentResumeData,
+  updateCurrentResumeField,
   setIsSaving,
   setCurrentStep,
-  setCompletionPercentage,
-  setResumeLoading,
-  setResumeError,
-  clearResumeError,
-  clearSelectedResume,
-  clearResumeState,
-  addResume,
-  updateResume,
-  updateCurrentResumeField,
-  clearCurrentResumeData,
-  removeResume,
-  updateResumeTitle,
   reorderSections,
   resetSectionOrder,
-  toggleResumeVisibility,
-  incrementDownloadCount,
+  setSelectedResume,
+  clearSelectedResume,
+  clearResumeError,
+  clearResumeState,
 } = resumeSlice.actions;
 
 export default resumeSlice.reducer;

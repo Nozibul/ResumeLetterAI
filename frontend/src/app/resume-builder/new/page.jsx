@@ -244,7 +244,7 @@ export default function ResumeBuilderPage() {
       // workExperience: endDate null → undefined
       workExperience: resumeData.workExperience?.map((exp) => ({
         ...exp,
-        endDate: exp.endDate ?? undefined,
+        endDate: exp.currentlyWorking ? undefined : (exp.endDate ?? undefined),
       })),
 
       // projects: null → ""

@@ -1,12 +1,15 @@
 /**
  * @file store/hooks/useAuth.js
- * @description Custom Redux hooks for Authentication
+ * @description Auth hooks
  * @author Nozibul Islam
+ * @version 2.0.0
+ *
+ * useAppDispatch is defined once here and re-exported.
+ * Import it from this file everywhere — do not redefine it in other hook files.
  */
 
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  selectAuth,
   selectUser,
   selectIsAuthenticated,
   selectAuthLoading,
@@ -17,82 +20,34 @@ import {
   selectUserName,
   selectUserRole,
   selectIsAdmin,
+  selectIsPremium,
   selectIsEmailVerified,
+  selectHasCompletedProfile,
+  selectAnyError,
 } from '../selectors/authSelectors';
 
-// ==========================================
-// BASIC HOOKS
-// ==========================================
+// ── Shared dispatch hook
 
-/**
- * Typed dispatch hook
- */
+/** Use this everywhere instead of useDispatch() directly */
 export const useAppDispatch = () => useDispatch();
 
-// ==========================================
-// AUTH HOOKS
-// ==========================================
+// ── Auth state
 
-/**
- * Get entire auth state
- */
-export const useAuth = () => useSelector(selectAuth);
-
-/**
- * Get current user object
- */
 export const useAuthUser = () => useSelector(selectUser);
-
-/**
- * Get authentication status
- */
 export const useIsAuthenticated = () => useSelector(selectIsAuthenticated);
-
-/**
- * Get auth loading state
- */
 export const useAuthLoading = () => useSelector(selectAuthLoading);
-
-/**
- * Get authentication error
- */
 export const useAuthError = () => useSelector(selectAuthError);
-
-/**
- * Get operation error
- */
 export const useOperationError = () => useSelector(selectOperationError);
+export const useAnyError = () => useSelector(selectAnyError);
 
-// ==========================================
-// USER INFO HOOKS
-// ==========================================
+// ── User fields
 
-/**
- * Get user ID
- */
 export const useUserId = () => useSelector(selectUserId);
-
-/**
- * Get user email
- */
 export const useUserEmail = () => useSelector(selectUserEmail);
-
-/**
- * Get user name
- */
 export const useUserName = () => useSelector(selectUserName);
-
-/**
- * Get user role
- */
 export const useUserRole = () => useSelector(selectUserRole);
-
-/**
- * Check if user is admin
- */
 export const useIsAdmin = () => useSelector(selectIsAdmin);
-
-/**
- * Check if email is verified
- */
+export const useIsPremium = () => useSelector(selectIsPremium);
 export const useIsEmailVerified = () => useSelector(selectIsEmailVerified);
+export const useHasCompletedProfile = () =>
+  useSelector(selectHasCompletedProfile);

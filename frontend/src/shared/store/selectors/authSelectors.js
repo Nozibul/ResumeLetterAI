@@ -2,90 +2,42 @@
  * @file store/selectors/authSelectors.js
  * @description Authentication state selectors
  * @author Nozibul Islam
- * 
- * Architecture:
- * - All auth-related selectors
- * - Memoization for performance (if needed)
- * - Reusable across components
+ * @version 2.0.0
  */
 
-/**
- * Get entire auth state
- */
-export const selectAuth = (state) => state.auth;
+// ── Raw state ─────────────────────────────────────────────────────────────────
 
-/**
- * Get current user
- */
 export const selectUser = (state) => state.auth.user;
-
-/**
- * Get authentication status
- */
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
-
-/**
- * Get auth loading state
- */
 export const selectAuthLoading = (state) => state.auth.loading;
-
-/**
- * Get authentication error
- */
 export const selectAuthError = (state) => state.auth.authError;
-
-/**
- * Get operation error
- */
 export const selectOperationError = (state) => state.auth.operationError;
 
-/**
- * Get user ID
- */
+// ── User fields ───────────────────────────────────────────────────────────────
+
 export const selectUserId = (state) => state.auth.user?._id;
-
-/**
- * Get user email
- */
 export const selectUserEmail = (state) => state.auth.user?.email;
-
-/**
- * Get user name
- */
-export const selectUserName = (state) => state.auth.user?.name;
-
-/**
- * Get user role
- */
+export const selectUserName = (state) => state.auth.user?.fullName;
 export const selectUserRole = (state) => state.auth.user?.role;
+export const selectIsEmailVerified = (state) =>
+  state.auth.user?.isEmailVerified ?? false;
 
-/**
- * Check if user is admin
- */
+// ── Derived ───────────────────────────────────────────────────────────────────
+
 export const selectIsAdmin = (state) => state.auth.user?.role === 'admin';
 
-/**
- * Check if email is verified
- */
-export const selectIsEmailVerified = (state) => state.auth.user?.isEmailVerified || false;
+export const selectIsPremium = (state) => state.auth.user?.role === 'premium';
 
 /**
- * Check if user has completed profile
+ * Profile is "complete" when the user has a name, verified email, and active account.
+ * Extend this as the User model grows.
  */
 export const selectHasCompletedProfile = (state) => {
   const user = state.auth.user;
   if (!user) return false;
-  return !!(user.name && user.email && user.isEmailVerified);
+  return !!(user.fullName && user.email && user.isEmailVerified);
 };
 
-/**
- * Get any error (authError or operationError)
- */
-export const selectAnyError = (state) => {
-  return state.auth.authError || state.auth.operationError;
-};
-
-/**
- * Check if any operation is in progress
- */
-export const selectIsLoading = (state) => state.auth.loading;
+/** Any error currently set — useful for generic error display */
+export const selectAnyError = (state) =>
+  state.auth.authError || state.auth.operationError || null;
