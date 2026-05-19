@@ -1,28 +1,33 @@
+'use client';
 /**
  * @file (dashboard)/page.jsx
- * @description Dashboard home page - overview and quick stats
+ * @description Dashboard home page
  * @author Nozibul Islam
- * 
- * Features:
- * - Welcome message with user name
- * - Account information display (mapped)
- * - Quick stats cards (mapped)
- * - Quick action cards
- * - Delete account functionality (temporary - will move to profile page)
+ * @version 2.0.0
+ *
+ * Stats:
+ * - resumes: from useResumeStats() — real data from Redux (fetched on mount)
+ * - coverLetters: reserved for future coverLetter slice
+ * - templates: static (12 available — from statsConfig)
+ *
+ * Auth protection is handled entirely by DashboardLayout.
+ * This page assumes user is always present when rendered.
  */
 
-'use client';
-
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { QuickAction } from '@/widgets/dashboard/quickAction/QuickAction';
 import { statsConfig } from '@/local-data/statsConfig';
 import { DeleteAccountModal } from '@/widgets/dashboard/deleteAccountModal/DeleteAccountModal';
-import { useAuthUser, useIsAuthenticated } from '@/shared/store/hooks/useAuth';
+import { useAuthUser } from '@/shared/store/hooks/useAuth';
+import {
+  useResumeStats,
+  useIsResumesCached,
+} from '@/shared/store/hooks/useResume';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
+import { fetchAllResumes } from '@/shared/store/actions/resumeActions';
 
-// ==========================================
-// USER INFO CONFIGURATION
-// ==========================================
+// ── User info config ──────────────────────────────────────────────────────────
+
 const userInfoConfig = [
   {
     id: '01',
@@ -59,13 +64,12 @@ const userInfoConfig = [
     label: 'Last Login',
     getValue: (user) => {
       if (!user?.lastLoginAt) return 'N/A';
-      const date = new Date(user.lastLoginAt);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
+      return new Date(user.lastLoginAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     },
   },
@@ -74,70 +78,69 @@ const userInfoConfig = [
     label: 'Member Since',
     getValue: (user) => {
       if (!user?.createdAt) return 'N/A';
-      const date = new Date(user.createdAt);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      return new Date(user.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
       });
     },
   },
 ];
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Map live stats to statsConfig ids.
+ * - resumes   → real total from Redux
+ * - coverLetters → reserved (always 0 until slice exists)
+ * - templates → static count from statsConfig
+ */
+const resolveStatCount = (stat, resumeStats) => {
+  switch (stat.id) {
+    case 'resumes':
+      return resumeStats?.total ?? stat.count;
+    case 'coverLetters':
+      return stat.count; // static until coverLetter slice is ready
+    case 'templates':
+      return stat.count; // static
+    default:
+      return stat.count;
+  }
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAuthUser();
-  const isAuthenticated = useIsAuthenticated();
+  const resumeStats = useResumeStats();
+  const isCached = useIsResumesCached();
 
-  // State management
   const [showWelcome, setShowWelcome] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // ==========================================
-  // AUTH PROTECTION
-  // ==========================================
+  // Fetch resumes on mount if not cached
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    if (!isCached) {
+      dispatch(fetchAllResumes());
     }
-  }, [isAuthenticated, router]);
+  }, [dispatch, isCached]);
 
-  // ==========================================
-  // WELCOME MESSAGE TIMER
-  // ==========================================
+  // Hide welcome banner after 5 seconds
   useEffect(() => {
-    if (user?.fullName) {
-      const timer = setTimeout(() => setShowWelcome(false), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
+    if (!user?.fullName) return;
+    const timer = setTimeout(() => setShowWelcome(false), 5000);
+    return () => clearTimeout(timer);
+  }, [user?.fullName]);
 
-  // ==========================================
-  // LOADING STATE
-  // ==========================================
-  if (!isAuthenticated || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // MAIN DASHBOARD UI
-  // ==========================================
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
+      {/* Welcome */}
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div className="text-center">
           {showWelcome && (
-            <h1 className="text-3xl font-bold mb-2 transition-opacity duration-1000 text-gray-900">
-              Welcome back, {user.fullName}! 👋
+            <h1 className="text-3xl font-bold mb-2 text-gray-900">
+              Welcome back, {user?.fullName}! 👋
             </h1>
           )}
           <p className="text-gray-600 text-lg">
@@ -146,7 +149,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Account Information - MAPPED */}
+      {/* Account Information */}
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Account Information
@@ -162,21 +165,25 @@ export default function DashboardPage() {
               {info.isStatus ? (
                 info.getValue(user) ? (
                   <div className="flex items-center space-x-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-green-600 font-medium">
                       {info.statusType === 'verified' ? 'Verified' : 'Active'}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span className="w-2 h-2 bg-red-500 rounded-full" />
                     <span className="text-red-600 font-medium">
-                      {info.statusType === 'verified' ? 'Not Verified' : 'Inactive'}
+                      {info.statusType === 'verified'
+                        ? 'Not Verified'
+                        : 'Inactive'}
                     </span>
                   </div>
                 )
               ) : (
-                <p className={`text-gray-900 font-medium ${info.className || ''}`}>
+                <p
+                  className={`text-gray-900 font-medium ${info.className || ''}`}
+                >
                   {info.getValue(user)}
                 </p>
               )}
@@ -185,7 +192,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Stats - MAPPED */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {statsConfig.map((stat) => (
           <div
@@ -193,7 +200,9 @@ export default function DashboardPage() {
             className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
+              <div
+                className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}
+              >
                 <svg
                   className={`w-6 h-6 ${stat.iconColor}`}
                   fill="none"
@@ -204,8 +213,12 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
-            <h3 className="text-gray-500 text-sm font-medium mb-1">{stat.title}</h3>
-            <p className="text-3xl font-bold text-gray-900">{stat.count}</p>
+            <h3 className="text-gray-500 text-sm font-medium mb-1">
+              {stat.title}
+            </h3>
+            <p className="text-3xl font-bold text-gray-900">
+              {resolveStatCount(stat, resumeStats)}
+            </p>
             <p className="text-sm text-gray-500 mt-2">{stat.description}</p>
           </div>
         ))}
@@ -214,14 +227,16 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <QuickAction />
 
-      {/* ==========================================
-          DANGER ZONE - Delete Account
-          ========================================== */}
+      {/* Danger Zone */}
       <div className="bg-white rounded-lg shadow-md p-6 border-2 border-red-200">
         <div className="flex items-start space-x-3">
-          {/* Warning Icon */}
           <div className="flex-shrink-0">
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-6 h-6 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -230,12 +245,13 @@ export default function DashboardPage() {
               />
             </svg>
           </div>
-
-          {/* Content */}
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-600 mb-1">Danger Zone</h3>
+            <h3 className="text-lg font-semibold text-red-600 mb-1">
+              Danger Zone
+            </h3>
             <p className="text-gray-600 mb-4">
-              Once you delete your account, there is no going back. Please be certain.
+              Once you delete your account, there is no going back. Please be
+              certain.
             </p>
             <button
               onClick={() => setIsDeleteModalOpen(true)}
@@ -247,7 +263,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Delete Account Modal */}
+      {/* Delete Modal */}
       <DeleteAccountModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}

@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 
 export default function Error({ error, reset }) {
   useEffect(() => {
-    // Log the error to an error reporting service
     console.error(error);
   }, [error]);
 
@@ -28,16 +27,18 @@ export default function Error({ error, reset }) {
           Try again
         </button>
 
-        <div className="mt-4 text-sm text-gray-500">
-          <details>
-            <summary className="cursor-pointer hover:text-gray-700">
-              Error details
-            </summary>
-            <pre className="mt-2 text-left text-xs bg-gray-100 p-2 rounded overflow-auto">
-              {error?.message || 'Unknown error'}
-            </pre>
-          </details>
-        </div>
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 text-sm text-gray-500">
+            <details>
+              <summary className="cursor-pointer hover:text-gray-700">
+                Error details
+              </summary>
+              <pre className="mt-2 text-left text-xs bg-gray-100 p-2 rounded overflow-auto">
+                {error?.message || 'Unknown error'}
+              </pre>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@
 
 import { useDispatch, useSelector } from 'react-redux';
 import {
+  selectAuth,
   selectUser,
   selectIsAuthenticated,
   selectAuthLoading,
@@ -39,6 +40,7 @@ export const useAuthLoading = () => useSelector(selectAuthLoading);
 export const useAuthError = () => useSelector(selectAuthError);
 export const useOperationError = () => useSelector(selectOperationError);
 export const useAnyError = () => useSelector(selectAnyError);
+export const useAuth = () => useSelector(selectAuth);
 
 // ── User fields
 

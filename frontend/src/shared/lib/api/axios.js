@@ -1,182 +1,144 @@
 /**
- * @file api/axios.js
+ * @file shared/lib/api/axios.js
  * @description Axios instance with automatic token refresh on 401
  * @author Nozibul Islam
- * 
- * Features:
- * - Automatic refresh token on 401
- * - Request retry after token refresh
- * - Logout on refresh failure
- * - Request/Response logging in development
+ * @version 2.0.0
+ *
+ * Auth model: httpOnly cookie (backend managed).
+ * No token is read or written on the client — cookies are sent automatically
+ * by the browser on every request (withCredentials: true).
+ *
+ * Refresh flow:
+ *   1. Any request → 401
+ *   2. POST /token/refresh-token (cookie sent automatically)
+ *   3a. Success → retry original request + flush queued requests
+ *   3b. Failure → dispatch handleSessionExpiry, redirect to /login
+ *
+ * Concurrency:
+ *   While a refresh is in-flight, subsequent 401s are queued.
+ *   On refresh success/failure the queue is flushed in one pass.
  */
 
 import axios from 'axios';
 
-// ==========================================
-// BASE CONFIGURATION
-// ==========================================
+// ── Instance
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1',
   timeout: 30000,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  withCredentials: true, // send httpOnly cookies on every request
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// ==========================================
-// REFRESH TOKEN STATE
-// ==========================================
+// ── Refresh state
 
 let isRefreshing = false;
+
+/**
+ * Each entry is { resolve, reject } for a Promise that is blocking
+ * a retried request while a refresh is in-flight.
+ * @type {{ resolve: Function, reject: Function }[]}
+ */
 let failedQueue = [];
 
 /**
- * Process queued requests after token refresh
+ * Flush all queued requests.
+ * @param {Error|null} error - If set, every queued promise is rejected.
  */
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
+const flushQueue = (error = null) => {
+  failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve()));
   failedQueue = [];
 };
 
-// ==========================================
-// REQUEST INTERCEPTOR
-// ==========================================
+// ── Session expiry helper
+
+/**
+ * Dispatch handleSessionExpiry and redirect to login.
+ * Lazy-imported to avoid a circular dependency with the store.
+ */
+const expireSession = async () => {
+  try {
+    const [{ store }, { handleSessionExpiry }] = await Promise.all([
+      import('@/shared/store'),
+      import('@/shared/store/slices/authSlice'),
+    ]);
+    store.dispatch(handleSessionExpiry());
+  } catch {
+    // If the import fails for any reason, still redirect.
+  }
+
+  if (typeof window !== 'undefined') {
+    window.location.href = '/login?reason=session_expired';
+  }
+};
+
+// ── Request interceptor
 
 apiClient.interceptors.request.use(
   (config) => {
-    // Log requests in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`→ ${config.method?.toUpperCase()} ${config.url}`);
     }
     return config;
   },
-  (error) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('❌ Request Error:', error);
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// ==========================================
-// RESPONSE INTERCEPTOR (Token Refresh Logic)
-// ==========================================
+// ── Response interceptor
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Success response - just return
     if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ API Response: ${response.config.url}`, response.status);
+      console.log(`← ${response.status} ${response.config.url}`);
     }
     return response;
   },
-  
+
   async (error) => {
-    const originalRequest = error.config;
+    const { response, config: originalRequest } = error;
+    const status = response?.status;
 
-    // ==========================================
-    // CASE 1: Not a 401 error - just reject
-    // ==========================================
-    if (error.response?.status !== 401) {
-      // Only log server errors (500+), not client errors (400-499)
-      if (process.env.NODE_ENV === 'development' && error.response?.status >= 500) {
-        console.error(`❌ API Error (${error.response?.status}):`, error.response?.data);
+    // ── Non-401: pass through
+    if (status !== 401) {
+      if (process.env.NODE_ENV === 'development' && status >= 500) {
+        console.error(`← ${status} ${originalRequest?.url}`, response?.data);
       }
       return Promise.reject(error);
     }
 
-    // ==========================================
-    // CASE 2: 401 on refresh endpoint - logout
-    // ==========================================
-    if (originalRequest.url?.includes('/token/refresh-token')) {
-      
-      // Lazy import to avoid circular dependency
-      const { store } = await import('@/shared/store');
-      const { handleSessionExpiry } = await import('@/shared/store/slices/authSlice');
-      
-      store.dispatch(handleSessionExpiry());
-      
-      // Redirect to login (client-side)
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login?reason=session_expired';
-      }
-      
+    // ── 401 on the refresh endpoint itself: session is gone
+    if (originalRequest?.url?.includes('/token/refresh-token')) {
+      await expireSession();
       return Promise.reject(error);
     }
 
-    // ==========================================
-    // CASE 3: Already retried - logout
-    // ==========================================
-    if (originalRequest._retry) {      
-      // Lazy import to avoid circular dependency
-      const { store } = await import('@/shared/store');
-      const { handleSessionExpiry } = await import('@/shared/store/slices/authSlice');
-      
-      store.dispatch(handleSessionExpiry());
-      
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login?reason=session_expired';
-      }
-      
+    // ── 401 after already retrying: refresh succeeded but request still fails ─
+    if (originalRequest?._retry) {
+      await expireSession();
       return Promise.reject(error);
     }
 
-    // ==========================================
-    // CASE 4: First 401 - Try token refresh
-    // ==========================================
-    
-    // Mark request as retried
+    // ── First 401: attempt token refresh
     originalRequest._retry = true;
 
-    // If already refreshing, queue this request
+    // Queue this request if a refresh is already running
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
-      })
-        .then(() => {
-          return apiClient(originalRequest);
-        })
-        .catch((err) => {
-          return Promise.reject(err);
-        });
+      }).then(() => apiClient(originalRequest));
     }
 
-    // Start refresh process
     isRefreshing = true;
 
     try {
-      // Call refresh token endpoint
-      const response = await apiClient.post('/token/refresh-token');
+      // Cookie is sent automatically — no token handling needed on the client
+      await apiClient.post('/token/refresh-token');
 
-      if (response.data.success) {        
-        // Process queued requests
-        processQueue(null, response.data.data.accessToken);
-        
-        // Retry original request
-        return apiClient(originalRequest);
-      }
-    } catch (refreshError) {      
-      // Process queue with error
-      processQueue(refreshError, null);
-      
-      // Lazy import to avoid circular dependency
-      const { store } = await import('@/shared/store');
-      const { handleSessionExpiry } = await import('@/shared/store/slices/authSlice');
-      
-      store.dispatch(handleSessionExpiry());
-      
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login?reason=session_expired';
-      }
-      
+      flushQueue();
+      return apiClient(originalRequest);
+    } catch (refreshError) {
+      flushQueue(refreshError);
+      await expireSession();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

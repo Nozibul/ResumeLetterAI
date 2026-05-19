@@ -1,4 +1,4 @@
-"use client";
+'use client';
 /**
  * @file page.jsx
  * @author Nozibul Islams
@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAppDispatch } from '@/shared/store/hooks/useAuth';
 import { loginUser } from '@/shared/store/actions/authActions';
-
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,85 +49,92 @@ export default function LoginPage() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
- const handleLogin = async (formData) => {
-  try {
-    const response = await dispatch(loginUser({
-      email: formData.email,
-      password: formData.password,
-      rememberMe: formData.rememberMe
-    })).unwrap();
+  const handleLogin = async (formData) => {
+    try {
+      const response = await dispatch(
+        loginUser({
+          email: formData.email,
+          password: formData.password,
+          rememberMe: formData.rememberMe,
+        })
+      ).unwrap();
 
-    toast.success(`Welcome back, ${response.fullName}!`, {
-      position: 'top-center',
-    });
+      toast.success(`Welcome back, ${response.fullName}!`, {
+        position: 'top-center',
+      });
 
-    if (response.isEmailVerified) 
-      router.push('/dashboard');
-    else 
-      router.push('/');
+      if (response.isEmailVerified) router.push('/dashboard');
+    } catch (error) {
+      const statusCode = error.status;
+      const backendMessage = error.message;
 
-  } catch (error) {
-    const statusCode = error.status;
-    const backendMessage = error.message;
-
-    // Check if account is locked (423)
-    if (statusCode === 423) {
-      const lockUntilTime = error.data?.lockUntil;
-      if (lockUntilTime) {
-        setLockUntil(new Date(lockUntilTime).getTime());
-        setIsLocked(true);
+      // Check if account is locked (423)
+      if (statusCode === 423) {
+        const lockUntilTime = error.data?.lockUntil;
+        if (lockUntilTime) {
+          setLockUntil(new Date(lockUntilTime).getTime());
+          setIsLocked(true);
+        }
       }
+
+      const fallbackMessages = {
+        401: 'Invalid email or password',
+        403: 'Access denied. Please verify your email or contact support',
+        423: 'Account temporarily locked due to multiple failed attempts',
+        500: 'Server error. Please try again later',
+        503: 'Service temporarily unavailable',
+      };
+
+      const errorMessage =
+        backendMessage ||
+        fallbackMessages[statusCode] ||
+        'Login failed. Please try again.';
+
+      toast.error(errorMessage, { position: 'top-center' });
     }
-
-    const fallbackMessages = {
-      401: 'Invalid email or password',
-      403: 'Access denied. Please verify your email or contact support',
-      423: 'Account temporarily locked due to multiple failed attempts',
-      500: 'Server error. Please try again later',
-      503: 'Service temporarily unavailable'
-    };
-
-    const errorMessage = backendMessage || fallbackMessages[statusCode] || 'Login failed. Please try again.';
-    
-    toast.error(errorMessage, { position: 'top-center' });
-  }
-};
+  };
   // Handle signup navigation with validation token
   const handleSignupClick = (e) => {
-    e.preventDefault(); 
-    
+    e.preventDefault();
+
     // Mark user valid process follow
     sessionStorage.setItem('nav_from_login', 'true');
     sessionStorage.setItem('nav_timestamp', Date.now().toString());
-    
+
     router.push('/registration');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{animationDelay: '4s'}}></div>
+        <div
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
+          style={{ animationDelay: '2s' }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
+          style={{ animationDelay: '4s' }}
+        ></div>
       </div>
 
       {/* Login Card */}
       <div className="relative w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6 transform transition-all duration-300 hover:shadow-3xl">
-          
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl mb-2">
               <LogIn className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Welcome Back!</h2>
-            <p className="text-gray-500">Login to continue building amazing resumes</p>
+            <p className="text-gray-500">
+              Login to continue building amazing resumes
+            </p>
           </div>
 
           {/* Form */}
-          <LoginForm 
+          <LoginForm
             onSubmit={handleLogin}
             isLocked={isLocked}
             timeRemaining={timeRemaining}
@@ -139,8 +145,8 @@ export default function LoginPage() {
           {!isLocked && (
             <p className="text-center text-sm text-gray-600">
               New user?{' '}
-              <Link 
-                href="/registration" 
+              <Link
+                href="/registration"
                 onClick={handleSignupClick}
                 className="text-blue-600 hover:text-blue-700 font-semibold hover:underline transition-colors"
               >
@@ -148,7 +154,6 @@ export default function LoginPage() {
               </Link>
             </p>
           )}
-         
         </div>
       </div>
     </div>

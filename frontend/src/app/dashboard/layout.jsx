@@ -1,10 +1,16 @@
+'use client';
 /**
  * @file dashboard/layout.jsx
- * @description Protected dashboard layout - Only redirects on AUTH errors
+ * @description Protected dashboard layout
  * @author Nozibul Islam
+ * @version 2.0.0
+ *
+ * Auth flow:
+ * - If user already in Redux (persisted) → mark authChecked immediately
+ * - If no user → fetchCurrentUser from server
+ * - On 401/403 → authSlice sets isAuthError, redirect via authError useEffect
+ * - No double redirect: catch only sets authChecked, redirect handled separately
  */
-
-'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -12,7 +18,10 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { navItems } from '@/local-data/navItems';
 import { useAppDispatch, useAuth } from '@/shared/store/hooks/useAuth';
-import { fetchCurrentUser, logoutUser } from '@/shared/store/actions/authActions';
+import {
+  fetchCurrentUser,
+  logoutUser,
+} from '@/shared/store/actions/authActions';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
@@ -21,95 +30,77 @@ export default function DashboardLayout({ children }) {
   const { user, isAuthenticated, loading, authError } = useAuth();
   const [authChecked, setAuthChecked] = useState(false);
 
-  // ==========================================
-  // AUTH CHECK 
-  // ==========================================
+  // ── Fetch user if not in Redux ──────────────────────────────────────────────
   useEffect(() => {
-
-    if (!user) {
-      dispatch(fetchCurrentUser())
-        .unwrap()
-        .then(() => setAuthChecked(true))
-        .catch(() => {
-          // Token invalid - interceptor already handled logout
-          router.push('/login');
-        });
-    } else {
+    if (user) {
       setAuthChecked(true);
-    }
-  }, [user, dispatch]);
-
-  // ==========================================
-  // REDIRECT LOGIC - ONLY ON AUTH ERRORS
-  // ==========================================
-  useEffect(() => {
-    if (!authChecked || loading) return;
-
-    // Only redirect on authentication failures
-    if (!isAuthenticated || authError) {
-      router.push('/login');
       return;
     }
 
-    if (user && !user.isEmailVerified) {
-      router.push('/verify-email');
-    }
-  }, [authChecked, loading, authError, isAuthenticated, user, router]);
+    dispatch(fetchCurrentUser())
+      .unwrap()
+      .then(() => setAuthChecked(true))
+      .catch(() => {
+        // 401/403 → authSlice sets authError → redirect handled below
+        // Network error → authSlice leaves user intact → no redirect
+        setAuthChecked(true);
+      });
+  }, [dispatch, user]);
 
-  // ==========================================
-  // LOGOUT HANDLER
-  // ==========================================
+  // ── Redirect on auth failure ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!authChecked || loading) return;
+    if (!isAuthenticated || authError) {
+      router.push('/login');
+    }
+  }, [authChecked, loading, isAuthenticated, authError, router]);
+
+  // ── Logout ──────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
     await dispatch(logoutUser());
     router.push('/');
   };
 
-  // ==========================================
-  // LOADING STATE
-  // ==========================================
+  // ── Loading state ───────────────────────────────────────────────────────────
   if (!authChecked || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-500 mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // ==========================================
-  // PREVENT RENDER IF NOT AUTHENTICATED
-  // ==========================================
-  if (!isAuthenticated || !user) {
-    return null;
-  }
+  // ── Prevent flash while redirecting ────────────────────────────────────────
+  if (!isAuthenticated || !user) return null;
 
-  // ==========================================
-  // PROTECTED DASHBOARD UI
-  // ==========================================
+  // ── Layout ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Header */}
+      {/* Header */}
       <header className="bg-white shadow-md border-b border-gray-200 z-20">
-        <div className="max-w-full mx-auto px-6 sm:px-6 lg:px-10">
+        <div className="max-w-full mx-auto px-6 lg:px-10">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-teal-400 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">R</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">ResumeLetterAI</span>
+              <span className="text-xl font-bold text-gray-900">
+                ResumeLetterAI
+              </span>
             </Link>
 
-            {/* User Info */}
+            {/* User info */}
             <div className="flex items-center space-x-4">
               <span className="text-gray-700 font-medium hidden sm:block">
-                {user?.fullName}
+                {user.fullName}
               </span>
               <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
                 <span className="text-teal-600 font-semibold">
-                  {user?.fullName?.charAt(0).toUpperCase()}
+                  {user.fullName?.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
@@ -117,9 +108,9 @@ export default function DashboardLayout({ children }) {
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Body */}
       <div className="flex">
-        {/* Animated Sidebar */}
+        {/* Sidebar */}
         <motion.aside
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -129,7 +120,6 @@ export default function DashboardLayout({ children }) {
           <nav className="p-4 space-y-2">
             {navItems.map((item, index) => {
               const isActive = pathname === item.href;
-
               return (
                 <Link key={item.href} href={item.href}>
                   <motion.div
@@ -148,10 +138,13 @@ export default function DashboardLayout({ children }) {
                       <motion.div
                         layoutId="activeIndicator"
                         className="absolute left-0 top-0 bottom-0 w-1 bg-teal-600 rounded-r"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 380,
+                          damping: 30,
+                        }}
                       />
                     )}
-
                     <motion.svg
                       className="w-5 h-5"
                       fill="none"
@@ -162,8 +155,9 @@ export default function DashboardLayout({ children }) {
                     >
                       {item.icon}
                     </motion.svg>
-
-                    <span className={`font-medium ${isActive ? 'font-semibold' : ''}`}>
+                    <span
+                      className={`font-medium ${isActive ? 'font-semibold' : ''}`}
+                    >
                       {item.label}
                     </span>
                   </motion.div>
@@ -171,7 +165,7 @@ export default function DashboardLayout({ children }) {
               );
             })}
 
-            {/* Logout Button */}
+            {/* Logout */}
             <div className="-ml-4 mt-6 pt-6 border-t border-gray-200">
               <button
                 onClick={handleLogout}
@@ -183,7 +177,7 @@ export default function DashboardLayout({ children }) {
           </nav>
         </motion.aside>
 
-        {/* Main Content with Animation */}
+        {/* Main content */}
         <motion.main
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
