@@ -2,7 +2,10 @@
  * @file shared/hooks/useResumeForm.js
  * @description Reusable base hook for all resume builder forms
  * @author Nozibul Islam
+ * @version 2.0.0
  *
+ * ✅ useAppDispatch — not useDispatch directly
+ * ✅ setIsSaving(false) delayed — UI saving indicator actually shows
  * ✅ One-time initialization from Redux (useRef — no loop, no stale closure)
  * ✅ Empty object guard — {} does not trigger initialization
  * ✅ hasDataCheck — custom check for complex data shapes (e.g. skills arrays)
@@ -17,28 +20,35 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
 import {
   updateCurrentResumeField,
   setIsSaving,
 } from '@/shared/store/slices/resumeSlice';
 import logger from '@/shared/lib/logger';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 /**
- * Default data check — works for standard object-based forms
- * Returns true if reduxData exists and has at least one key
+ * Default data check — works for standard object-based forms.
+ * Returns true if reduxData exists and has at least one key.
  */
 function defaultHasDataCheck(data) {
   return !!data && Object.keys(data).length > 0;
 }
 
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
 /**
  * @param {Object}   options
- * @param {string}   options.field             - Redux field key
+ * @param {string}   options.field             - Redux field key (e.g. 'personalInfo')
  * @param {Object}   options.initialData       - Empty initial form state
  * @param {Object}   options.reduxData         - resumeData?.personalInfo etc.
  * @param {Function} [options.hasDataCheck]    - Custom fn: (data) => boolean
- **/
+ * @param {string[]} [options.requiredFields]  - Fields that must be non-empty for isValid
+ * @param {Object}   [options.validationRules] - Per-field validation fns or rule objects
+ * @param {Function} [options.sanitize]        - fn: (formData) => sanitizedData
+ */
 export function useResumeForm({
   field,
   initialData,
@@ -48,32 +58,23 @@ export function useResumeForm({
   validationRules = {},
   sanitize,
 }) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
-  // ==========================================
-  // STATE
-  // ==========================================
+  // ── State ─────────────────────────────────────────────────────────────────
+
   const [formData, setFormData] = useState(initialData);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [isFormTouched, setIsFormTouched] = useState(false);
 
-  // ==========================================
-  // REFS
-  // useRef does not trigger re-renders — no stale closure risk
-  // Resets automatically on component unmount — logout/re-login safe
-  // ==========================================
+  /**
+   * useRef does not trigger re-renders — no stale closure risk.
+   * Resets automatically on component unmount — logout/re-login safe.
+   */
   const hasInitialized = useRef(false);
 
-  // ==========================================
-  // INITIALIZE FROM REDUX — runs only once
-  //
-  // Uses hasDataCheck to decide if reduxData is worth initializing from.
-  // Default check: object must exist and have at least one key.
-  // Override hasDataCheck for special cases:
-  //   - skills: needs at least one non-empty array
-  //   - nested objects: custom deep check
-  // ==========================================
+  // ── Initialize from Redux — runs only once ────────────────────────────────
+
   useEffect(() => {
     if (hasInitialized.current) return;
     if (!reduxData || !hasDataCheck(reduxData)) return;
@@ -83,12 +84,13 @@ export function useResumeForm({
     logger.info(`[useResumeForm] ${field} initialized from Redux`);
   }, [reduxData]);
 
-  // ==========================================
-  // VALIDATION HELPER
-  // Supports both:
-  //   function-based: validationRules[name] = (value) => error | null
-  //   object-based:   { required: true, minLength: 2, type: 'email' }
-  // ==========================================
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  /**
+   * Supports both:
+   *   function-based: validationRules[name] = (value) => error | null
+   *   object-based:   { required: true, minLength: 2, type: 'email' }
+   */
   const validateField = useCallback(
     (name, value) => {
       const rule = validationRules[name];
@@ -109,13 +111,14 @@ export function useResumeForm({
           return `Maximum ${rule.maxLength} characters allowed`;
         }
         if (rule.type === 'email' && value) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(value)) return 'Invalid email format';
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            return 'Invalid email format';
+          }
         }
         if (rule.type === 'phone' && value) {
-          const phoneRegex = /^[\d\s\-\+\(\)]{10,15}$/;
-          if (!phoneRegex.test(value))
+          if (!/^[\d\s\-\+\(\)]{10,15}$/.test(value)) {
             return 'Invalid phone format (10-15 digits)';
+          }
         }
         if (rule.type === 'url' && value) {
           try {
@@ -137,9 +140,8 @@ export function useResumeForm({
     [validationRules]
   );
 
-  // ==========================================
-  // HANDLE CHANGE
-  // ==========================================
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleChange = useCallback(
     (e) => {
       const { name, value, type, checked } = e.target;
@@ -155,9 +157,6 @@ export function useResumeForm({
     [validateField]
   );
 
-  // ==========================================
-  // HANDLE BLUR
-  // ==========================================
   const handleBlur = useCallback(
     (e) => {
       const { name, value } = e.target;
@@ -169,10 +168,10 @@ export function useResumeForm({
     [validateField]
   );
 
-  // ==========================================
-  // MANUAL FIELD UPDATE (for complex/custom fields)
-  // e.g. skill arrays, rich text editors, date pickers
-  // ==========================================
+  /**
+   * Manual field update — for complex/custom fields:
+   * skill arrays, rich text editors, date pickers, etc.
+   */
   const updateField = useCallback(
     (name, value) => {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -185,9 +184,6 @@ export function useResumeForm({
     [validateField]
   );
 
-  // ==========================================
-  // RESET FORM
-  // ==========================================
   const resetForm = useCallback(() => {
     setFormData(initialData);
     setErrors({});
@@ -195,16 +191,13 @@ export function useResumeForm({
     setIsFormTouched(false);
   }, [initialData]);
 
-  // ==========================================
-  // DEBOUNCED SAVE TO REDUX
-  //
-  // Guard 1 — isFormTouched: skips save on mount
-  // Guard 2 — hasData: prevents saving an all-empty form
-  // No nested setTimeout — no memory leak on unmount
-  // ==========================================
+  // ── Debounced save to Redux ───────────────────────────────────────────────
+
   useEffect(() => {
+    // Guard 1: skip save on mount
     if (!isFormTouched) return;
 
+    // Guard 2: skip if all fields are empty
     const hasData = Object.values(formData).some((v) =>
       Array.isArray(v) ? v.length > 0 : v?.toString().trim()
     );
@@ -212,21 +205,28 @@ export function useResumeForm({
 
     const timer = setTimeout(() => {
       logger.info(`[useResumeForm] Saving ${field} to Redux...`);
+
       dispatch(setIsSaving(true));
 
       const dataToSave = sanitize ? sanitize(formData) : formData;
       dispatch(updateCurrentResumeField({ field, value: dataToSave }));
 
-      dispatch(setIsSaving(false));
+      // Delay false so the saving indicator is visible for at least 300ms.
+      // updateCurrentResumeField is synchronous — without this delay,
+      // isSaving would flip back to false immediately and the UI spinner
+      // would never render.
+      setTimeout(() => dispatch(setIsSaving(false)), 300);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [formData, isFormTouched, dispatch]);
 
-  // ==========================================
-  // FORM VALIDITY
-  // Single source of truth — components use this, not their own isValid
-  // ==========================================
+  // ── Form validity ─────────────────────────────────────────────────────────
+
+  /**
+   * Single source of truth for validity.
+   * Components use this — no duplicate isValid logic in forms.
+   */
   const isValid = useCallback(() => {
     const hasAllRequired = requiredFields.every((f) =>
       formData[f]?.toString().trim()
@@ -235,9 +235,8 @@ export function useResumeForm({
     return hasAllRequired && hasNoErrors;
   }, [formData, errors, requiredFields]);
 
-  // ==========================================
-  // RETURN
-  // ==========================================
+  // ── Return ────────────────────────────────────────────────────────────────
+
   return {
     formData,
     setFormData,

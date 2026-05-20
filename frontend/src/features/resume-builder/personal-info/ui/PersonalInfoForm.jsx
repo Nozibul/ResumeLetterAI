@@ -18,7 +18,6 @@ import SocialLinksSection from './SocialLinksSection';
 import { personalInfoValidationRules } from '../model/validation';
 import { sanitizePersonalInfoForm } from '../model/sanitizers';
 import { LIMITS } from '@/shared/lib/constants';
-import logger from '@/shared/lib/logger';
 
 // ==========================================
 // CONSTANTS
@@ -78,10 +77,6 @@ function PersonalInfoForm() {
     setShowSocialLinks((prev) => !prev);
   }, []);
 
-  // const handlePhotoChange = useCallback((file) => {
-  //   logger.info('Photo selected:', file?.name);
-  // }, []);
-
   const hasTouchedAnyField = Object.keys(touched).length > 0;
 
   // ==========================================
@@ -90,7 +85,10 @@ function PersonalInfoForm() {
   return (
     <div className="space-y-6">
       {/* ATS GUIDELINES */}
-      <ATSBanner title="ATS-Friendly Tips using AI in Fututre" tips={ATS_TIPS} />
+      <ATSBanner
+        title="ATS-Friendly Tips using AI in Fututre"
+        tips={ATS_TIPS}
+      />
 
       {/* PROFILE PHOTO */}
       {/* <PhotoUpload onPhotoChange={handlePhotoChange} initialPhoto={null} /> */}

@@ -13,7 +13,8 @@
 'use client';
 
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import {
   reorderSections,
@@ -24,6 +25,8 @@ import SectionVisibilityToggles from './SectionVisibilityToggles';
 import NameStyleOptions from './NameStyleOptions';
 import SectionReorder from './SectionReorder';
 import logger from '@/shared/lib/logger';
+
+const dispatch = useAppDispatch();
 
 // ==========================================
 // CONSTANTS
@@ -224,14 +227,17 @@ function FinalizeForm() {
       <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-teal-50 border border-indigo-200 rounded-xl p-4">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-            <span className="text-lg" role="img" aria-label="paint">🎨</span>
+            <span className="text-lg" role="img" aria-label="paint">
+              🎨
+            </span>
           </div>
           <div>
             <h4 className="text-sm font-bold text-indigo-900">
               Customize Your Resume Style
             </h4>
             <p className="text-xs text-indigo-700 mt-0.5">
-              Personalize fonts, name style, section headings & layout. Changes apply to your live preview instantly.
+              Personalize fonts, name style, section headings & layout. Changes
+              apply to your live preview instantly.
             </p>
           </div>
         </div>

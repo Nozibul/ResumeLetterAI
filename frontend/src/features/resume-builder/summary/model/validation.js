@@ -41,26 +41,9 @@ export function validateSummaryText(text) {
   }
 
   // Warn if too short (less than 50 chars is probably not useful)
-  if (text.trim().length < 50) {
+  if (text.trim().length < 500) {
     return 'Summary seems too short. Consider adding more details about your experience.';
   }
-
-  // Check for common buzzwords (warning, not error)
-  const buzzwords = [
-    'synergy',
-    'guru',
-    'rockstar',
-    'ninja',
-    'wizard',
-    'thought leader',
-  ];
-  const lowerText = text.toLowerCase();
-  const foundBuzzwords = buzzwords.filter((word) => lowerText.includes(word));
-
-  if (foundBuzzwords.length > 0) {
-    return `Avoid buzzwords: ${foundBuzzwords.join(', ')}. Use specific achievements instead.`;
-  }
-
   return null;
 }
 

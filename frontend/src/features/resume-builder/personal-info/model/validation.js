@@ -28,22 +28,6 @@ export function validateEmail(email) {
     return 'Invalid email format';
   }
 
-  const fakeDomains = ['example.com', 'test.com', 'fake.com', 'dummy.com'];
-  const domain = email.split('@')[1]?.toLowerCase();
-  if (fakeDomains.includes(domain)) {
-    return 'Please use a real email address';
-  }
-
-  // Common typos
-  const typos = {
-    'gmial.com': 'gmail.com',
-    'gmai.com': 'gmail.com',
-    'yahooo.com': 'yahoo.com',
-  };
-  if (typos[domain]) {
-    return `Did you mean ${email.replace(domain, typos[domain])}?`;
-  }
-
   return null;
 }
 
