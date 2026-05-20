@@ -43,10 +43,6 @@ export function validateTechnologies(technologies) {
     return 'Technologies must be an array';
   }
 
-  if (technologies.length === 0) {
-    return 'Add at least one technology';
-  }
-
   if (technologies.length > LIMITS.MAX_TECHNOLOGIES) {
     return `Maximum ${LIMITS.MAX_TECHNOLOGIES} technologies allowed`;
   }
@@ -92,10 +88,6 @@ export function validateHighlights(highlights) {
     return 'Highlights must be an array';
   }
 
-  if (highlights.length === 0) {
-    return 'Add at least one highlight';
-  }
-
   if (highlights.length > LIMITS.MAX_HIGHLIGHTS) {
     return `Maximum ${LIMITS.MAX_HIGHLIGHTS} highlights allowed`;
   }
@@ -135,10 +127,7 @@ export function validateProject(project) {
   const liveUrlError = validateProjectURL(project.liveUrl, 'Live URL');
   if (liveUrlError) errors.liveUrl = liveUrlError;
 
-  const sourceCodeError = validateProjectURL(
-    project.sourceCode,
-    'Source code URL'
-  );
+  const sourceCodeError = validateSourceCodeURL(project.sourceCode);
   if (sourceCodeError) errors.sourceCode = sourceCodeError;
 
   // Highlights (required)
@@ -155,10 +144,6 @@ export function validateProject(project) {
 export function validateProjectsForm(projects) {
   if (!Array.isArray(projects)) {
     return { _form: 'Projects must be an array' };
-  }
-
-  if (projects.length === 0) {
-    return { _form: 'Add at least one project' };
   }
 
   if (projects.length > LIMITS.MAX_PROJECTS) {
@@ -237,63 +222,34 @@ export function getProjectQualityScore(project) {
   };
 }
 
-// ==========================================
-// UNIT TESTS
-// ==========================================
+// validation.js এ যোগ করো
+const ALLOWED_CODE_HOSTS = [
+  'github.com',
+  'gitlab.com',
+  'bitbucket.org',
+  'codeberg.org',
+];
 
-/*
-describe('Projects Validation', () => {
-  describe('validateProjectName', () => {
-    test('should reject empty', () => {
-      expect(validateProjectName('')).toContain('required');
-    });
+export function validateSourceCodeURL(url) {
+  if (!url || url.trim() === '') return null; // optional
 
-    test('should accept valid name', () => {
-      expect(validateProjectName('E-commerce Platform')).toBeNull();
-    });
-  });
+  try {
+    const { protocol, hostname } = new URL(url);
 
-  describe('validateTechnologies', () => {
-    test('should reject empty array', () => {
-      expect(validateTechnologies([])).toContain('at least one');
-    });
+    if (!['http:', 'https:'].includes(protocol)) {
+      return 'URL must start with http:// or https://';
+    }
 
-    test('should reject duplicates', () => {
-      expect(validateTechnologies(['React', 'React'])).toContain('Duplicate');
-    });
+    const isAllowed = ALLOWED_CODE_HOSTS.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`)
+    );
 
-    test('should accept valid array', () => {
-      expect(validateTechnologies(['React', 'Node.js'])).toBeNull();
-    });
-  });
+    if (!isAllowed) {
+      return 'Source code must be hosted on GitHub, GitLab, Bitbucket, or Codeberg';
+    }
 
-  describe('validateProjectURL', () => {
-    test('should accept empty (optional)', () => {
-      expect(validateProjectURL('')).toBeNull();
-    });
-
-    test('should reject localhost', () => {
-      expect(validateProjectURL('http://localhost:3000')).toContain('localhost');
-    });
-
-    test('should accept valid URL', () => {
-      expect(validateProjectURL('https://example.com')).toBeNull();
-    });
-  });
-
-  describe('getProjectQualityScore', () => {
-    test('should score complete project high', () => {
-      const complete = {
-        projectName: 'E-commerce',
-        technologies: ['React', 'Node.js', 'MongoDB'],
-        description: 'Full-stack platform with real-time features',
-        liveUrl: 'https://example.com',
-        sourceCode: 'https://github.com/user/repo',
-        highlights: ['Served 100K users', 'Reduced load time by 60%'],
-      };
-      const result = getProjectQualityScore(complete);
-      expect(result.score).toBeGreaterThan(80);
-    });
-  });
-});
-*/
+    return null;
+  } catch {
+    return 'Invalid URL format';
+  }
+}

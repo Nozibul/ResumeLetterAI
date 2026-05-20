@@ -2,7 +2,10 @@
  * @file shared/hooks/useResumeListForm.js
  * @description Reusable base hook for array-based resume builder forms
  * @author Nozibul Islam
+ * @version 2.0.0
  *
+ * ✅ useAppDispatch — not useDispatch directly
+ * ✅ setIsSaving(false) delayed 300ms — UI saving indicator actually shows
  * ✅ One-time initialization from Redux (useRef — no loop, no stale closure)
  * ✅ Empty array guard — [] does not trigger initialization
  * ✅ hasDataCheck — custom check for complex initialization conditions
@@ -11,30 +14,13 @@
  * ✅ Debounced auto-save to Redux (500ms)
  * ✅ No nested setTimeout — no memory leak on unmount
  * ✅ add, remove, update, reorder helpers included
- * ✅ handleAdd returns false if max limit reached — caller shows alert
+ * ✅ handleAdd returns false if max limit reached — caller shows toast
  * ✅ createItem defined outside component — stable reference
  * ✅ Logout / re-login safe — ref resets automatically on unmount
- *
- * Usage (default):
- *   useResumeListForm({
- *     field: 'workExperience',
- *     createItem: createEmptyExperience,
- *     reduxData: resumeData?.workExperience,
- *     maxItems: LIMITS.MAX_WORK_EXPERIENCES,
- *     filterEmpty: (item) => item.jobTitle?.trim() || item.company?.trim(),
- *   });
- *
- * Usage (custom hasDataCheck):
- *   useResumeListForm({
- *     field: 'certifications',
- *     createItem: createEmptyCertification,
- *     reduxData: resumeData?.certifications,
- *     hasDataCheck: (data) => data.some(item => item.name?.trim()),
- *   });
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
 import {
   updateCurrentResumeField,
   setIsSaving,
@@ -42,20 +28,26 @@ import {
 import { reorderArray } from '@/shared/lib/utils';
 import logger from '@/shared/lib/logger';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 /**
- * Default data check — works for standard array-based forms
- * Returns true if reduxData is a non-empty array
+ * Default data check — works for standard array-based forms.
+ * Returns true if reduxData is a non-empty array.
  */
 function defaultHasDataCheck(data) {
   return Array.isArray(data) && data.length > 0;
 }
 
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
 /**
  * @param {Object}   options
- * @param {string}   options.field         - Redux field key
- * @param {Function} options.createItem    - Factory fn for a new empty item (define outside component)
- * @param {Array}    options.reduxData     - resumeData?.workExperience etc.
- * @param {Function} [options.hasDataCheck] - Custom fn: (data) => boolean
+ * @param {string}   options.field           - Redux field key (e.g. 'workExperience')
+ * @param {Function} options.createItem      - Factory fn for a new empty item (define outside component)
+ * @param {Array}    options.reduxData       - resumeData?.workExperience etc.
+ * @param {Function} [options.hasDataCheck]  - Custom fn: (data) => boolean
+ * @param {number}   [options.maxItems]      - Max allowed items
+ * @param {Function} [options.filterEmpty]   - fn: (item) => boolean — exclude blank entries from save
  */
 export function useResumeListForm({
   field,
@@ -65,28 +57,21 @@ export function useResumeListForm({
   maxItems = Infinity,
   filterEmpty,
 }) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
-  // ==========================================
-  // STATE
-  // ==========================================
+  // ── State ─────────────────────────────────────────────────────────────────
+
   const [items, setItems] = useState(() => [createItem()]);
   const [touched, setTouched] = useState(false);
 
-  // ==========================================
-  // REFS
-  // useRef does not trigger re-renders — no stale closure risk
-  // Resets automatically on component unmount — logout/re-login safe
-  // ==========================================
+  /**
+   * useRef does not trigger re-renders — no stale closure risk.
+   * Resets automatically on component unmount — logout/re-login safe.
+   */
   const hasInitialized = useRef(false);
 
-  // ==========================================
-  // INITIALIZE FROM REDUX — runs only once
-  //
-  // Uses hasDataCheck to decide if reduxData is worth initializing from.
-  // Default: non-empty array check.
-  // Override for custom conditions if needed.
-  // ==========================================
+  // ── Initialize from Redux — runs only once ────────────────────────────────
+
   useEffect(() => {
     if (hasInitialized.current) return;
     if (!reduxData || !hasDataCheck(reduxData)) return;
@@ -96,33 +81,36 @@ export function useResumeListForm({
     logger.info(`[useResumeListForm] ${field} initialized from Redux`);
   }, [reduxData]);
 
-  // ==========================================
-  // DEBOUNCED SAVE TO REDUX
-  //
-  // Guard — touched: skips save on mount
-  // filterEmpty: only meaningful items saved
-  // No nested setTimeout — no memory leak on unmount
-  // ==========================================
+  // ── Debounced save to Redux ───────────────────────────────────────────────
+
   useEffect(() => {
+    // Guard: skip save on mount
     if (!touched) return;
 
     const timer = setTimeout(() => {
       logger.info(`[useResumeListForm] Saving ${field} to Redux...`);
+
       dispatch(setIsSaving(true));
 
       const dataToSave = filterEmpty ? items.filter(filterEmpty) : items;
       dispatch(updateCurrentResumeField({ field, value: dataToSave }));
 
-      dispatch(setIsSaving(false));
+      // Delay false so the saving indicator is visible for at least 300ms.
+      // updateCurrentResumeField is synchronous — without this delay,
+      // isSaving would flip back to false immediately and the UI spinner
+      // would never render.
+      setTimeout(() => dispatch(setIsSaving(false)), 300);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [items, touched, dispatch]);
 
-  // ==========================================
-  // HANDLERS
-  // createItem defined outside component — stable reference
-  // ==========================================
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  /**
+   * Returns true on success, false if max limit reached.
+   * Caller is responsible for showing a toast on false.
+   */
   const handleAdd = useCallback(() => {
     if (items.length >= maxItems) {
       logger.warn(`[useResumeListForm] Max items reached: ${maxItems}`);
@@ -134,6 +122,10 @@ export function useResumeListForm({
     return true;
   }, [items.length, maxItems, createItem, field]);
 
+  /**
+   * Removes item at index.
+   * If last item removed, resets to one empty item so the form is never blank.
+   */
   const handleRemove = useCallback(
     (index) => {
       setItems((prev) =>
@@ -147,6 +139,7 @@ export function useResumeListForm({
     [createItem, field]
   );
 
+  /** Updates a single field on the item at index. */
   const handleUpdate = useCallback((index, fieldName, value) => {
     setItems((prev) => {
       const updated = [...prev];
@@ -156,6 +149,7 @@ export function useResumeListForm({
     setTouched(true);
   }, []);
 
+  /** Moves item from fromIndex to toIndex. */
   const handleReorder = useCallback(
     (fromIndex, toIndex) => {
       setItems((prev) => reorderArray(prev, fromIndex, toIndex));
@@ -167,9 +161,8 @@ export function useResumeListForm({
     [field]
   );
 
-  // ==========================================
-  // RETURN
-  // ==========================================
+  // ── Return
+
   return {
     items,
     setItems,

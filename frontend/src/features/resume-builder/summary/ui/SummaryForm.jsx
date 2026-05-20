@@ -50,9 +50,17 @@ function SummaryForm() {
   const { formData, errors, touched, handleChange, handleBlur, updateField } =
     useResumeForm({
       field: 'summary',
+      // Only pass { text } — isVisible is not a form field
       initialData: INITIAL_FORM_DATA,
-      reduxData: resumeData?.summary,
+      reduxData: resumeData?.summary?.text
+        ? { text: resumeData.summary.text }
+        : undefined,
       validationRules: summaryValidationRules,
+      // Preserve isVisible from Redux on every save
+      sanitize: (data) => ({
+        text: data.text,
+        isVisible: resumeData?.summary?.isVisible ?? true,
+      }),
     });
 
   // ==========================================

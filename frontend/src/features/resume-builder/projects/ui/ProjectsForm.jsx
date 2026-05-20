@@ -1,16 +1,17 @@
+'use client';
 /**
  * @file features/resume-builder/projects/ui/ProjectsForm.jsx
  * @description Projects form - Step 4
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Refactored to use shared useResumeListForm hook.
- * All init, save, add/remove/update/reorder logic lives in the hook.
- * Component is responsible for UI only.
+ * - _tempId added to createEmptyProject for stable React keys
+ * - alert → toast.error
+ * - key={project._tempId || index}
  */
 
-'use client';
-
 import { memo, useMemo, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
@@ -19,9 +20,8 @@ import AddProjectButton from './AddProjectButton';
 import { validateProject } from '../model/validation';
 import { LIMITS, SKILLS_SUGGESTIONS } from '@/shared/lib/constants';
 
-// ==========================================
-// CONSTANTS
-// ==========================================
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const ATS_TIPS = [
   'List your best 2-5 projects (quality > quantity)',
   'Include tech stack for ATS keyword matching',
@@ -30,14 +30,11 @@ const ATS_TIPS = [
   'Highlight your specific contributions',
 ];
 
-// ==========================================
-// HELPERS
-// Defined outside component — stable reference, no re-creation on render
-// createEmptyProject passed to hook as createItem — no useCallback needed
-// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
-// ==========================================
+// ── Helpers — defined outside component for stable reference ──────────────────
+
 function createEmptyProject() {
   return {
+    _tempId: Date.now(),
     projectName: '',
     technologies: [],
     description: '',
@@ -48,21 +45,14 @@ function createEmptyProject() {
 }
 
 function isNotEmpty(project) {
-  return project.projectName?.trim();
+  return !!project.projectName?.trim();
 }
 
-/**
- * ProjectsForm Component
- * Step 4: Projects
- */
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function ProjectsForm() {
   const resumeData = useCurrentResumeData();
 
-  // ==========================================
-  // LIST FORM HOOK
-  // All init, save, add/remove/update/reorder logic lives in useResumeListForm.
-  // handleAdd returns false if max limit reached — show alert in UI.
-  // ==========================================
   const {
     items: projects,
     handleAdd,
@@ -77,11 +67,7 @@ function ProjectsForm() {
     filterEmpty: isNotEmpty,
   });
 
-  // ==========================================
-  // VALIDATION
-  // Run on current projects for UI feedback only
-  // Does not block saving — partial data is allowed
-  // ==========================================
+  // Validation — UI feedback only, does not block saving
   const errors = useMemo(() => {
     const allErrors = {};
     projects.forEach((project, index) => {
@@ -93,10 +79,7 @@ function ProjectsForm() {
     return allErrors;
   }, [projects]);
 
-  // ==========================================
-  // TECH SUGGESTIONS
-  // Memoized — only recomputed if SKILLS_SUGGESTIONS changes (never)
-  // ==========================================
+  // Tech suggestions — memoized, SKILLS_SUGGESTIONS never changes
   const allTechSuggestions = useMemo(
     () => [
       ...SKILLS_SUGGESTIONS.programmingLanguages,
@@ -108,25 +91,18 @@ function ProjectsForm() {
     []
   );
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const onAdd = useCallback(() => {
     const added = handleAdd();
     if (!added) {
-      alert(`Maximum ${LIMITS.MAX_PROJECTS} projects allowed`);
+      toast.error(`Maximum ${LIMITS.MAX_PROJECTS} projects allowed`);
     }
   }, [handleAdd]);
 
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="space-y-4">
-      {/* ATS GUIDELINES */}
       <ATSBanner title="Project Tips for Developers" tips={ATS_TIPS} />
 
-      {/* VALIDATION ERRORS SUMMARY */}
+      {/* Validation summary */}
       {Object.keys(errors).length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
@@ -136,11 +112,10 @@ function ProjectsForm() {
         </div>
       )}
 
-      {/* PROJECTS LIST */}
+      {/* Projects list */}
       <div className="space-y-4">
         {projects.map((project, index) => (
-          <div key={index} className="relative">
-            {/* Error Indicator */}
+          <div key={project._tempId || index} className="relative">
             {errors[index] && (
               <div className="absolute -top-2 -right-2 z-10">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -155,6 +130,7 @@ function ProjectsForm() {
               techSuggestions={allTechSuggestions}
               onUpdate={handleUpdate}
               onRemove={handleRemove}
+              errors={errors[index] || {}}
               onMoveUp={
                 index > 0 ? () => handleReorder(index, index - 1) : null
               }
@@ -168,7 +144,6 @@ function ProjectsForm() {
         ))}
       </div>
 
-      {/* ADD PROJECT BUTTON */}
       <AddProjectButton currentCount={projects.length} onClick={onAdd} />
     </div>
   );

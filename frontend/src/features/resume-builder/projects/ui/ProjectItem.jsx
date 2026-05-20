@@ -1,30 +1,23 @@
+'use client';
 /**
  * @file features/resume-builder/projects/ui/ProjectItem.jsx
- * @description Single project card component (extracted)
+ * @description Single project card component
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear structure
- * ✅ Performance: Memoized
- * ✅ Security: No XSS
- * ✅ Best Practices: Reusable, modular
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: Cleanup in parent
+ * - alert → toast.error
+ * - key={`highlight-${index}-${hIdx}`} for stable React keys
+ * - description maxLength: 300 → 1000 (matches backend projectSchema)
  */
-
-'use client';
 
 import { memo, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import toast from 'react-hot-toast';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import ResumeTextarea from '@/shared/components/atoms/resume/ResumeTextarea';
 import TechStackTags from './TechStackTags';
 import { LIMITS } from '@/shared/lib/constants';
 
-/**
- * ProjectItem Component
- * Single project card with all fields
- */
 function ProjectItem({
   index,
   project,
@@ -34,9 +27,8 @@ function ProjectItem({
   onMoveUp,
   onMoveDown,
 }) {
-  // ==========================================
-  // HIGHLIGHTS HANDLERS
-  // ==========================================
+  // ── Highlight handlers ────────────────────────────────────────────────────
+
   const handleHighlightChange = useCallback(
     (hIdx, value) => {
       const updated = [...(project.highlights || [])];
@@ -49,7 +41,7 @@ function ProjectItem({
   const handleAddHighlight = useCallback(() => {
     const current = project.highlights || [];
     if (current.length >= LIMITS.MAX_HIGHLIGHTS) {
-      alert(`Maximum ${LIMITS.MAX_HIGHLIGHTS} highlights allowed`);
+      toast.error(`Maximum ${LIMITS.MAX_HIGHLIGHTS} highlights allowed`);
       return;
     }
     onUpdate(index, 'highlights', [...current, '']);
@@ -63,25 +55,22 @@ function ProjectItem({
     [project.highlights, index, onUpdate]
   );
 
-  // ==========================================
-  // RENDER
-  // ==========================================
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="border-2 border-gray-200 rounded-lg p-6 bg-white hover:border-teal-300 transition-colors">
-      {/* HEADER WITH CONTROLS */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Project #{index + 1}
         </h3>
 
         <div className="flex items-center gap-2">
-          {/* Move Up */}
           {onMoveUp && (
             <button
               type="button"
               onClick={onMoveUp}
               className="p-1.5 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
-              title="Move up"
               aria-label="Move project up"
             >
               <svg
@@ -100,13 +89,11 @@ function ProjectItem({
             </button>
           )}
 
-          {/* Move Down */}
           {onMoveDown && (
             <button
               type="button"
               onClick={onMoveDown}
               className="p-1.5 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
-              title="Move down"
               aria-label="Move project down"
             >
               <svg
@@ -125,12 +112,10 @@ function ProjectItem({
             </button>
           )}
 
-          {/* Delete */}
           <button
             type="button"
             onClick={() => onRemove(index)}
             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Delete project"
             aria-label="Delete project"
           >
             <svg
@@ -150,9 +135,8 @@ function ProjectItem({
         </div>
       </div>
 
-      {/* FORM FIELDS */}
+      {/* Fields */}
       <div className="space-y-4">
-        {/* Project Name */}
         <ResumeInput
           label="Project Name"
           name="projectName"
@@ -164,7 +148,6 @@ function ProjectItem({
           showCounter
         />
 
-        {/* Tech Stack (Sub-Component) */}
         <TechStackTags
           technologies={project.technologies || []}
           suggestions={techSuggestions}
@@ -183,7 +166,7 @@ function ProjectItem({
           }
         />
 
-        {/* Description */}
+        {/* Description — maxLength 1000 matches backend projectSchema */}
         <ResumeTextarea
           label="Description"
           name="description"
@@ -191,11 +174,10 @@ function ProjectItem({
           onChange={(e) => onUpdate(index, 'description', e.target.value)}
           placeholder="Full-stack e-commerce platform with real-time inventory management..."
           rows={2}
-          maxLength={300}
+          maxLength={1000}
           helperText="Optional but recommended"
         />
 
-        {/* URLs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ResumeInput
             label="Live URL"
@@ -214,7 +196,9 @@ function ProjectItem({
             value={project.sourceCode || ''}
             onChange={(e) => onUpdate(index, 'sourceCode', e.target.value)}
             placeholder="https://github.com/user/repo"
-            helperText="Optional but recommended"
+            helperText="GitHub, GitLab, Bitbucket, or Codeberg only"
+            error={errors.sourceCode}
+            touched={!!project.sourceCode}
           />
         </div>
 
@@ -226,7 +210,10 @@ function ProjectItem({
 
           <div className="space-y-2">
             {(project.highlights || ['']).map((highlight, hIdx) => (
-              <div key={hIdx} className="flex items-start gap-2">
+              <div
+                key={`highlight-${index}-${hIdx}`}
+                className="flex items-start gap-2"
+              >
                 <span className="text-gray-400 mt-3">•</span>
                 <ResumeTextarea
                   label=""
@@ -300,11 +287,13 @@ ProjectItem.propTypes = {
   techSuggestions: PropTypes.arrayOf(PropTypes.string).isRequired,
   onUpdate: PropTypes.func.isRequired,
   onRemove: PropTypes.func.isRequired,
+  errors: PropTypes.object,
   onMoveUp: PropTypes.func,
   onMoveDown: PropTypes.func,
 };
 
 ProjectItem.defaultProps = {
+  errors: {},
   onMoveUp: null,
   onMoveDown: null,
 };
