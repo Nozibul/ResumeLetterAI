@@ -18,13 +18,13 @@ import { LIMITS } from '@/shared/lib/constants';
 // SKILL CATEGORY VALIDATION
 // ==========================================
 
-export function validateSkillCategory(skills, categoryName) {
+export function validateSkillCategory(skills, categoryName, maxLimit) {
   if (!Array.isArray(skills)) {
     return `${categoryName} must be an array`;
   }
 
-  if (skills.length > LIMITS.MAX_SKILLS_PER_CATEGORY) {
-    return `Maximum ${LIMITS.MAX_SKILLS_PER_CATEGORY} skills allowed in ${categoryName}`;
+  if (skills.length > maxLimit) {
+    return `Maximum ${maxLimit} skills allowed in ${categoryName}`;
   }
 
   // Check for duplicates
@@ -58,23 +58,28 @@ export function validateSkillsForm(formData) {
     'other',
   ];
 
+  const DB_DEVOPS_CATEGORIES = ['database', 'devOps'];
   categories.forEach((category) => {
-    const skills = formData[category] || [];
-    const error = validateSkillCategory(skills, category);
-    if (error) {
-      errors[category] = error;
-    }
+    const limit = DB_DEVOPS_CATEGORIES.includes(category)
+      ? LIMITS.MAX_SKILLS_DB_DEVOPS
+      : LIMITS.MAX_SKILLS_PER_CATEGORY;
+    const error = validateSkillCategory(
+      formData[category] || [],
+      category,
+      limit
+    );
+    if (error) errors[category] = error;
   });
 
   // Check if at least one skill exists
-  const totalSkills = categories.reduce(
-    (sum, cat) => sum + (formData[cat]?.length || 0),
-    0
-  );
+  // const totalSkills = categories.reduce(
+  //   (sum, cat) => sum + (formData[cat]?.length || 0),
+  //   0
+  // );
 
-  if (totalSkills === 0) {
-    errors._form = 'Add at least one skill';
-  }
+  // if (totalSkills === 0) {
+  //   errors._form = 'Add at least one skill';
+  // }
 
   return errors;
 }
@@ -189,50 +194,3 @@ export function getTotalSkillsCount(formData) {
 export function isSkillsValid(formData) {
   return Object.keys(validateSkillsForm(formData)).length === 0;
 }
-
-// ==========================================
-// UNIT TESTS
-// ==========================================
-
-/*
-describe('Skills Validation', () => {
-  describe('validateSkillCategory', () => {
-    test('should reject non-array', () => {
-      expect(validateSkillCategory('not array', 'Frontend')).toContain('array');
-    });
-
-    test('should reject duplicates', () => {
-      expect(validateSkillCategory(['React', 'react'], 'Frontend')).toContain('Duplicate');
-    });
-
-    test('should reject empty strings', () => {
-      expect(validateSkillCategory(['React', ''], 'Frontend')).toContain('Empty');
-    });
-
-    test('should accept valid skills', () => {
-      expect(validateSkillCategory(['React', 'Vue'], 'Frontend')).toBeNull();
-    });
-  });
-
-  describe('getSkillsQualityScore', () => {
-    test('should score balanced skills high', () => {
-      const balanced = {
-        programmingLanguages: ['JavaScript', 'Python', 'Java'],
-        frontend: ['React', 'Vue'],
-        backend: ['Node.js', 'Django'],
-        database: ['MongoDB', 'PostgreSQL'],
-        devOps: ['Docker'],
-      };
-      const result = getSkillsQualityScore(balanced);
-      expect(result.score).toBeGreaterThan(80);
-    });
-
-    test('should suggest improvements for empty', () => {
-      const empty = {};
-      const result = getSkillsQualityScore(empty);
-      expect(result.score).toBe(0);
-      expect(result.suggestions.length).toBeGreaterThan(0);
-    });
-  });
-});
-*/

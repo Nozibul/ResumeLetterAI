@@ -216,7 +216,7 @@ function SkillsForm() {
             skills={formData[name] || []}
             onAdd={(skill) => handleAddSkill(name, skill)}
             onRemove={(skill) => handleRemoveSkill(name, skill)}
-            suggestions={SKILLS_SUGGESTIONS[name] || []}
+            // suggestions={SKILLS_SUGGESTIONS[name] || []}
           />
         ))}
       </div>

@@ -35,9 +35,9 @@ function SuggestionsList({
         💡 Popular {category} Skills
       </h4>
       <div className="flex flex-wrap gap-2">
-        {availableSuggestions.slice(0, 10).map((skill, index) => (
+        {availableSuggestions.slice(0, 10).map((skill) => (
           <button
-            key={index}
+            key={skill}
             type="button"
             onClick={() => onAdd(skill)}
             className="px-3 py-1 text-xs font-medium bg-white border border-blue-300 text-teal-700 rounded-full hover:bg-blue-100 transition-colors"
