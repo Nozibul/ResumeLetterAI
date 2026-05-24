@@ -1,16 +1,18 @@
+'use client';
 /**
  * @file features/resume-builder/education/ui/EducationForm.jsx
  * @description Education form - Step 6
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Refactored to use shared useResumeListForm hook.
- * All init, save, add/remove/update/reorder logic lives in the hook.
- * Component is responsible for UI only.
+ * - alert → toast.error
+ * - _tempId added to createEmptyEducation for stable React keys
+ * - key={education._tempId || index}
+ * - quality suggestion key={suggestion} (stable)
  */
 
-'use client';
-
 import { memo, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
@@ -22,9 +24,8 @@ import {
 } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
 
-// ==========================================
-// CONSTANTS
-// ==========================================
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const ATS_TIPS = [
   'List most recent degree first',
   'Include GPA if 3.0 or higher',
@@ -32,14 +33,11 @@ const ATS_TIPS = [
   "Include honors, awards, or Dean's List if applicable",
 ];
 
-// ==========================================
-// HELPERS
-// Defined outside component — stable reference, no re-creation on render
-// createEmptyEducation passed to hook as createItem — no useCallback needed
-// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
-// ==========================================
+// ── Helpers — defined outside component for stable reference ──────────────────
+
 function createEmptyEducation() {
   return {
+    _tempId: Date.now(),
     degree: '',
     institution: '',
     location: '',
@@ -48,22 +46,16 @@ function createEmptyEducation() {
   };
 }
 
+/** Only save entries that have at least a degree or institution */
 function isNotEmpty(education) {
-  return education.degree?.trim() || education.institution?.trim();
+  return !!(education.degree?.trim() || education.institution?.trim());
 }
 
-/**
- * EducationForm Component
- * Step 6: Education
- */
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function EducationForm() {
   const resumeData = useCurrentResumeData();
 
-  // ==========================================
-  // LIST FORM HOOK
-  // All init, save, add/remove/update/reorder logic lives in useResumeListForm.
-  // handleAdd returns false if max limit reached — show alert in UI.
-  // ==========================================
   const {
     items: educations,
     handleAdd,
@@ -78,35 +70,23 @@ function EducationForm() {
     filterEmpty: isNotEmpty,
   });
 
-  // ==========================================
-  // VALIDATION
-  // Run on current educations for UI feedback only
-  // Does not block saving — partial data is allowed
-  // ==========================================
+  // Validation — UI feedback only, does not block saving
   const errors = useMemo(() => validateEducationForm(educations), [educations]);
 
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  const hasValidationErrors = Object.keys(errors).length > 0 && !errors._form;
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const onAdd = useCallback(() => {
     const added = handleAdd();
     if (!added) {
-      alert(`Maximum ${LIMITS.MAX_EDUCATIONS} education entries allowed`);
+      toast.error(`Maximum ${LIMITS.MAX_EDUCATIONS} education entries allowed`);
     }
   }, [handleAdd]);
 
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="space-y-6">
-      {/* ATS GUIDELINES */}
       <ATSBanner title="Education Section Tips" tips={ATS_TIPS} />
 
-      {/* VALIDATION ERRORS SUMMARY */}
+      {/* Validation summary */}
       {hasValidationErrors && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm font-medium text-yellow-800 mb-2">
@@ -126,7 +106,7 @@ function EducationForm() {
         </div>
       )}
 
-      {/* EDUCATIONS LIST */}
+      {/* Education list */}
       <div className="space-y-6">
         {educations.map((education, index) => {
           const qualityScore = getEducationQualityScore(education);
@@ -134,8 +114,8 @@ function EducationForm() {
             errors[index] && Object.keys(errors[index]).length > 0;
 
           return (
-            <div key={index} className="relative">
-              {/* Error Indicator */}
+            <div key={education._tempId || index} className="relative">
+              {/* Error indicator */}
               {hasErrors && (
                 <div className="absolute -top-2 -right-2 z-10">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -144,7 +124,7 @@ function EducationForm() {
                 </div>
               )}
 
-              {/* Quality Score Badge */}
+              {/* Complete indicator */}
               {!hasErrors && qualityScore.score === 100 && (
                 <div className="absolute -top-2 -right-2 z-10">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">
@@ -168,15 +148,15 @@ function EducationForm() {
                 }
               />
 
-              {/* Quality Suggestions */}
+              {/* Quality suggestions */}
               {qualityScore.suggestions.length > 0 && (
                 <div className="mt-2 bg-teal-50 border border-teal-200 rounded-lg p-3">
                   <p className="text-xs font-medium text-teal-800 mb-1">
                     💡 Suggestions (Score: {qualityScore.score}/100):
                   </p>
                   <ul className="text-xs text-teal-700 space-y-0.5 list-disc list-inside">
-                    {qualityScore.suggestions.map((suggestion, idx) => (
-                      <li key={idx}>{suggestion}</li>
+                    {qualityScore.suggestions.map((suggestion) => (
+                      <li key={suggestion}>{suggestion}</li>
                     ))}
                   </ul>
                 </div>
@@ -186,7 +166,6 @@ function EducationForm() {
         })}
       </div>
 
-      {/* ADD BUTTON */}
       <AddEducationButton currentCount={educations.length} onClick={onAdd} />
     </div>
   );

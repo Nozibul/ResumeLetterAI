@@ -1,28 +1,47 @@
+'use client';
 /**
  * @file features/resume-builder/education/ui/EducationItem.jsx
  * @description Single education card component
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear structure
- * ✅ Performance: Memoized
- * ✅ Security: No XSS
- * ✅ Best Practices: Modular
- * ✅ Potential Bugs: GPA validation
- * ✅ Memory Leaks: None
+ * - months/years defined outside component — stable reference, no re-creation on render
+ * - Future years included (current student use case, matches backend max: 2100)
+ * - month option key={month} (stable, not index)
  */
-
-'use client';
 
 import { memo } from 'react';
 import PropTypes from 'prop-types';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import { LIMITS } from '@/shared/lib/constants';
 
+// ── Static data — defined outside component for stable reference ──────────────
+
+const MONTHS = [
+  { label: 'Jan', value: 1 },
+  { label: 'Feb', value: 2 },
+  { label: 'Mar', value: 3 },
+  { label: 'Apr', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'Jun', value: 6 },
+  { label: 'Jul', value: 7 },
+  { label: 'Aug', value: 8 },
+  { label: 'Sep', value: 9 },
+  { label: 'Oct', value: 10 },
+  { label: 'Nov', value: 11 },
+  { label: 'Dec', value: 12 },
+];
+
 /**
- * EducationItem Component
- * Single education entry card
+ * 10 years into the future — covers current students.
+ * Backend allows up to 2100; 10 years is practical for a resume.
+ * Past 50 years covers most graduation dates.
  */
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 61 }, (_, i) => CURRENT_YEAR + 10 - i);
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function EducationItem({
   index,
   education,
@@ -31,40 +50,15 @@ function EducationItem({
   onMoveUp,
   onMoveDown,
 }) {
-  // ==========================================
-  // DATE DROPDOWNS DATA
-  // ==========================================
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
-
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="border-2 border-gray-200 rounded-lg p-6 bg-white hover:border-teal-300 transition-colors">
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Education #{index + 1}
         </h3>
 
         <div className="flex items-center gap-2">
-          {/* Move Up */}
           {onMoveUp && (
             <button
               type="button"
@@ -88,7 +82,6 @@ function EducationItem({
             </button>
           )}
 
-          {/* Move Down */}
           {onMoveDown && (
             <button
               type="button"
@@ -112,12 +105,11 @@ function EducationItem({
             </button>
           )}
 
-          {/* Delete */}
           <button
             type="button"
             onClick={() => onRemove(index)}
             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            aria-label="Delete"
+            aria-label="Delete education"
           >
             <svg
               className="h-5 w-5"
@@ -136,9 +128,8 @@ function EducationItem({
         </div>
       </div>
 
-      {/* FORM FIELDS */}
+      {/* Fields */}
       <div className="space-y-4">
-        {/* Degree */}
         <ResumeInput
           label="Degree"
           name="degree"
@@ -150,7 +141,6 @@ function EducationItem({
           showCounter
         />
 
-        {/* Institution & Location */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ResumeInput
             label="Institution"
@@ -173,9 +163,8 @@ function EducationItem({
           />
         </div>
 
-        {/* Graduation Date & GPA */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Month */}
+          {/* Graduation month */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Graduation Month <span className="text-red-500">*</span>
@@ -191,15 +180,15 @@ function EducationItem({
               className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="">Select Month</option>
-              {months.map((m, i) => (
-                <option key={i} value={i + 1}>
-                  {m}
+              {MONTHS.map(({ label, value }) => (
+                <option key={label} value={value}>
+                  {label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Year */}
+          {/* Graduation year */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Graduation Year <span className="text-red-500">*</span>
@@ -215,31 +204,30 @@ function EducationItem({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="">Select Year</option>
-              {years.map((y) => (
+              {YEARS.map((y) => (
                 <option key={y} value={y}>
                   {y}
                 </option>
               ))}
             </select>
           </div>
-
-          {/* GPA */}
-          <ResumeInput
-            label="GPA"
-            name="gpa"
-            type="text"
-            value={education.gpa || ''}
-            onChange={(e) => onUpdate(index, 'gpa', e.target.value)}
-            placeholder="3.8"
-            helperText="0.0-4.0 scale (optional)"
-          />
         </div>
 
-        {/* GPA Tip */}
+        {/* GPA */}
+        <ResumeInput
+          label="GPA"
+          name="gpa"
+          type="text"
+          value={education.gpa || ''}
+          onChange={(e) => onUpdate(index, 'gpa', e.target.value)}
+          placeholder="3.75"
+          helperText="0.00–4.00 scale (optional)"
+        />
+
         <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
           <p className="text-xs text-teal-800">
-            💡 <strong>Tip:</strong> Only include GPA if it's 3.0 or higher.
-            Omit if below 3.0 or if you graduated more than 5 years ago.
+            💡 <strong>Tip:</strong> Only include GPA if 3.0 or higher. Omit if
+            below 3.0 or if you graduated more than 5 years ago.
           </p>
         </div>
       </div>

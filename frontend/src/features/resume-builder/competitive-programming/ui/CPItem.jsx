@@ -1,66 +1,62 @@
+'use client';
 /**
  * @file features/resume-builder/competitive-programming/ui/CPItem.jsx
  * @description Single competitive programming profile card
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear structure
- * ✅ Performance: Memoized
- * ✅ Security: URL validation
- * ✅ Best Practices: Modular
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: None
+ * - PLATFORMS and BADGE_SUGGESTIONS defined outside component — stable reference
+ * - problemsSolved: type="text" (backend stores as String max 20)
+ * - Number() coercion removed from onChange
  */
-
-'use client';
 
 import { memo } from 'react';
 import PropTypes from 'prop-types';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import TagInput from '@/shared/components/atoms/resume/TagInput';
+import { LIMITS } from '@/shared/lib/constants';
+
+// ── Static data — defined outside component for stable reference ──────────────
 
 /**
- * CPItem Component
- * Single competitive programming platform profile
+ * Common CP platforms. No backend whitelist — user can type any platform.
+ * This list is for the dropdown UI convenience only.
  */
+const PLATFORMS = [
+  'LeetCode',
+  'Codeforces',
+  'HackerRank',
+  'CodeChef',
+  'AtCoder',
+  'TopCoder',
+  'SPOJ',
+  'Kattis',
+];
+
+const BADGE_SUGGESTIONS = [
+  'Expert',
+  'Master',
+  'Grandmaster',
+  '5-Star',
+  '6-Star',
+  '7-Star',
+  'Knight',
+  'Guardian',
+  'Contest Winner',
+  'Global Rank',
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function CPItem({ index, profile, onUpdate, onRemove }) {
-  // ==========================================
-  // PLATFORM OPTIONS
-  // ==========================================
-  const platforms = [
-    'LeetCode',
-    'Codeforces',
-    'HackerRank',
-    'CodeChef',
-    'AtCoder',
-    'TopCoder',
-  ];
-
-  const badgeSuggestions = [
-    'Expert',
-    'Master',
-    'Grandmaster',
-    '5-Star',
-    '6-Star',
-    '7-Star',
-    'Knight',
-    'Guardian',
-    'Contest Winner',
-    'Global Rank',
-  ];
-
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="border-2 border-gray-200 rounded-lg p-6 bg-white hover:border-teal-300 transition-colors">
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Platform #{index + 1}
         </h3>
 
-        {/* Delete Button */}
         <button
           type="button"
           onClick={() => onRemove(index)}
@@ -83,9 +79,9 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
         </button>
       </div>
 
-      {/* FORM FIELDS */}
+      {/* Fields */}
       <div className="space-y-4">
-        {/* Platform Dropdown */}
+        {/* Platform dropdown */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Platform <span className="text-red-500">*</span>
@@ -96,7 +92,7 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           >
             <option value="">Select Platform</option>
-            {platforms.map((p) => (
+            {PLATFORMS.map((p) => (
               <option key={p} value={p}>
                 {p}
               </option>
@@ -104,20 +100,22 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
           </select>
         </div>
 
-        {/* Problems Solved */}
+        {/**
+         * Problems Solved — type="text" because backend stores as String max(20).
+         * Accepts values like "500+", "1K", or plain "500".
+         */}
         <ResumeInput
           label="Problems Solved"
           name="problemsSolved"
-          type="number"
+          type="text"
           value={profile.problemsSolved || ''}
-          onChange={(e) =>
-            onUpdate(index, 'problemsSolved', Number(e.target.value))
-          }
+          onChange={(e) => onUpdate(index, 'problemsSolved', e.target.value)}
           placeholder="500"
-          helperText="Total problems solved on this platform"
+          maxLength={20}
+          helperText="Total problems solved (e.g. 500, 1K, 500+)"
         />
 
-        {/* Badges & Achievements */}
+        {/* Badges */}
         <TagInput
           label="Badges & Achievements"
           name="badges"
@@ -132,8 +130,8 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
               (profile.badges || []).filter((b) => b !== badge)
             )
           }
-          suggestions={badgeSuggestions}
-          maxTags={10}
+          suggestions={BADGE_SUGGESTIONS}
+          maxTags={LIMITS.MAX_BADGES}
           placeholder="Expert, 5-Star (press Enter)"
         />
 
@@ -145,7 +143,7 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
           value={profile.profileUrl || ''}
           onChange={(e) => onUpdate(index, 'profileUrl', e.target.value)}
           placeholder="https://leetcode.com/username"
-          helperText="Optional - Add for verification"
+          helperText="Optional — add for verification"
         />
 
         {/* Platform-specific tip */}

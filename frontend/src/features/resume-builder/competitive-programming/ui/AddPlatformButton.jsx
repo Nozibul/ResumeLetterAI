@@ -1,33 +1,23 @@
+'use client';
 /**
  * @file features/resume-builder/competitive-programming/ui/AddPlatformButton.jsx
  * @description Add platform button component
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Simple
- * ✅ Performance: Memoized
- * ✅ Security: No XSS
- * ✅ Best Practices: Accessible
- * ✅ Potential Bugs: None
- * ✅ Memory Leaks: None
+ * MAX_CP_PLATFORMS used (matches backend LIMITS constant name)
  */
 
-'use client';
-
-import { memo } from 'react';
+import { memo } from 'prop-types';
 import PropTypes from 'prop-types';
 import { LIMITS } from '@/shared/lib/constants';
 
-/**
- * AddPlatformButton Component
- * Button to add new CP platform
- */
 function AddPlatformButton({ currentCount, onClick, disabled }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled || currentCount >= LIMITS.MAX_CP_PROFILES}
+      disabled={disabled || currentCount >= LIMITS.MAX_CP_PLATFORMS}
       className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
       aria-label="Add new platform"
     >
@@ -46,7 +36,7 @@ function AddPlatformButton({ currentCount, onClick, disabled }) {
         />
       </svg>
       <span className="font-medium">
-        Add Another Platform ({currentCount}/{LIMITS.MAX_CP_PROFILES})
+        Add Another Platform ({currentCount}/{LIMITS.MAX_CP_PLATFORMS})
       </span>
     </button>
   );

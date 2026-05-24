@@ -2,290 +2,145 @@
  * @file features/resume-builder/competitive-programming/model/validation.js
  * @description Validation rules for Competitive Programming
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear, documented
- * ✅ Performance: Pure functions
- * ✅ Security: URL validation
- * ✅ Best Practices: Reusable
- * ✅ Potential Bugs: Edge cases handled
- * ✅ Unit Tests: Comprehensive
+ * Synced with backend competitiveProgrammingSchema:
+ * - platform: min(1) max(50) only — no whitelist (backend accepts any platform)
+ * - problemsSolved: string max(20) — not a number field
+ * - MAX_CP_PLATFORMS used (matches backend LIMITS)
  */
 
 import { LIMITS } from '@/shared/lib/constants';
 
-// ==========================================
-// PLATFORM VALIDATION
-// ==========================================
+// ── Platform ──────────────────────────────────────────────────────────────────
 
 export function validatePlatform(platform) {
-  if (!platform || platform.trim() === '') {
-    return 'Platform is required';
-  }
-
-  const validPlatforms = [
-    'LeetCode',
-    'Codeforces',
-    'HackerRank',
-    'CodeChef',
-    'AtCoder',
-    'TopCoder',
-  ];
-
-  if (!validPlatforms.includes(platform)) {
-    return 'Invalid platform selected';
-  }
-
+  if (!platform || platform.trim() === '') return 'Platform is required';
+  if (platform.length > 50) return 'Platform name cannot exceed 50 characters';
   return null;
 }
 
-// ==========================================
-// PROBLEMS SOLVED VALIDATION
-// ==========================================
+// ── Problems solved ───────────────────────────────────────────────────────────
 
-export function validateProblemsSolved(count) {
-  if (count === null || count === undefined || count === '') {
-    return null; // Optional
-  }
-
-  const num = Number(count);
-
-  if (isNaN(num)) {
-    return 'Problems solved must be a number';
-  }
-
-  if (num < 0) {
-    return 'Problems solved cannot be negative';
-  }
-
-  if (num > 10000) {
-    return 'Problems solved seems unrealistic (max 10,000)';
-  }
-
+/**
+ * Backend stores problemsSolved as String max(20).
+ * Validate as string — do not coerce to Number.
+ */
+export function validateProblemsSolved(value) {
+  if (!value || value.toString().trim() === '') return null;
+  if (value.toString().length > 20) return 'Problems solved value is too long';
   return null;
 }
 
-// ==========================================
-// PROFILE URL VALIDATION
-// ==========================================
+// ── Profile URL ───────────────────────────────────────────────────────────────
 
-export function validateProfileURL(url, platform) {
-  if (!url || url.trim() === '') {
-    return null; // Optional
-  }
+export function validateProfileURL(url) {
+  if (!url || url.trim() === '') return null;
 
   try {
-    const urlObj = new URL(url);
-    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+    const { protocol } = new URL(url);
+    if (!['http:', 'https:'].includes(protocol)) {
       return 'URL must start with http:// or https://';
     }
-
-    // Platform-specific URL validation
-    const platformDomains = {
-      LeetCode: 'leetcode.com',
-      Codeforces: 'codeforces.com',
-      HackerRank: 'hackerrank.com',
-      CodeChef: 'codechef.com',
-      AtCoder: 'atcoder.jp',
-      TopCoder: 'topcoder.com',
-    };
-
-    if (platform && platformDomains[platform]) {
-      if (!urlObj.hostname.includes(platformDomains[platform])) {
-        return `URL should be from ${platformDomains[platform]}`;
-      }
-    }
-
     return null;
   } catch {
     return 'Invalid URL format';
   }
 }
 
-// ==========================================
-// BADGES VALIDATION
-// ==========================================
+// ── Badges ────────────────────────────────────────────────────────────────────
 
 export function validateBadges(badges) {
-  if (!Array.isArray(badges)) {
-    return 'Badges must be an array';
+  if (!Array.isArray(badges)) return 'Badges must be an array';
+  if (badges.length > LIMITS.MAX_BADGES) {
+    return `Maximum ${LIMITS.MAX_BADGES} badges allowed`;
   }
-
-  if (badges.length > 10) {
-    return 'Maximum 10 badges allowed';
-  }
-
-  // Check for empty strings
   if (badges.some((b) => !b || b.trim() === '')) {
     return 'Empty badges not allowed';
   }
-
   return null;
 }
 
-// ==========================================
-// SINGLE CP PROFILE VALIDATION
-// ==========================================
+// ── Single CP profile ─────────────────────────────────────────────────────────
 
 export function validateCPProfile(profile) {
   const errors = {};
 
-  // Platform (required)
   const platformError = validatePlatform(profile.platform);
   if (platformError) errors.platform = platformError;
 
-  // Problems solved (optional)
   const problemsError = validateProblemsSolved(profile.problemsSolved);
   if (problemsError) errors.problemsSolved = problemsError;
 
-  // Badges (optional)
   const badgesError = validateBadges(profile.badges || []);
   if (badgesError) errors.badges = badgesError;
 
-  // Profile URL (optional)
-  const urlError = validateProfileURL(profile.profileUrl, profile.platform);
+  const urlError = validateProfileURL(profile.profileUrl);
   if (urlError) errors.profileUrl = urlError;
 
   return errors;
 }
 
-// ==========================================
-// ALL CP PROFILES VALIDATION
-// ==========================================
+// ── All CP profiles ───────────────────────────────────────────────────────────
 
+/**
+ * Empty array is valid — backend accepts [].
+ * Only structural and field-level errors are returned.
+ */
 export function validateCPForm(profiles) {
-  if (!Array.isArray(profiles)) {
-    return { _form: 'Profiles must be an array' };
-  }
+  if (!Array.isArray(profiles)) return { _form: 'Profiles must be an array' };
 
-  if (profiles.length > LIMITS.MAX_CP_PROFILES) {
-    return { _form: `Maximum ${LIMITS.MAX_CP_PROFILES} profiles allowed` };
+  if (profiles.length > LIMITS.MAX_CP_PLATFORMS) {
+    return { _form: `Maximum ${LIMITS.MAX_CP_PLATFORMS} profiles allowed` };
   }
 
   const errors = {};
   profiles.forEach((profile, index) => {
     const profileErrors = validateCPProfile(profile);
-    if (Object.keys(profileErrors).length > 0) {
-      errors[index] = profileErrors;
-    }
+    if (Object.keys(profileErrors).length > 0) errors[index] = profileErrors;
   });
 
   return errors;
-}
-
-// ==========================================
-// QUALITY CHECKS
-// ==========================================
-
-export function getCPQualityScore(profile) {
-  let score = 0;
-  const suggestions = [];
-
-  // Has platform
-  if (profile.platform && profile.platform.trim()) {
-    score += 30;
-  } else {
-    suggestions.push('Select a platform');
-  }
-
-  // Has problems solved
-  if (profile.problemsSolved && profile.problemsSolved > 0) {
-    score += 20;
-
-    // Bonus for high counts
-    if (profile.problemsSolved >= 100) {
-      score += 10;
-    }
-    if (profile.problemsSolved >= 500) {
-      score += 10;
-    }
-  } else {
-    suggestions.push('Add problems solved count');
-  }
-
-  // Has badges
-  if (profile.badges && profile.badges.length > 0) {
-    score += 20;
-  } else {
-    suggestions.push('Add badges or achievements');
-  }
-
-  // Has profile URL
-  if (profile.profileUrl && profile.profileUrl.trim()) {
-    score += 10;
-  } else {
-    suggestions.push('Add profile URL for verification');
-  }
-
-  return {
-    score: Math.min(100, score),
-    suggestions,
-  };
 }
 
 export function isCPValid(profiles) {
   return Object.keys(validateCPForm(profiles)).length === 0;
 }
 
-// ==========================================
-// UNIT TESTS
-// ==========================================
+// ── Quality score ─────────────────────────────────────────────────────────────
 
-/*
-describe('CP Validation', () => {
-  describe('validatePlatform', () => {
-    test('should reject empty', () => {
-      expect(validatePlatform('')).toContain('required');
-    });
+export function getCPQualityScore(profile) {
+  let score = 0;
+  const suggestions = [];
 
-    test('should reject invalid platform', () => {
-      expect(validatePlatform('InvalidPlatform')).toContain('Invalid');
-    });
+  if (profile.platform?.trim()) {
+    score += 30;
+  } else {
+    suggestions.push('Select a platform');
+  }
 
-    test('should accept valid platform', () => {
-      expect(validatePlatform('LeetCode')).toBeNull();
-    });
-  });
+  if (profile.problemsSolved?.toString().trim()) {
+    score += 20;
+    const num = parseInt(profile.problemsSolved, 10);
+    if (!isNaN(num)) {
+      if (num >= 100) score += 10;
+      if (num >= 500) score += 10;
+    }
+  } else {
+    suggestions.push('Add problems solved count');
+  }
 
-  describe('validateProblemsSolved', () => {
-    test('should accept empty (optional)', () => {
-      expect(validateProblemsSolved('')).toBeNull();
-    });
+  if (profile.badges?.length > 0) {
+    score += 20;
+  } else {
+    suggestions.push('Add badges or achievements');
+  }
 
-    test('should reject negative', () => {
-      expect(validateProblemsSolved(-10)).toContain('negative');
-    });
+  if (profile.profileUrl?.trim()) {
+    score += 10;
+  } else {
+    suggestions.push('Add profile URL for verification');
+  }
 
-    test('should accept valid number', () => {
-      expect(validateProblemsSolved(500)).toBeNull();
-    });
-  });
-
-  describe('validateProfileURL', () => {
-    test('should accept empty (optional)', () => {
-      expect(validateProfileURL('', 'LeetCode')).toBeNull();
-    });
-
-    test('should validate platform-specific domain', () => {
-      expect(validateProfileURL('https://example.com', 'LeetCode')).toContain('leetcode.com');
-    });
-
-    test('should accept valid URL', () => {
-      expect(validateProfileURL('https://leetcode.com/user', 'LeetCode')).toBeNull();
-    });
-  });
-
-  describe('getCPQualityScore', () => {
-    test('should score complete profile high', () => {
-      const complete = {
-        platform: 'LeetCode',
-        problemsSolved: 600,
-        badges: ['Expert', '5-Star'],
-        profileUrl: 'https://leetcode.com/user',
-      };
-      const result = getCPQualityScore(complete);
-      expect(result.score).toBe(100);
-    });
-  });
-});
-*/
+  return { score: Math.min(100, score), suggestions };
+}

@@ -1,20 +1,19 @@
+'use client';
 /**
  * @file features/resume-builder/competitive-programming/ui/CPForm.jsx
  * @description Competitive Programming form - Step 7
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Refactored to use shared useResumeListForm hook.
- * All init, save, add/remove/update logic lives in the hook.
- * Component is responsible for UI only.
- *
- * Note: profiles starts as [] (not [createEmptyProfile()])
- * because empty state has its own UI with an "Add Platform" button.
- * createItem is passed to hook for handleAdd and handleRemove fallback.
+ * - alert → toast.error
+ * - _tempId added to createEmptyProfile for stable React keys
+ * - isEmpty simplified: profiles.some(p => p.platform?.trim())
+ * - quality suggestion key={suggestion} (stable)
+ * - MAX_CP_PLATFORMS used (matches backend LIMITS)
  */
 
-'use client';
-
 import { memo, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
@@ -23,9 +22,8 @@ import AddPlatformButton from './AddPlatformButton';
 import { validateCPForm, getCPQualityScore } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
 
-// ==========================================
-// CONSTANTS
-// ==========================================
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const ATS_TIPS = [
   'Include competitive programming if relevant to the role',
   'Highlight problem counts and rankings',
@@ -33,14 +31,11 @@ const ATS_TIPS = [
   'Add profile links for verification',
 ];
 
-const MAX_PROFILES = LIMITS.MAX_CP_PLATFORMS ?? 5;
+// ── Helpers — defined outside component for stable reference ──────────────────
 
-// ==========================================
-// HELPERS
-// Defined outside component — stable reference, no re-creation on render
-// ==========================================
 function createEmptyProfile() {
   return {
+    _tempId: Date.now(),
     platform: '',
     problemsSolved: '',
     badges: [],
@@ -48,23 +43,16 @@ function createEmptyProfile() {
   };
 }
 
+/** Only save entries that have a platform selected */
 function isNotEmpty(profile) {
-  return profile.platform?.trim();
+  return !!profile.platform?.trim();
 }
 
-/**
- * CPForm Component
- * Step 7: Competitive Programming
- */
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function CPForm() {
   const resumeData = useCurrentResumeData();
 
-  // ==========================================
-  // LIST FORM HOOK
-  // All init, save, add/remove/update logic lives in useResumeListForm.
-  // No reorder — CP profiles don't need ordering.
-  // handleAdd returns false if max limit reached — show alert in UI.
-  // ==========================================
   const {
     items: profiles,
     handleAdd,
@@ -74,44 +62,34 @@ function CPForm() {
     field: 'competitiveProgramming',
     createItem: createEmptyProfile,
     reduxData: resumeData?.competitiveProgramming,
-    maxItems: MAX_PROFILES,
+    maxItems: LIMITS.MAX_CP_PLATFORMS,
     filterEmpty: isNotEmpty,
   });
 
-  // ==========================================
-  // VALIDATION
-  // Run on current profiles for UI feedback only
-  // ==========================================
+  // Validation — UI feedback only, does not block saving
   const errors = useMemo(() => validateCPForm(profiles), [profiles]);
 
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  const hasValidationErrors = Object.keys(errors).length > 0 && !errors._form;
 
-  // Single source of truth — avoids mirrored conditions
-  // isEmpty: no platform filled yet — show empty state UI
-  // hasAnyProfile: at least one platform filled — show list + add button
-  const isEmpty = profiles.length === 1 && !profiles[0]?.platform?.trim();
-  const hasAnyProfile = profiles.some((p) => p.platform?.trim());
+  /**
+   * isEmpty: no profile has a platform filled yet.
+   * Works correctly both on initial mount (hook starts with [createEmptyProfile()])
+   * and after Redux initialization (real data loaded).
+   */
+  const isEmpty = !profiles.some((p) => p.platform?.trim());
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const onAdd = useCallback(() => {
     const added = handleAdd();
     if (!added) {
-      alert(`Maximum ${MAX_PROFILES} platforms allowed`);
+      toast.error(`Maximum ${LIMITS.MAX_CP_PLATFORMS} platforms allowed`);
     }
   }, [handleAdd]);
 
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="space-y-6">
-      {/* ATS GUIDELINES */}
       <ATSBanner title="Competitive Programming Tips" tips={ATS_TIPS} />
 
-      {/* VALIDATION ERRORS SUMMARY */}
+      {/* Validation summary */}
       {hasValidationErrors && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm font-medium text-yellow-800 mb-2">
@@ -131,10 +109,7 @@ function CPForm() {
         </div>
       )}
 
-      {/* EMPTY STATE
-          profiles[0] is a blank createEmptyProfile() from hook init.
-          Treat it as empty state if platform is not filled yet.
-      */}
+      {/* Empty state */}
       {isEmpty && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <div className="max-w-sm mx-auto">
@@ -183,7 +158,7 @@ function CPForm() {
         </div>
       )}
 
-      {/* PROFILES LIST */}
+      {/* Profiles list */}
       {!isEmpty && (
         <div className="space-y-6">
           {profiles.map((profile, index) => {
@@ -192,8 +167,8 @@ function CPForm() {
               errors[index] && Object.keys(errors[index]).length > 0;
 
             return (
-              <div key={index} className="relative">
-                {/* Error Indicator */}
+              <div key={profile._tempId || index} className="relative">
+                {/* Error indicator */}
                 {hasErrors && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -202,7 +177,7 @@ function CPForm() {
                   </div>
                 )}
 
-                {/* Quality Score Badge */}
+                {/* Complete indicator */}
                 {!hasErrors && qualityScore.score === 100 && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">
@@ -218,15 +193,15 @@ function CPForm() {
                   onRemove={handleRemove}
                 />
 
-                {/* Quality Suggestions */}
+                {/* Quality suggestions */}
                 {qualityScore.suggestions.length > 0 && (
                   <div className="mt-2 bg-teal-50 border border-teal-200 rounded-lg p-3">
                     <p className="text-xs font-medium text-teal-800 mb-1">
                       💡 Suggestions (Score: {qualityScore.score}/100):
                     </p>
                     <ul className="text-xs text-teal-700 space-y-0.5 list-disc list-inside">
-                      {qualityScore.suggestions.map((suggestion, idx) => (
-                        <li key={idx}>{suggestion}</li>
+                      {qualityScore.suggestions.map((suggestion) => (
+                        <li key={suggestion}>{suggestion}</li>
                       ))}
                     </ul>
                   </div>
@@ -237,8 +212,8 @@ function CPForm() {
         </div>
       )}
 
-      {/* ADD BUTTON */}
-      {hasAnyProfile && profiles.length < MAX_PROFILES && (
+      {/* Add button — only shown when at least one profile exists */}
+      {!isEmpty && profiles.length < LIMITS.MAX_CP_PLATFORMS && (
         <AddPlatformButton currentCount={profiles.length} onClick={onAdd} />
       )}
     </div>

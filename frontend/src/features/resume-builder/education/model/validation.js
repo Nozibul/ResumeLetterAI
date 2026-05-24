@@ -2,210 +2,158 @@
  * @file features/resume-builder/education/model/validation.js
  * @description Validation rules for Education
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear, documented
- * ✅ Performance: Pure functions
- * ✅ Security: GPA validation
- * ✅ Best Practices: Reusable
- * ✅ Potential Bugs: Edge cases handled
- * ✅ Unit Tests: Comprehensive
+ * Synced with backend educationSchema:
+ * - GPA: regex format check added (matches isValidGpa in Resume.js)
+ * - Empty array no longer an error (backend default: [])
+ * - MAX_EDUCATIONS used consistently
  */
 
 import { LIMITS } from '@/shared/lib/constants';
 
-// ==========================================
-// DEGREE VALIDATION
-// ==========================================
+// ── Degree ────────────────────────────────────────────────────────────────────
 
 export function validateDegree(degree) {
-  if (!degree || degree.trim() === '') {
-    return 'Degree is required';
-  }
-
-  if (degree.length > LIMITS.TITLE_MAX_LENGTH) {
+  if (!degree || degree.trim() === '') return 'Degree is required';
+  if (degree.length > LIMITS.TITLE_MAX_LENGTH)
     return `Degree cannot exceed ${LIMITS.TITLE_MAX_LENGTH} characters`;
-  }
-
-  if (/^\s+$/.test(degree)) {
-    return 'Degree cannot be only whitespace';
-  }
-
+  if (/^\s+$/.test(degree)) return 'Degree cannot be only whitespace';
   return null;
 }
 
-// ==========================================
-// INSTITUTION VALIDATION
-// ==========================================
+// ── Institution ───────────────────────────────────────────────────────────────
 
 export function validateInstitution(institution) {
-  if (!institution || institution.trim() === '') {
+  if (!institution || institution.trim() === '')
     return 'Institution is required';
-  }
-
-  if (institution.length > LIMITS.TITLE_MAX_LENGTH) {
+  if (institution.length > LIMITS.TITLE_MAX_LENGTH)
     return `Institution cannot exceed ${LIMITS.TITLE_MAX_LENGTH} characters`;
-  }
-
-  if (/^\s+$/.test(institution)) {
-    return 'Institution cannot be only whitespace';
-  }
-
+  if (/^\s+$/.test(institution)) return 'Institution cannot be only whitespace';
   return null;
 }
 
-// ==========================================
-// GPA VALIDATION
-// ==========================================
+// ── GPA ───────────────────────────────────────────────────────────────────────
 
+/**
+ * Matches backend isValidGpa:
+ *   - digits only, up to 2 decimal places (e.g. 3.75)
+ *   - range 0.00–4.00
+ *   - empty string is valid (field is optional)
+ */
 export function validateGPA(gpa) {
-  if (!gpa || gpa.trim() === '') {
-    return null; // Optional
+  if (!gpa || gpa.trim() === '') return null;
+
+  if (!/^\d+(\.\d{1,2})?$/.test(gpa.trim())) {
+    return 'GPA must be a number with up to 2 decimal places (e.g. 3.75)';
   }
 
-  const gpaNum = parseFloat(gpa);
-
-  if (isNaN(gpaNum)) {
-    return 'GPA must be a number';
-  }
-
-  if (gpaNum < 0 || gpaNum > 4.0) {
-    return 'GPA must be between 0.0 and 4.0';
-  }
+  const num = parseFloat(gpa);
+  if (num < 0 || num > 4.0) return 'GPA must be between 0.00 and 4.00';
 
   return null;
 }
 
-// ==========================================
-// GRADUATION DATE VALIDATION
-// ==========================================
+// ── Graduation date ───────────────────────────────────────────────────────────
 
 export function validateGraduationDate(graduationDate) {
-  if (!graduationDate || !graduationDate.month || !graduationDate.year) {
+  if (!graduationDate?.month || !graduationDate?.year)
     return 'Graduation date is required';
-  }
 
   const { month, year } = graduationDate;
 
-  if (month < 1 || month > 12) {
-    return 'Invalid month';
-  }
+  if (month < 1 || month > 12) return 'Invalid month';
 
   const currentYear = new Date().getFullYear();
-  if (year < currentYear - 100 || year > currentYear + 10) {
+  if (year < currentYear - 100 || year > currentYear + 10)
     return 'Invalid year';
-  }
 
   return null;
 }
 
-// ==========================================
-// SINGLE EDUCATION VALIDATION
-// ==========================================
+// ── Single education entry ────────────────────────────────────────────────────
 
 export function validateEducation(education) {
   const errors = {};
 
-  // Degree (required)
   const degreeError = validateDegree(education.degree);
   if (degreeError) errors.degree = degreeError;
 
-  // Institution (required)
   const institutionError = validateInstitution(education.institution);
   if (institutionError) errors.institution = institutionError;
 
-  // Location (optional)
-  if (
-    education.location &&
-    education.location.length > LIMITS.TITLE_MAX_LENGTH
-  ) {
+  if (education.location?.length > LIMITS.TITLE_MAX_LENGTH) {
     errors.location = `Location cannot exceed ${LIMITS.TITLE_MAX_LENGTH} characters`;
   }
 
-  // Graduation date (required)
   const dateError = validateGraduationDate(education.graduationDate);
   if (dateError) errors.graduationDate = dateError;
 
-  // GPA (optional)
   const gpaError = validateGPA(education.gpa);
   if (gpaError) errors.gpa = gpaError;
 
   return errors;
 }
 
-// ==========================================
-// ALL EDUCATION VALIDATION
-// ==========================================
+// ── All education entries ─────────────────────────────────────────────────────
 
+/**
+ * Empty array is valid — backend accepts [].
+ * Only structural and field-level errors are returned.
+ */
 export function validateEducationForm(educations) {
-  if (!Array.isArray(educations)) {
+  if (!Array.isArray(educations))
     return { _form: 'Education must be an array' };
-  }
 
-  if (educations.length === 0) {
-    return { _form: 'Add at least one education entry' };
-  }
-
-  if (educations.length > LIMITS.MAX_EDUCATION) {
+  if (educations.length > LIMITS.MAX_EDUCATIONS) {
     return {
-      _form: `Maximum ${LIMITS.MAX_EDUCATION} education entries allowed`,
+      _form: `Maximum ${LIMITS.MAX_EDUCATIONS} education entries allowed`,
     };
   }
 
   const errors = {};
   educations.forEach((edu, index) => {
     const eduErrors = validateEducation(edu);
-    if (Object.keys(eduErrors).length > 0) {
-      errors[index] = eduErrors;
-    }
+    if (Object.keys(eduErrors).length > 0) errors[index] = eduErrors;
   });
 
   return errors;
 }
 
-// ==========================================
-// QUALITY CHECKS
-// ==========================================
+export function isEducationValid(educations) {
+  return Object.keys(validateEducationForm(educations)).length === 0;
+}
+
+// ── Quality score ─────────────────────────────────────────────────────────────
 
 export function getEducationQualityScore(education) {
   let score = 0;
   const suggestions = [];
 
-  // Has degree
-  if (education.degree && education.degree.trim()) {
+  if (education.degree?.trim()) {
     score += 30;
   } else {
     suggestions.push('Add a degree');
   }
 
-  // Has institution
-  if (education.institution && education.institution.trim()) {
+  if (education.institution?.trim()) {
     score += 30;
   } else {
     suggestions.push('Add institution name');
   }
 
-  // Has location
-  if (education.location && education.location.trim()) {
-    score += 10;
-  }
+  if (education.location?.trim()) score += 10;
 
-  // Has graduation date
-  if (
-    education.graduationDate &&
-    education.graduationDate.month &&
-    education.graduationDate.year
-  ) {
+  if (education.graduationDate?.month && education.graduationDate?.year) {
     score += 20;
   } else {
     suggestions.push('Add graduation date');
   }
 
-  // Has GPA
-  if (education.gpa && education.gpa.trim()) {
-    const gpaNum = parseFloat(education.gpa);
-    if (!isNaN(gpaNum)) {
-      if (gpaNum >= 3.0) {
+  if (education.gpa?.trim()) {
+    const num = parseFloat(education.gpa);
+    if (!isNaN(num)) {
+      if (num >= 3.0) {
         score += 10;
       } else {
         suggestions.push('Consider omitting GPA below 3.0');
@@ -213,73 +161,5 @@ export function getEducationQualityScore(education) {
     }
   }
 
-  return {
-    score: Math.min(100, score),
-    suggestions,
-  };
+  return { score: Math.min(100, score), suggestions };
 }
-
-export function isEducationValid(educations) {
-  return Object.keys(validateEducationForm(educations)).length === 0;
-}
-
-// ==========================================
-// UNIT TESTS
-// ==========================================
-
-/*
-describe('Education Validation', () => {
-  describe('validateDegree', () => {
-    test('should reject empty', () => {
-      expect(validateDegree('')).toContain('required');
-    });
-
-    test('should accept valid degree', () => {
-      expect(validateDegree('Bachelor of Science')).toBeNull();
-    });
-  });
-
-  describe('validateGPA', () => {
-    test('should accept empty (optional)', () => {
-      expect(validateGPA('')).toBeNull();
-    });
-
-    test('should reject invalid number', () => {
-      expect(validateGPA('abc')).toContain('number');
-    });
-
-    test('should reject out of range', () => {
-      expect(validateGPA('5.0')).toContain('between');
-      expect(validateGPA('-1')).toContain('between');
-    });
-
-    test('should accept valid GPA', () => {
-      expect(validateGPA('3.5')).toBeNull();
-    });
-  });
-
-  describe('validateGraduationDate', () => {
-    test('should require date', () => {
-      expect(validateGraduationDate(null)).toContain('required');
-    });
-
-    test('should accept valid date', () => {
-      expect(validateGraduationDate({ month: 5, year: 2024 })).toBeNull();
-    });
-  });
-
-  describe('getEducationQualityScore', () => {
-    test('should score complete education high', () => {
-      const complete = {
-        degree: 'BS Computer Science',
-        institution: 'MIT',
-        location: 'Cambridge, MA',
-        graduationDate: { month: 5, year: 2024 },
-        gpa: '3.8',
-      };
-      const result = getEducationQualityScore(complete);
-      expect(result.score).toBe(100);
-    });
-  });
-});
-*/
