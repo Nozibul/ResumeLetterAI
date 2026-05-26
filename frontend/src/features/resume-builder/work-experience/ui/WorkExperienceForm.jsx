@@ -1,16 +1,19 @@
+'use client';
 /**
  * @file features/resume-builder/work-experience/ui/WorkExperienceForm.jsx
  * @description Work Experience form - Step 3
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Refactored to use shared useResumeListForm hook.
- * All init, save, add/remove/update/reorder logic lives in the hook.
- * Component is responsible for UI only.
+ * - alert → toast.error
+ * - onAdd wrapped in useCallback
+ * - _tempId added to createEmptyExperience for stable React keys
+ * - key={experience._tempId || index}
+ * - quality suggestion key={suggestion} (stable)
  */
 
-'use client';
-
-import { memo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
@@ -22,9 +25,8 @@ import {
 } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
 
-// ==========================================
-// CONSTANTS
-// ==========================================
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const ATS_TIPS = [
   'Use bullet points (3-5 per role)',
   'Start with action verbs (Led, Developed, Increased)',
@@ -33,14 +35,11 @@ const ATS_TIPS = [
   'List most recent first',
 ];
 
-// ==========================================
-// HELPERS
-// Defined outside component — stable reference, no re-creation on render
-// createEmptyExperience passed to hook as createItem — no useCallback needed
-// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
-// ==========================================
+// ── Helpers — defined outside component for stable reference ──────────────────
+
 function createEmptyExperience() {
   return {
+    _tempId: Date.now(),
     jobTitle: '',
     company: '',
     location: '',
@@ -51,22 +50,16 @@ function createEmptyExperience() {
   };
 }
 
+/** Only save entries that have at least a job title or company */
 function isNotEmpty(experience) {
-  return experience.jobTitle?.trim() || experience.company?.trim();
+  return !!(experience.jobTitle?.trim() || experience.company?.trim());
 }
 
-/**
- * WorkExperienceForm Component
- * Step 3: Work Experience
- */
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function WorkExperienceForm() {
   const resumeData = useCurrentResumeData();
 
-  // ==========================================
-  // LIST FORM HOOK
-  // All init, save, add/remove/update/reorder logic lives in useResumeListForm.
-  // handleAdd returns false if max limit reached — show alert in UI.
-  // ==========================================
   const {
     items: experiences,
     handleAdd,
@@ -81,34 +74,26 @@ function WorkExperienceForm() {
     filterEmpty: isNotEmpty,
   });
 
-  // ==========================================
-  // VALIDATION
-  // Run on current experiences for UI feedback only
-  // Does not block saving — partial data is allowed
-  // ==========================================
-  const errors = validateWorkExperienceForm(experiences);
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  // Validation — UI feedback only, does not block saving
+  const errors = useMemo(
+    () => validateWorkExperienceForm(experiences),
+    [experiences]
+  );
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
-  const onAdd = () => {
+  const hasValidationErrors = Object.keys(errors).length > 0 && !errors._form;
+
+  const onAdd = useCallback(() => {
     const added = handleAdd();
     if (!added) {
-      alert(`Maximum ${LIMITS.MAX_WORK_EXPERIENCES} experiences allowed`);
+      toast.error(`Maximum ${LIMITS.MAX_WORK_EXPERIENCES} experiences allowed`);
     }
-  };
+  }, [handleAdd]);
 
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="space-y-6">
-      {/* ATS GUIDELINES */}
       <ATSBanner title="ATS-Optimized Experience Tips" tips={ATS_TIPS} />
 
-      {/* VALIDATION ERRORS SUMMARY */}
+      {/* Validation summary */}
       {hasValidationErrors && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm font-medium text-yellow-800 mb-2">
@@ -128,7 +113,7 @@ function WorkExperienceForm() {
         </div>
       )}
 
-      {/* EXPERIENCES LIST */}
+      {/* Experiences list */}
       <div className="space-y-6">
         {experiences.map((experience, index) => {
           const qualityScore = getExperienceQualityScore(experience);
@@ -136,8 +121,8 @@ function WorkExperienceForm() {
             errors[index] && Object.keys(errors[index]).length > 0;
 
           return (
-            <div key={index} className="relative">
-              {/* Error Indicator */}
+            <div key={experience._tempId || index} className="relative">
+              {/* Error indicator */}
               {hasErrors && (
                 <div className="absolute -top-2 -right-2 z-10">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -146,7 +131,7 @@ function WorkExperienceForm() {
                 </div>
               )}
 
-              {/* Quality Score Badge */}
+              {/* Quality indicator */}
               {!hasErrors && qualityScore.score >= 70 && (
                 <div className="absolute -top-2 -right-2 z-10">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-500 text-white text-xs font-bold">
@@ -158,6 +143,7 @@ function WorkExperienceForm() {
               <ExperienceItem
                 index={index}
                 experience={experience}
+                errors={errors[index] || {}}
                 onUpdate={handleUpdate}
                 onRemove={handleRemove}
                 onMoveUp={
@@ -170,18 +156,16 @@ function WorkExperienceForm() {
                 }
               />
 
-              {/* Quality Suggestions */}
+              {/* Quality suggestions */}
               {qualityScore.suggestions.length > 0 && (
                 <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-xs font-medium text-teal-800 mb-1">
                     💡 Suggestions (Score: {qualityScore.score}/100):
                   </p>
                   <ul className="text-xs text-teal-700 space-y-0.5 list-disc list-inside">
-                    {qualityScore.suggestions
-                      .slice(0, 3)
-                      .map((suggestion, idx) => (
-                        <li key={idx}>{suggestion}</li>
-                      ))}
+                    {qualityScore.suggestions.slice(0, 3).map((suggestion) => (
+                      <li key={suggestion}>{suggestion}</li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -190,7 +174,6 @@ function WorkExperienceForm() {
         })}
       </div>
 
-      {/* ADD BUTTON */}
       <AddExperienceButton currentCount={experiences.length} onClick={onAdd} />
     </div>
   );

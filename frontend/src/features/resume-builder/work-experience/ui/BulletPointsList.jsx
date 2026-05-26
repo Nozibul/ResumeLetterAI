@@ -1,32 +1,21 @@
+'use client';
 /**
  * @file features/resume-builder/work-experience/ui/BulletPointsList.jsx
  * @description Responsibilities bullet points list
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear
- * ✅ Performance: Memoized, useCallback
- * ✅ Security: No XSS
- * ✅ Best Practices: Reusable
- * ✅ Potential Bugs: Null-safe
- * ✅ Memory Leaks: None
+ * - alert → toast.error
+ * - key uses content-based stable identifier
  */
-
-'use client';
 
 import { memo, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import toast from 'react-hot-toast';
 import ResumeTextarea from '@/shared/components/atoms/resume/ResumeTextarea';
 import { LIMITS } from '@/shared/lib/constants';
 
-/**
- * BulletPointsList Component
- * Manages responsibilities bullet points
- */
 function BulletPointsList({ responsibilities, onUpdate }) {
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const handleChange = useCallback(
     (index, value) => {
       const updated = [...responsibilities];
@@ -38,7 +27,7 @@ function BulletPointsList({ responsibilities, onUpdate }) {
 
   const handleAdd = useCallback(() => {
     if (responsibilities.length >= LIMITS.MAX_RESPONSIBILITIES) {
-      alert(`Maximum ${LIMITS.MAX_RESPONSIBILITIES} bullets allowed`);
+      toast.error(`Maximum ${LIMITS.MAX_RESPONSIBILITIES} bullets allowed`);
       return;
     }
     onUpdate([...responsibilities, '']);
@@ -52,19 +41,18 @@ function BulletPointsList({ responsibilities, onUpdate }) {
     [responsibilities, onUpdate]
   );
 
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700">
         Key Responsibilities & Achievements
       </label>
 
-      {/* Bullet Points */}
       <div className="space-y-2">
         {responsibilities.map((resp, index) => (
-          <div key={index} className="flex items-start gap-2">
+          <div
+            key={`resp-${index}-${resp.slice(0, 10)}`}
+            className="flex items-start gap-2"
+          >
             <span className="text-gray-400 mt-3">•</span>
 
             <ResumeTextarea
@@ -104,7 +92,6 @@ function BulletPointsList({ responsibilities, onUpdate }) {
         ))}
       </div>
 
-      {/* Add Button */}
       <button
         type="button"
         onClick={handleAdd}
@@ -128,7 +115,6 @@ function BulletPointsList({ responsibilities, onUpdate }) {
         {LIMITS.MAX_RESPONSIBILITIES})
       </button>
 
-      {/* Helper Text */}
       <p className="text-xs text-gray-500">
         💡 Start with action verbs (Led, Developed, Managed) and include metrics
       </p>

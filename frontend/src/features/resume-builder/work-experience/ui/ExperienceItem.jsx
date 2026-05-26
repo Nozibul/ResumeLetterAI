@@ -1,71 +1,39 @@
+'use client';
 /**
  * @file features/resume-builder/work-experience/ui/ExperienceItem.jsx
- * @description Single work experience card (extracted)
+ * @description Single work experience card
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear structure
- * ✅ Performance: Memoized
- * ✅ Security: No XSS
- * ✅ Best Practices: Modular
- * ✅ Potential Bugs: Date validation
- * ✅ Memory Leaks: None
+ * - Local dateError state + useEffect removed — errors come from parent via prop
+ * - errors prop added for field-level error display
  */
 
-'use client';
-
-import { memo, useState, useEffect } from 'react';
+import { memo } from 'react';
 import PropTypes from 'prop-types';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import DatePicker from '@/shared/components/atoms/resume/DatePicker';
 import BulletPointsList from './BulletPointsList';
 import { LIMITS } from '@/shared/lib/constants';
 
-/**
- * ExperienceItem Component
- * Single work experience card
- */
 function ExperienceItem({
   index,
   experience,
+  errors,
   onUpdate,
   onRemove,
   onMoveUp,
   onMoveDown,
 }) {
-  const [dateError, setDateError] = useState(null);
-
-  // ==========================================
-  // DATE VALIDATION
-  // ==========================================
-  useEffect(() => {
-    if (experience.endDate && experience.startDate) {
-      const start = experience.startDate.year * 12 + experience.startDate.month;
-      const end = experience.endDate.year * 12 + experience.endDate.month;
-
-      if (end < start) {
-        setDateError('End date must be after start date');
-      } else {
-        setDateError(null);
-      }
-    } else {
-      setDateError(null);
-    }
-  }, [experience.startDate, experience.endDate]);
-
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="border-2 border-gray-200 rounded-lg p-6 bg-white hover:border-teal-300 transition-colors">
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Experience #{index + 1}
         </h3>
 
         <div className="flex items-center gap-2">
-          {/* Move Up */}
           {onMoveUp && (
             <button
               type="button"
@@ -89,7 +57,6 @@ function ExperienceItem({
             </button>
           )}
 
-          {/* Move Down */}
           {onMoveDown && (
             <button
               type="button"
@@ -113,12 +80,11 @@ function ExperienceItem({
             </button>
           )}
 
-          {/* Delete */}
           <button
             type="button"
             onClick={() => onRemove(index)}
             className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            aria-label="Delete"
+            aria-label="Delete experience"
           >
             <svg
               className="h-5 w-5"
@@ -137,9 +103,8 @@ function ExperienceItem({
         </div>
       </div>
 
-      {/* FORM FIELDS */}
+      {/* Fields */}
       <div className="space-y-4">
-        {/* Job Title */}
         <ResumeInput
           label="Job Title"
           name="jobTitle"
@@ -149,9 +114,9 @@ function ExperienceItem({
           required
           maxLength={LIMITS.TITLE_MAX_LENGTH}
           showCounter
+          error={errors.jobTitle}
         />
 
-        {/* Company & Location */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ResumeInput
             label="Company"
@@ -161,6 +126,7 @@ function ExperienceItem({
             placeholder="Google"
             required
             maxLength={LIMITS.TITLE_MAX_LENGTH}
+            error={errors.company}
           />
 
           <ResumeInput
@@ -170,10 +136,17 @@ function ExperienceItem({
             onChange={(e) => onUpdate(index, 'location', e.target.value)}
             placeholder="San Francisco, CA"
             maxLength={LIMITS.TITLE_MAX_LENGTH}
+            error={errors.location}
           />
         </div>
 
-        {/* Date Picker */}
+        {/*
+          DatePicker handles:
+            - start date selection
+            - end date selection
+            - "currently working here" toggle
+          error from parent errors.dateRange — no local state needed
+        */}
         <DatePicker
           label="Employment Period"
           startDate={experience.startDate}
@@ -185,12 +158,11 @@ function ExperienceItem({
             onUpdate(index, 'currentlyWorking', checked);
             if (checked) onUpdate(index, 'endDate', null);
           }}
-          error={dateError}
+          error={errors.dateRange}
           required
           currentLabel="I currently work here"
         />
 
-        {/* Responsibilities (Sub-Component) */}
         <BulletPointsList
           responsibilities={experience.responsibilities || ['']}
           onUpdate={(responsibilities) =>
@@ -205,6 +177,7 @@ function ExperienceItem({
 ExperienceItem.propTypes = {
   index: PropTypes.number.isRequired,
   experience: PropTypes.object.isRequired,
+  errors: PropTypes.object,
   onUpdate: PropTypes.func.isRequired,
   onRemove: PropTypes.func.isRequired,
   onMoveUp: PropTypes.func,
@@ -212,6 +185,7 @@ ExperienceItem.propTypes = {
 };
 
 ExperienceItem.defaultProps = {
+  errors: {},
   onMoveUp: null,
   onMoveDown: null,
 };
