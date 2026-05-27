@@ -1,62 +1,55 @@
+'use client';
 /**
  * @file features/resume-builder/certifications/ui/CertificationItem.jsx
  * @description Single certification card component
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Self-Review:
- * ✅ Readability: Clear structure
- * ✅ Performance: Memoized
- * ✅ Security: URL validation
- * ✅ Best Practices: Modular
- * ✅ Potential Bugs: Date validation
- * ✅ Memory Leaks: None
+ * - months/years defined outside component — stable reference
+ * - years range: past 50 years (matches backend min: 1950)
+ * - month option key={label} (stable, not index)
  */
-
-'use client';
 
 import { memo } from 'react';
 import PropTypes from 'prop-types';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import { LIMITS } from '@/shared/lib/constants';
 
+// ── Static data — defined outside component for stable reference ──────────────
+
+const MONTHS = [
+  { label: 'Jan', value: 1 },
+  { label: 'Feb', value: 2 },
+  { label: 'Mar', value: 3 },
+  { label: 'Apr', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'Jun', value: 6 },
+  { label: 'Jul', value: 7 },
+  { label: 'Aug', value: 8 },
+  { label: 'Sep', value: 9 },
+  { label: 'Oct', value: 10 },
+  { label: 'Nov', value: 11 },
+  { label: 'Dec', value: 12 },
+];
+
 /**
- * CertificationItem Component
- * Single certification card
+ * Past 50 years — matches backend min(1950).
+ * No future years needed for certifications.
  */
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 51 }, (_, i) => CURRENT_YEAR - i);
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function CertificationItem({ index, certification, onUpdate, onRemove }) {
-  // ==========================================
-  // DATE DROPDOWNS DATA
-  // ==========================================
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 20 }, (_, i) => currentYear - i);
-
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="border-2 border-gray-200 rounded-lg p-6 bg-white hover:border-teal-300 transition-colors">
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Certification #{index + 1}
         </h3>
 
-        {/* Delete Button */}
         <button
           type="button"
           onClick={() => onRemove(index)}
@@ -79,9 +72,8 @@ function CertificationItem({ index, certification, onUpdate, onRemove }) {
         </button>
       </div>
 
-      {/* FORM FIELDS */}
+      {/* Fields */}
       <div className="space-y-4">
-        {/* Certification Name */}
         <ResumeInput
           label="Certification Name"
           name="certificationName"
@@ -93,21 +85,19 @@ function CertificationItem({ index, certification, onUpdate, onRemove }) {
           showCounter
         />
 
-        {/* Issuing Organization */}
+        {/* Issuer — optional per backend schema */}
         <ResumeInput
           label="Issuing Organization"
           name="issuer"
           value={certification.issuer || ''}
           onChange={(e) => onUpdate(index, 'issuer', e.target.value)}
           placeholder="Amazon Web Services"
-          required
           maxLength={LIMITS.TITLE_MAX_LENGTH}
-          showCounter
+          helperText="Optional"
         />
 
-        {/* Issue Date */}
+        {/* Issue date */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Month */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Issue Month <span className="text-red-500">*</span>
@@ -123,15 +113,14 @@ function CertificationItem({ index, certification, onUpdate, onRemove }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="">Select Month</option>
-              {months.map((m, i) => (
-                <option key={i} value={i + 1}>
-                  {m}
+              {MONTHS.map(({ label, value }) => (
+                <option key={label} value={value}>
+                  {label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Year */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Issue Year <span className="text-red-500">*</span>
@@ -147,7 +136,7 @@ function CertificationItem({ index, certification, onUpdate, onRemove }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
               <option value="">Select Year</option>
-              {years.map((y) => (
+              {YEARS.map((y) => (
                 <option key={y} value={y}>
                   {y}
                 </option>
@@ -156,7 +145,6 @@ function CertificationItem({ index, certification, onUpdate, onRemove }) {
           </div>
         </div>
 
-        {/* Credential URL */}
         <ResumeInput
           label="Credential URL"
           name="credentialUrl"
@@ -167,7 +155,6 @@ function CertificationItem({ index, certification, onUpdate, onRemove }) {
           helperText="Optional but recommended for verification"
         />
 
-        {/* Tip */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-xs text-blue-800">
             💡 <strong>Tip:</strong> Industry-recognized certifications (AWS,

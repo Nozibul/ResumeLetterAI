@@ -1,16 +1,18 @@
+'use client';
 /**
  * @file features/resume-builder/certifications/ui/CertificationsForm.jsx
  * @description Certifications form - Step 8
  * @author Nozibul Islam
+ * @version 2.0.0
  *
- * Refactored to use shared useResumeListForm hook.
- * All init, save, add/remove/update logic lives in the hook.
- * Component is responsible for UI only.
+ * - alert → toast.error
+ * - _tempId added to createEmptyCertification for stable React keys
+ * - isEmpty logic simplified (matches CPForm pattern)
+ * - quality suggestion key={suggestion} (stable)
  */
 
-'use client';
-
 import { memo, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
 import ATSBanner from '@/shared/components/atoms/resume/ATSBanner';
@@ -22,9 +24,8 @@ import {
 } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
 
-// ==========================================
-// CONSTANTS
-// ==========================================
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const ATS_TIPS = [
   'List relevant certifications only (AWS, Azure, Google Cloud, etc.)',
   'Include credential URLs for verification',
@@ -32,14 +33,11 @@ const ATS_TIPS = [
   'Prioritize industry-recognized certifications',
 ];
 
-// ==========================================
-// HELPERS
-// Defined outside component — stable reference, no re-creation on render
-// createEmptyCertification passed to hook as createItem
-// isNotEmpty passed as filterEmpty — blank entries excluded from Redux save
-// ==========================================
+// ── Helpers — defined outside component for stable reference ──────────────────
+
 function createEmptyCertification() {
   return {
+    _tempId: Date.now(),
     certificationName: '',
     issuer: '',
     issueDate: null,
@@ -47,23 +45,16 @@ function createEmptyCertification() {
   };
 }
 
+/** Only save entries that have at least a certification name */
 function isNotEmpty(certification) {
-  return certification.certificationName?.trim();
+  return !!certification.certificationName?.trim();
 }
 
-/**
- * CertificationsForm Component
- * Step 8: Certifications
- */
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function CertificationsForm() {
   const resumeData = useCurrentResumeData();
 
-  // ==========================================
-  // LIST FORM HOOK
-  // All init, save, add/remove/update logic lives in useResumeListForm.
-  // handleAdd returns false if max limit reached — show alert in UI.
-  // No reorder — certifications don't need ordering.
-  // ==========================================
   const {
     items: certifications,
     handleAdd,
@@ -77,48 +68,34 @@ function CertificationsForm() {
     filterEmpty: isNotEmpty,
   });
 
-  // ==========================================
-  // VALIDATION
-  // Run on current certifications for UI feedback only
-  // ==========================================
+  // Validation — UI feedback only, does not block saving
   const errors = useMemo(
     () => validateCertificationsForm(certifications),
     [certifications]
   );
 
-  const hasValidationErrors =
-    Object.keys(errors).length > 0 && errors._form === undefined;
+  const hasValidationErrors = Object.keys(errors).length > 0 && !errors._form;
 
-  // ==========================================
-  // DERIVED STATE
-  // Single source of truth — avoids mirrored/brittle conditions
-  // isEmpty: no certification filled yet — show empty state UI
-  // hasAnyCert: at least one certification filled — show list + add button
-  // ==========================================
-  const isEmpty =
-    certifications.length === 1 &&
-    !certifications[0]?.certificationName?.trim();
-  const hasAnyCert = certifications.some((c) => c.certificationName?.trim());
+  /**
+   * isEmpty: no certification name filled yet — show empty state UI.
+   * Matches CPForm pattern — simpler than length === 1 check.
+   */
+  const isEmpty = !certifications.some((c) => c.certificationName?.trim());
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const onAdd = useCallback(() => {
     const added = handleAdd();
     if (!added) {
-      alert(`Maximum ${LIMITS.MAX_CERTIFICATIONS} certifications allowed`);
+      toast.error(
+        `Maximum ${LIMITS.MAX_CERTIFICATIONS} certifications allowed`
+      );
     }
   }, [handleAdd]);
 
-  // ==========================================
-  // RENDER
-  // ==========================================
   return (
     <div className="space-y-6">
-      {/* ATS GUIDELINES */}
       <ATSBanner title="Certifications Tips" tips={ATS_TIPS} />
 
-      {/* VALIDATION ERRORS SUMMARY */}
+      {/* Validation summary */}
       {hasValidationErrors && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm font-medium text-yellow-800 mb-2">
@@ -138,7 +115,7 @@ function CertificationsForm() {
         </div>
       )}
 
-      {/* EMPTY STATE */}
+      {/* Empty state */}
       {isEmpty && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <div className="max-w-sm mx-auto">
@@ -187,7 +164,7 @@ function CertificationsForm() {
         </div>
       )}
 
-      {/* CERTIFICATIONS LIST */}
+      {/* Certifications list */}
       {!isEmpty && (
         <div className="space-y-6">
           {certifications.map((certification, index) => {
@@ -196,8 +173,8 @@ function CertificationsForm() {
               errors[index] && Object.keys(errors[index]).length > 0;
 
             return (
-              <div key={index} className="relative">
-                {/* Error Indicator */}
+              <div key={certification._tempId || index} className="relative">
+                {/* Error indicator */}
                 {hasErrors && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -206,7 +183,7 @@ function CertificationsForm() {
                   </div>
                 )}
 
-                {/* Quality Score Badge */}
+                {/* Complete indicator */}
                 {!hasErrors && qualityScore.score === 100 && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">
@@ -222,15 +199,15 @@ function CertificationsForm() {
                   onRemove={handleRemove}
                 />
 
-                {/* Quality Suggestions */}
+                {/* Quality suggestions */}
                 {qualityScore.suggestions.length > 0 && (
                   <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p className="text-xs font-medium text-blue-800 mb-1">
                       💡 Suggestions (Score: {qualityScore.score}/100):
                     </p>
                     <ul className="text-xs text-blue-700 space-y-0.5 list-disc list-inside">
-                      {qualityScore.suggestions.map((suggestion, idx) => (
-                        <li key={idx}>{suggestion}</li>
+                      {qualityScore.suggestions.map((suggestion) => (
+                        <li key={suggestion}>{suggestion}</li>
                       ))}
                     </ul>
                   </div>
@@ -241,8 +218,8 @@ function CertificationsForm() {
         </div>
       )}
 
-      {/* ADD BUTTON */}
-      {hasAnyCert && certifications.length < LIMITS.MAX_CERTIFICATIONS && (
+      {/* Add button */}
+      {!isEmpty && certifications.length < LIMITS.MAX_CERTIFICATIONS && (
         <AddCertButton currentCount={certifications.length} onClick={onAdd} />
       )}
     </div>
