@@ -12,7 +12,8 @@
 'use client';
 
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from '@/shared/store/hooks/useAuth';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import {
   reorderSections,
@@ -62,7 +63,7 @@ const INITIAL_VISIBILITY = {
  * Step 10: Review & Download
  */
 function ReviewDownloadForm() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const resumeData = useCurrentResumeData();
 
   const sectionOrder = useSelector(
@@ -154,14 +155,17 @@ function ReviewDownloadForm() {
       <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-200 rounded-xl p-4">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-            <span className="text-lg" role="img" aria-label="review">📋</span>
+            <span className="text-lg" role="img" aria-label="review">
+              📋
+            </span>
           </div>
           <div>
             <h4 className="text-sm font-bold text-emerald-900">
               Review & Finalize Your Resume
             </h4>
             <p className="text-xs text-emerald-700 mt-0.5">
-              Reorder sections, toggle visibility & review ATS tips before downloading.
+              Reorder sections, toggle visibility & review ATS tips before
+              downloading.
             </p>
           </div>
         </div>
@@ -206,7 +210,8 @@ function ReviewDownloadForm() {
               🎉 Resume Complete!
             </h4>
             <p className="text-xs text-teal-700 mt-0.5">
-              Your resume is ready. Click &quot;Download Resume&quot; below to export.
+              Your resume is ready. Click &quot;Download Resume&quot; below to
+              export.
             </p>
           </div>
         </div>
@@ -235,8 +240,8 @@ function ReviewDownloadForm() {
               Ready to Download?
             </h3>
             <p className="text-xs text-teal-700 mb-3">
-              Click the &quot;Download Resume&quot; button below or use the preview panel
-              to export as PDF.
+              Click the &quot;Download Resume&quot; button below or use the
+              preview panel to export as PDF.
             </p>
             <div className="flex items-center gap-2 text-xs text-teal-600">
               <svg
