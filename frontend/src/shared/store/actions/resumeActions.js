@@ -12,8 +12,7 @@
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import resumeService from '@/features/resume/api/resumeApi';
-
+import resumeService from '@/features/resume-builder/api/resumeApi';
 const rejectMsg = (error, fallback) =>
   error.response?.data?.message || error.message || fallback;
 

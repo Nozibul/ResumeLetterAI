@@ -1,105 +1,184 @@
 /**
- * @file features/resume/api/resumeApi.js
- * @description Resume API service
+ * @file authApi.js
  * @author Nozibul Islam
- * @version 2.0.0
- *
- * Synced with backend resumeRoutes.js v3.0.0:
- * - Only routes that exist in the backend are called
- * - getAllResumes supports limit + sort query params
- * - duplicateResume supports optional title
- * - Added: updateSectionOrder, updateSectionVisibility, switchTemplate
- * - Removed: drafts, completed, title-only, visibility, download (no backend routes)
+ * @description Authentication service with selective request deduplication
+ * Deduplication applied only to critical operations that could cause issues if duplicated
  */
 
 import apiClient from '@/shared/lib/api/axios';
 
-const resumeService = {
-  /**
-   * Get all resumes of logged-in user
-   * @param {Object} [options]
-   * @param {number} [options.limit=10] - 1–50
-   * @param {'newest'|'oldest'|'title'} [options.sort='newest']
-   * @returns {Promise<{ success, data: { resumes, total, limit } }>}
-   */
-  getAllResumes: ({ limit = 10, sort = 'newest' } = {}) =>
-    apiClient.get('/resumes', { params: { limit, sort } }).then((r) => r.data),
+// Request cache to prevent duplicate concurrent requests
+const pendingRequests = new Map();
 
-  /**
-   * Get single resume by ID (includes full template details)
-   * @param {string} id
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  getResumeById: (id) => apiClient.get(`/resumes/${id}`).then((r) => r.data),
+/**
+ * Deduplicate concurrent requests with same key
+ * Prevents accidental double-clicks and network retries for critical operations
+ * @param {string} key - Unique identifier for the request
+ * @param {Function} requestFn - The actual API call function
+ * @returns {Promise} Cached or new request promise
+ */
+const deduplicateRequest = (key, requestFn) => {
+  // Return existing promise if request is already in progress
+  if (pendingRequests.has(key)) {
+    return pendingRequests.get(key);
+  }
 
-  /**
-   * Create a new resume
-   * @param {Object} resumeData - { templateId, title, personalInfo, ... }
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  createResume: (resumeData) =>
-    apiClient.post('/resumes', resumeData).then((r) => r.data),
+  // Create and cache new request promise
+  const requestPromise = requestFn().finally(() => {
+    // Auto-cleanup after request completes
+    // Increased timeout for slow networks (5 seconds)
+    setTimeout(() => {
+      pendingRequests.delete(key);
+    }, 5000);
+  });
 
-  /**
-   * Partially update a resume (at least one field required)
-   * @param {string} id
-   * @param {Object} updateData
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  updateResume: (id, updateData) =>
-    apiClient.patch(`/resumes/${id}`, updateData).then((r) => r.data),
-
-  /**
-   * Soft-delete a resume
-   * @param {string} id
-   * @returns {Promise<{ success, data: { id } }>}
-   */
-  deleteResume: (id) => apiClient.delete(`/resumes/${id}`).then((r) => r.data),
-
-  /**
-   * Duplicate an existing resume
-   * @param {string} id
-   * @param {string} [title] - Optional title for the copy
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  duplicateResume: (id, title) =>
-    apiClient
-      .post(`/resumes/${id}/duplicate`, title ? { title } : {})
-      .then((r) => r.data),
-
-  /**
-   * Update section display order (drag & drop)
-   * @param {string} id
-   * @param {string[]} sectionOrder - Ordered array of valid section names
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  updateSectionOrder: (id, sectionOrder) =>
-    apiClient
-      .patch(`/resumes/${id}/section-order`, { sectionOrder })
-      .then((r) => r.data),
-
-  /**
-   * Partially update section visibility
-   * Only provided keys are affected — untouched sections keep their state
-   * @param {string} id
-   * @param {Object} sectionVisibility - e.g. { skills: false, summary: true }
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  updateSectionVisibility: (id, sectionVisibility) =>
-    apiClient
-      .patch(`/resumes/${id}/section-visibility`, { sectionVisibility })
-      .then((r) => r.data),
-
-  /**
-   * Switch resume to a different template
-   * @param {string} id
-   * @param {string} templateId - 24-char MongoDB ObjectId
-   * @returns {Promise<{ success, data: { resume } }>}
-   */
-  switchTemplate: (id, templateId) =>
-    apiClient
-      .patch(`/resumes/${id}/template`, { templateId })
-      .then((r) => r.data),
+  pendingRequests.set(key, requestPromise);
+  return requestPromise;
 };
 
-export default resumeService;
+/**
+ * Auth Service
+ * All authentication related API calls
+ */
+const authService = {
+  /**
+   * Register new user
+   * ✅ DEDUPLICATION: Critical - prevents duplicate account creation
+   * @param {Object} userData - { fullName, email, password, confirmPassword }
+   * @returns {Promise} User data and tokens
+   */
+  register: async (userData) => {
+    return deduplicateRequest(`register:${userData.email}`, async () => {
+      const response = await apiClient.post('/auth/register', userData);
+      return response.data;
+    });
+  },
+
+  /**
+   * Login user
+   * ❌ NO DEDUPLICATION: Backend handles rate limiting, button disable sufficient
+   * @param {Object} credentials - { email, password, rememberMe }
+   * @returns {Promise} User data and tokens
+   */
+  login: async (credentials) => {
+    const response = await apiClient.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  /**
+   * Resend verification email
+   * ❌ NO DEDUPLICATION: User may intentionally want multiple emails
+   * Backend should handle rate limiting (cooldown period)
+   * @returns {Promise}
+   */
+  resendVerification: async () => {
+    const response = await apiClient.post('/auth/resend-verification');
+    return response.data;
+  },
+
+  /**
+   * Forgot password
+   * ✅ DEDUPLICATION: Critical - prevents email spam to user
+   * @param {string} email - User email
+   * @returns {Promise}
+   */
+  forgotPassword: async (email) => {
+    return deduplicateRequest(`forgot-password:${email}`, async () => {
+      const response = await apiClient.post('/token/forgot-password', {
+        email,
+      });
+      return response.data;
+    });
+  },
+
+  /**
+   * Reset password
+   * ✅ DEDUPLICATION: Critical - token can only be used once, avoid confusion
+   * @param {string} token - Reset token
+   * @param {Object} passwordData - { password, confirmPassword }
+   * @returns {Promise}
+   */
+  resetPassword: async (token, passwordData) => {
+    return deduplicateRequest(`reset-password:${token}`, async () => {
+      const response = await apiClient.post(
+        `/token/reset-password/${token}`,
+        passwordData
+      );
+      return response.data;
+    });
+  },
+
+  /**
+   * Verify email
+   * ❌ NO DEDUPLICATION: One-time token link, rarely double-clicked
+   * @param {string} token - Verification token
+   * @returns {Promise}
+   */
+  verifyEmail: async (token) => {
+    const response = await apiClient.get(`/token/verify-email/${token}`);
+    return response.data;
+  },
+
+  /**
+   * Change password
+   * ❌ NO DEDUPLICATION: Infrequent operation, button disable sufficient
+   * @param {Object} passwordData - { currentPassword, newPassword, confirmNewPassword }
+   * @returns {Promise}
+   */
+  changePassword: async (passwordData) => {
+    const response = await apiClient.put('/auth/change-password', passwordData);
+    return response.data;
+  },
+
+  /**
+   * Update user profile
+   * ❌ NO DEDUPLICATION: Use debouncing instead for auto-save scenarios
+   * @param {Object} profileData - { fullName, preferences }
+   * @returns {Promise} Updated user data
+   */
+  updateProfile: async (profileData) => {
+    const response = await apiClient.put('/auth/update-profile', profileData);
+    return response.data;
+  },
+
+  /**
+   * Logout user
+   * ❌ NO DEDUPLICATION: Safe to call multiple times, idempotent operation
+   * @returns {Promise}
+   */
+  logout: async () => {
+    const response = await apiClient.post('/auth/logout');
+    return response.data;
+  },
+
+  /**
+   * Get current user profile
+   * ❌ NO DEDUPLICATION: Read-only operation, no side effects
+   * @returns {Promise} User data
+   */
+  getProfile: async () => {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
+  },
+
+  /**
+   * Delete user account permanently
+   * @param {string} password - User's current password for confirmation
+   * @returns {Promise}
+   */
+  deleteAccount: async (password) => {
+    return deduplicateRequest(`delete-account:${Date.now()}`, async () => {
+      try {
+        const response = await apiClient.delete('/auth/delete-account', {
+          data: { password },
+        });
+        console.log('🟢 Backend SUCCESS:', response.data);
+        return response.data;
+      } catch (error) {
+        throw error; // Must throw
+      }
+    });
+  },
+};
+
+export default authService;

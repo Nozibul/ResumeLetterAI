@@ -153,6 +153,9 @@ export default function RootLayout({ children }) {
           {/* Toast Provider */}
           <Toaster
             position="top-right"
+            containerStyle={{
+              top: 80,
+            }}
             toastOptions={{
               duration: 5000,
               style: {

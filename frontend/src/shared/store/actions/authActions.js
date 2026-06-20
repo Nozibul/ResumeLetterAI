@@ -20,7 +20,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '@/features/auth/api/authApi';
 import { clearAuth } from '../slices/authSlice';
-import { persistor } from '../index';
 
 const rejectMsg = (error, fallback) =>
   error.response?.data?.message || error.message || fallback;
@@ -90,18 +89,16 @@ export const fetchCurrentUser = createAsyncThunk(
 );
 
 // Logout
-
 export const logoutUser = createAsyncThunk(
   'auth/logout',
   async (_, { dispatch }) => {
     try {
       await authService.logout();
     } catch {
-      // API error is intentionally ignored.
-      // Cookie may already be gone; local cleanup is what matters.
+      // ignore
     } finally {
       dispatch(clearAuth());
-      // Clear persisted auth from localStorage
+      const { persistor } = await import('../index');
       persistor.purge();
     }
     return null;
