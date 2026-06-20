@@ -1,10 +1,29 @@
 # ResumeLetterAI
 
-An intelligent, AI-powered resume and cover letter builder that helps you create professional, ATS-friendly documents in minutes. Completely free to use with unlimited generations.
+**🚧 Status: Actively In Development** 
+- ✅ Authentication — Done
+- ✅ Resume Generation — Done
+- ✅ Core UI — Done
+- 🔄 Cover Letter Generation — In Progress
+- 🔄 AI Optimization — In Progress
+
+An intelligent, AI-powered resume and cover letter builder that helps IT professionals create professional, ATS-friendly documents in minutes." Completely free to use with unlimited generations.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)
 ![Yarn](https://img.shields.io/badge/yarn-%3E%3D1.22.0-blue)
+
+## 💡 Why I Built This
+### The Problem
+
+IT professionals — developers, engineers, DevOps, QA — spend hours manually formatting resumes when applying for jobs. Their skill set is complex and project experience is diverse, but generic resume builders are optimized for marketing or business roles — they simply don't understand technical depth.
+
+### The Solution
+
+ResumeLetterAI is built specifically for IT professionals — where the AI understands technical stacks, project descriptions, and role-specific keywords. The result: a recruiter-ready resume in under 5 minutes, without the hassle of manual formatting.
+
+### Who It's For
+Developers, Engineers, DevOps, QA, and anyone in the IT field who wants to spend less time on formatting and more time on landing the job.
 
 ## ✨ Features
 
@@ -54,6 +73,208 @@ An intelligent, AI-powered resume and cover letter builder that helps you create
 - MongoDB instance
 - Redis instance
 - Google Gemini API key
+
+
+## 🧠 Architecture Decisions
+
+> Every decision here was made deliberately. Click any section to see the reasoning, alternatives considered, and trade-offs.
+
+<details>
+<summary>⚡ Why Next.js over plain React.js?</summary>
+
+**Chosen:** Next.js
+**Alternatives Considered:** Plain React.js with Vite, Remix
+
+Next.js gives file-based routing, automatic code splitting, and built-in image optimization out of the box — things that plain React requires manual setup for. With Vite + React, we would have needed to configure React Router, manually handle code splitting, and set up image optimization separately.
+
+Remix is powerful but its ecosystem is significantly smaller than Next.js and the community support is not as mature.
+
+We are not using SSR for authenticated pages since resume data is private — but the architecture is ready. When we introduce public resume sharing, SSR will work immediately with zero migration cost.
+
+**API Routes:** We deliberately chose not to use Next.js API Routes. The backend has Redis caching, Prometheus monitoring, rate limiting, and a modular architecture that Express handles cleanly. Next.js API Routes are not designed for this level of backend complexity.
+
+</details>
+
+<details>
+<summary>🎨 Why Tailwind CSS over CSS Modules and Styled Components?</summary>
+
+**Chosen:** Tailwind CSS
+**Alternatives Considered:** CSS Modules, Styled Components
+
+**CSS Modules** gave component-level scoping but required switching between files constantly. Maintaining naming consistency across a large codebase becomes painful and enforcing a consistent design system is difficult.
+
+**Styled Components** introduced runtime overhead — styles are injected at runtime which impacts performance. Configuring it correctly with Next.js SSR adds unnecessary complexity and bundle size increases.
+
+**Tailwind** keeps styling inside the component with utility classes — no file switching. The design system is built-in with consistent spacing, colors, and typography. In production, unused CSS is purged automatically resulting in a minimal bundle size.
+
+We use `clsx` and `tailwind-merge` to handle conditional class logic cleanly when class names get complex.
+
+</details>
+
+<details>
+<summary>🗃️ Why Redux Toolkit over Zustand and Context API?</summary>
+
+**Chosen:** Redux Toolkit
+**Alternatives Considered:** Zustand, Context API
+
+**Context API** is fine for simple state but causes performance issues at scale. Every Context value change re-renders all consuming components. For a resume builder with auth state, form data, AI generation status, template selection, and auto-save state — all interconnected — this would be a performance nightmare.
+
+**Zustand** is lightweight and would work for an MVP but as state complexity grows, enforcing consistent patterns across the codebase becomes difficult. When teams grow, Zustand lacks the structure to keep state management predictable.
+
+**Redux Toolkit** gives predictable state updates through a single flow, excellent DevTools for debugging complex async operations like AI generation, and a scalable slice-based structure where each feature owns its state cleanly.
+
+Context API is still used for simple local concerns like theme and modal state — Redux Toolkit handles all global complex state.
+
+</details>
+
+<details>
+<summary>💾 Why Redux Persist?</summary>
+
+**Chosen:** Redux Persist
+**Alternatives Considered:** Manual localStorage handling, Server-side session storage
+
+Users spend significant time filling out resume data across multiple sections. A page refresh should never lose their work — that would be an unacceptable user experience.
+
+Redux Persist selectively persists specific slices to localStorage. Auth state and resume form data are persisted. AI generation loading state is deliberately not persisted — showing a stale loading state after a refresh would be confusing.
+
+Sensitive data in localStorage is mitigated by DOMPurify sanitization on the frontend to prevent XSS attacks.
+
+</details>
+
+<details>
+<summary>🌐 Why Axios over the native Fetch API?</summary>
+
+**Chosen:** Axios
+**Alternatives Considered:** Native Fetch API
+
+The native Fetch API requires manually calling `response.json()` on every request. More critically, Fetch does not throw errors on HTTP error responses like 404 or 500 — you have to manually check `response.ok` every time. There are no interceptors and request cancellation requires AbortController setup.
+
+**Axios** handles all of this automatically. JSON is parsed automatically. HTTP errors throw automatically. Request interceptors inject the JWT auth token into every single API call without repeating code. Response interceptors handle 401 errors globally — triggering logout or token refresh in one place instead of in every API call.
+
+The result is significantly cleaner and more maintainable API interaction code across the entire frontend.
+
+</details>
+
+<details>
+<summary>✨ Why Framer Motion over CSS Animations?</summary>
+
+**Chosen:** Framer Motion
+**Alternatives Considered:** Pure CSS Animations, CSS Transitions
+
+Pure CSS animations are perfectly fine for simple fades and slides. But ResumeLetterAI has drag-and-drop resume section reordering — users can rearrange experience, skills, and education sections. Animating this smoothly with pure CSS becomes verbose and difficult to maintain.
+
+Framer Motion's declarative API keeps animation logic clean and directly inside the component JSX. Complex animation orchestration — where one animation triggers another — is handled naturally. It integrates seamlessly with `@dnd-kit` which handles the drag logic while Framer Motion handles the visual animation.
+
+GPU acceleration is automatic, keeping performance smooth even with multiple animated elements on screen.
+
+</details>
+
+<details>
+<summary>🏗️ Why Modular Monolithic over Microservices and Traditional Monolithic?</summary>
+
+**Chosen:** Modular Monolithic
+**Alternatives Considered:** Traditional Monolithic, Microservices
+
+**Traditional Monolithic** has no internal boundaries — auth logic, resume logic, AI logic all mixed together. It works for small projects but becomes unmaintainable as the codebase grows.
+
+**Microservices** would mean separate deployments, service discovery, network latency between services, and distributed tracing — all operational overhead that adds zero business value at MVP stage.
+
+**Modular Monolithic** is the best of both. Each module — `auth`, `resume-templates`, `user-info`, `reviews`, `health` — has its own controllers, services, models, routes, and validators. Modules only communicate through their exported public interfaces, never through internal files directly.
+
+When the product scales and specific modules need independent scaling — for example the AI generation service handling significantly more traffic — each module can be extracted into its own microservice. The boundaries are already defined. No big refactor needed.
+
+</details>
+
+<details>
+<summary>🗄️ Why MongoDB over PostgreSQL and MySQL?</summary>
+
+**Chosen:** MongoDB
+**Alternatives Considered:** PostgreSQL, MySQL
+
+**MySQL** uses a strictly fixed schema. Resume data has flexible nested structures — experience entries, skill lists, project descriptions — that vary per user. Storing this in MySQL would require 10+ tables and complex JOIN queries just to fetch a single resume.
+
+**PostgreSQL** is more flexible with JSONB support but JSONB indexing is limited and querying nested document structures is verbose. It is a workaround, not a natural fit for document-shaped data.
+
+**MongoDB** stores each resume as a single document. Fetch one resume — one query, no JOINs. Schema flexibility means AI-generated content with varying structures is handled naturally.
+
+Data consistency is handled through Mongoose schema validation at the application layer and MongoDB session-based transactions for critical operations.
+
+When the product needs complex analytics, reporting, or financial data in the future, a hybrid approach will be used — resume data stays in MongoDB, financial and analytics data moves to PostgreSQL.
+
+</details>
+
+<details>
+<summary>🤖 Why Google Gemini over OpenAI GPT and Claude?</summary>
+
+**Chosen:** Google Gemini
+**Alternatives Considered:** OpenAI GPT-4o, Anthropic Claude
+
+**OpenAI GPT-4o** is the most popular AI API with the largest ecosystem and best documentation. But it is also the most expensive. The free tier is very limited — meaningful development and testing would incur real costs at MVP stage.
+
+**Anthropic Claude** has excellent reasoning and natural writing quality — arguably better for long-form content. But Claude has no free API tier at all. Every request costs money from day one.
+
+**Google Gemini** offers 1500 free requests per day with Gemini 1.5 Flash — enough to build, test, and validate the entire MVP at zero cost. Output quality for structured resume generation is more than sufficient.
+
+The AI provider is accessed through an abstraction service layer — the application never calls Gemini SDK directly. When the product scales and budget allows, switching to OpenAI or Claude requires changing only the service layer. The rest of the codebase remains untouched.
+
+</details>
+
+<details>
+<summary>✅ Why Zod and express-validator together?</summary>
+
+**Chosen:** Zod + express-validator
+**Alternatives Considered:** Zod alone, express-validator alone
+
+They operate at two completely different layers and are not redundant.
+
+**express-validator** works at the HTTP layer. It runs as Express middleware and validates `req.body`, `req.params`, and `req.query` the moment a request arrives. It catches basic issues — empty fields, invalid email formats — before the request ever reaches the service layer.
+
+**Zod** works at the business logic layer. It handles complex nested object validation, deep type checking, and schema reuse. The same Zod schemas used on the backend are imported on the frontend with React Hook Form — a single source of truth for validation rules across the entire application.
+
+This is defense in depth. express-validator is the first gate — invalid requests never reach the service layer. Zod is the second gate — business logic is protected from malformed data structures.
+
+</details>
+
+<details>
+<summary>📖 Why Swagger UI for API documentation?</summary>
+
+**Chosen:** Swagger UI
+**Alternatives Considered:** Postman Collection only, Manual Markdown docs
+
+Manual documentation goes out of date the moment the code changes. Postman Collections require every developer to install Postman and import the collection separately.
+
+Swagger UI generates interactive browser-based documentation directly from `openapi.yaml`. Any developer can open `/api-docs` and immediately see every endpoint, its expected request format, and test it directly in the browser — no tools to install, no setup required.
+
+In production, the `/api-docs` route is disabled when `NODE_ENV=production` so the API structure is never publicly exposed.
+
+The future plan is to use `swagger-jsdoc` to auto-generate the OpenAPI spec from code comments — keeping documentation and code permanently in sync.
+
+</details>
+
+<details>
+<summary>🏛️ Why Feature-Sliced Design combined with Atomic Design?</summary>
+
+**Chosen:** FSD + Atomic Design
+**Alternatives Considered:** Standard MVC, FSD alone
+
+These two methodologies solve completely different problems and do not overlap.
+
+**Atomic Design** answers: how do we organize UI components?
+`atoms` — Button, Input, Label — single responsibility, no business logic
+`molecules` — FormField, SearchBar — combinations of atoms
+`organisms` — ResumeForm, NavBar — complete UI blocks
+
+These live in `shared/components` and are pure UI with zero business logic.
+
+**Feature-Sliced Design** answers: how do we organize features and business logic?
+`features` — auth, resume-builder, cover-letter — user interactions and business logic
+`entities` — business domain objects
+`widgets` — dashboard, navigation, landing — complex page sections that combine multiple features
+`shared` — reusable utilities, hooks, and the Atomic Design component library
+
+Features consume shared UI components. UI components know nothing about business logic. The separation means UI can be redesigned without touching feature logic, and feature logic can change without touching UI components.
+
+</details>
 
 ## 🚀 Getting Started
 
