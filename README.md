@@ -276,6 +276,37 @@ Features consume shared UI components. UI components know nothing about business
 
 </details>
 
+## 📸 Screenshots
+
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td align="center" colspan="2">
+      <img width="700" alt="Home Page" src="https://github.com/user-attachments/assets/71da01ea-3b15-40e3-bbce-cdff76f467a1" />
+      <br/><b>Home Page</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img width="320" alt="Sign Up" src="https://github.com/user-attachments/assets/dba2a0fe-1eef-4e77-be77-9bee6ccf1c3b" />
+      <br/><b>Sign Up</b>
+    </td>
+    <td align="center">
+      <img width="500" alt="Dashboard" src="https://github.com/user-attachments/assets/e456d074-2597-48cc-a907-8d6d21c1f4c6" />
+      <br/><b>Dashboard</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img width="700" alt="Resume Creation" src="https://github.com/user-attachments/assets/5572f297-8c13-4199-8a92-7420553a2c42" />
+      <br/><b>Resume Creation</b>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
