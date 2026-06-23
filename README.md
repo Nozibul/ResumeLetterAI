@@ -349,8 +349,10 @@ MONGODB_URI=mongodb://localhost:27017/resumeletterai
 REDIS_URL=redis://localhost:6379
 
 # JWT
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRES_IN=7d
+JWT_ACCESS_SECRET=your_jwt_access_secret_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
 
 # Google Gemini AI
 GEMINI_API_KEY=your_gemini_api_key_here
