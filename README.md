@@ -66,14 +66,6 @@ Developers, Engineers, DevOps, QA, and anyone in the IT field who wants to spend
 - **Compression:** gzip compression
 - **Monitoring:** Prometheus metrics with winston logging
 
-## 📋 Prerequisites
-
-- Node.js >= 18.0.0
-- Yarn >= 1.22.0
-- MongoDB instance
-- Redis instance
-- Google Gemini API key
-
 
 ## 🧠 Architecture Decisions
 
@@ -300,6 +292,19 @@ Features consume shared UI components. UI components know nothing about business
 
 </div>
 
+## 🔗 Live Demo
+
+🚧 Coming soon — deployment in progress.
+
+## 📋 Prerequisites
+
+- Node.js >= 18.0.0
+- Yarn >= 1.22.0
+- MongoDB instance (local or MongoDB Atlas)
+- Redis instance (local or Upstash)
+- Google Gemini API key (Get free key here)
+- Cloudinary account (Sign up free)
+
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
@@ -424,6 +429,7 @@ frontend/
 │   │   └── templates/
 │   ├── features/            # Feature modules
 │   ├── entities/            # Business entities
+│   ├── widgets/             # Complex page sections
 │   ├── shared/              # Shared utilities
 │   ├── store/               # Redux store
 │   └── styles/              # Global styles
@@ -655,30 +661,46 @@ backend/
 ## 🔐 API Documentation
 
 ### Authentication Endpoints
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/me` - Get current user
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/login` - Login user
+- `POST /api/v1/auth/logout` - Logout user
+- `GET /api/v1/auth/me` - Get current user
 
 ### Resume Endpoints
-- `POST /api/resume/generate` - Generate resume with AI
-- `GET /api/resume` - Get all user resumes
-- `GET /api/resume/:id` - Get specific resume
-- `PUT /api/resume/:id` - Update resume
-- `DELETE /api/resume/:id` - Delete resume
-- `POST /api/resume/:id/export` - Export resume as PDF
+- `GET /api/v1/resumes/stats` - Get resume statistics
+- `GET /api/v1/resumes` - Get all user resumes (pagination supported)
+- `POST /api/v1/resumes` - Create new resume *(rate limited: 20/hour)*
+- `GET /api/v1/resumes/:id` - Get specific resume
+- `PATCH /api/v1/resumes/:id` - Update resume
+- `DELETE /api/v1/resumes/:id` - Soft delete resume
+- `POST /api/v1/resumes/:id/duplicate` - Duplicate resume *(rate limited)*
+- `PATCH /api/v1/resumes/:id/section-order` - Update section order (drag & drop)
+- `PATCH /api/v1/resumes/:id/section-visibility` - Toggle section visibility
+- `PATCH /api/v1/resumes/:id/template` - Switch resume template
+
+### Template Endpoints
+- `GET /api/v1/templates` - Get all active templates
+- `GET /api/v1/templates/categories/stats` - Get template count by category
+- `GET /api/v1/templates/:id` - Get specific template
+- `GET /api/v1/templates/:id/preview` - Get template preview
+- `POST /api/v1/templates` - Create new template *(Admin)*
+- `POST /api/v1/templates/:id/duplicate` - Duplicate template *(Admin)*
+- `PATCH /api/v1/templates/:id` - Update template *(Admin)*
+- `PATCH /api/v1/templates/:id/restore` - Restore deleted template *(Admin)*
+- `GET /api/v1/templates/deleted` - Get soft-deleted templates *(Admin)*
+- `DELETE /api/v1/templates/:id` - Soft delete template *(Admin)*
+- `DELETE /api/v1/templates/:id/permanent` - Permanently delete template *(Admin)*
 
 ### Cover Letter Endpoints
-- `POST /api/cover-letter/generate` - Generate cover letter with AI
-- `GET /api/cover-letter` - Get all user cover letters
-- `GET /api/cover-letter/:id` - Get specific cover letter
-- `PUT /api/cover-letter/:id` - Update cover letter
-- `DELETE /api/cover-letter/:id` - Delete cover letter
-- `POST /api/cover-letter/:id/export` - Export as PDF
+- `POST /api/v1/cover-letter/generate` - Generate cover letter with AI
+- `GET /api/v1/cover-letter` - Get all user cover letters
+- `GET /api/v1/cover-letter/:id` - Get specific cover letter
+- `PUT /api/v1/cover-letter/:id` - Update cover letter
+- `DELETE /api/v1/cover-letter/:id` - Delete cover letter
+- `POST /api/v1/cover-letter/:id/export` - Export as PDF
+
 
 ## 🧪 Testing
-
-We use Jest and React Testing Library for comprehensive testing coverage.
 
 ```bash
 # Run all tests
@@ -696,15 +718,23 @@ yarn test:coverage
 ### Frontend (Vercel)
 ```bash
 yarn build
-# Deploy to Vercel
 ```
-
-### Backend (Railway/Render/AWS)
+Push to GitHub and import the repository on [Vercel](https://vercel.com). Set the following environment variables in Vercel dashboard:
+```
+NEXT_PUBLIC_API_URL=your_backend_url
+NEXT_PUBLIC_APP_NAME=ResumeLetterAI
+```
+### Backend (Railway / Render / VPS)
 ```bash
 yarn start
-# Deploy using your preferred platform
 ```
+Currently deployable on [Railway](https://railway.app) or [Render](https://render.com) for quick setup. For production scale, a VPS deployment with PM2 and Nginx is recommended — configuration files are included in `config/pm2/` and `config/nginx/`.
 
+## 📄 Technical Decisions
+
+A detailed breakdown of every architectural decision, trade-offs considered, and the reasoning behind each technology choice.
+
+👉 [Read TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md)
 
 ## 🔒 Security
 
