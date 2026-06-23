@@ -743,22 +743,21 @@ If you discover a security vulnerability, please email us at [nozibulislamspi@gm
 See [SECURITY.md](SECURITY.md) for more details.
 
 ## 📝 License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 📧 Contact
 
-For questions, feedback, or support:
-- **Email:** [nozibulislamspi@gmail.com](mailto:nozibulislamspi@gmail.com)
+**Nozibul Islam** — Full Stack & AI Developer
+
+- 📧 Email: nozibulislamspi@gmail.com
+- 💼 GitHub: [github.com/Nozibul](https://github.com/Nozibul)
+- 🔗 LinkedIn: [linkedin.com/in/nozibul](https://www.linkedin.com/in/nozibul/)
 
 ## Acknowledgments
-
 - Google Gemini AI for powerful content generation
 - shadcn/ui for beautiful UI components
 - The open-source community for amazing tools and libraries
 
 ---
-
-**Made with ❤️ by the ResumeLetterAI Team**
-
+**Built by [Nozibul Islam](https://github.com/Nozibul)**
 ⭐ Star this repo if you find it helpful!
