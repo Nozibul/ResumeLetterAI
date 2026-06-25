@@ -10,18 +10,12 @@
  * - Number() coercion removed from onChange
  */
 
-import { memo } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ResumeInput from '@/shared/components/atoms/resume/ResumeInput';
 import TagInput from '@/shared/components/atoms/resume/TagInput';
 import { LIMITS } from '@/shared/lib/constants';
 
-// ── Static data — defined outside component for stable reference ──────────────
-
-/**
- * Common CP platforms. No backend whitelist — user can type any platform.
- * This list is for the dropdown UI convenience only.
- */
 const PLATFORMS = [
   'LeetCode',
   'Codeforces',
@@ -46,12 +40,25 @@ const BADGE_SUGGESTIONS = [
   'Global Rank',
 ];
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function CPItem({
+  index,
+  profile,
+  errors = {},
+  autoFocus = false,
+  onUpdate,
+  onRemove,
+}) {
+  const selectRef = useRef(null);
 
-function CPItem({ index, profile, onUpdate, onRemove }) {
+  /** Focus the platform dropdown when a new empty card is added */
+  useEffect(() => {
+    if (autoFocus && selectRef.current) {
+      selectRef.current.focus();
+    }
+  }, [autoFocus]);
+
   return (
     <div className="border-2 border-gray-200 rounded-lg p-6 bg-white hover:border-teal-300 transition-colors">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Platform #{index + 1}
@@ -79,17 +86,18 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
         </button>
       </div>
 
-      {/* Fields */}
       <div className="space-y-4">
-        {/* Platform dropdown */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Platform <span className="text-red-500">*</span>
           </label>
           <select
+            ref={selectRef}
             value={profile.platform || ''}
             onChange={(e) => onUpdate(index, 'platform', e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+              errors.platform ? 'border-red-400 bg-red-50' : 'border-gray-300'
+            }`}
           >
             <option value="">Select Platform</option>
             {PLATFORMS.map((p) => (
@@ -98,12 +106,11 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
               </option>
             ))}
           </select>
+          {errors.platform && (
+            <p className="mt-1 text-xs text-red-600">{errors.platform}</p>
+          )}
         </div>
 
-        {/**
-         * Problems Solved — type="text" because backend stores as String max(20).
-         * Accepts values like "500+", "1K", or plain "500".
-         */}
         <ResumeInput
           label="Problems Solved"
           name="problemsSolved"
@@ -112,10 +119,10 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
           onChange={(e) => onUpdate(index, 'problemsSolved', e.target.value)}
           placeholder="500"
           maxLength={20}
-          helperText="Total problems solved (e.g. 500, 1K, 500+)"
+          helperText="e.g. 500, 1K, 500+"
+          error={errors.problemsSolved}
         />
 
-        {/* Badges */}
         <TagInput
           label="Badges & Achievements"
           name="badges"
@@ -135,7 +142,6 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
           placeholder="Expert, 5-Star (press Enter)"
         />
 
-        {/* Profile URL */}
         <ResumeInput
           label="Profile URL"
           name="profileUrl"
@@ -144,9 +150,9 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
           onChange={(e) => onUpdate(index, 'profileUrl', e.target.value)}
           placeholder="https://leetcode.com/username"
           helperText="Optional — add for verification"
+          error={errors.profileUrl}
         />
 
-        {/* Platform-specific tip */}
         {profile.platform && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-800">
@@ -163,6 +169,8 @@ function CPItem({ index, profile, onUpdate, onRemove }) {
 CPItem.propTypes = {
   index: PropTypes.number.isRequired,
   profile: PropTypes.object.isRequired,
+  errors: PropTypes.object,
+  autoFocus: PropTypes.bool,
   onUpdate: PropTypes.func.isRequired,
   onRemove: PropTypes.func.isRequired,
 };

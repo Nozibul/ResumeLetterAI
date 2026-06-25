@@ -26,6 +26,7 @@ function ProjectItem({
   onRemove,
   onMoveUp,
   onMoveDown,
+  errors = {},
 }) {
   // ── Highlight handlers ────────────────────────────────────────────────────
 

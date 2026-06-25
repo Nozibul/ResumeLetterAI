@@ -26,8 +26,6 @@ import NameStyleOptions from './NameStyleOptions';
 import SectionReorder from './SectionReorder';
 import logger from '@/shared/lib/logger';
 
-const dispatch = useAppDispatch();
-
 // ==========================================
 // CONSTANTS
 // ==========================================
@@ -83,7 +81,7 @@ const INITIAL_CUSTOMIZATION = {
  * Step 9: Customize & Export
  */
 function FinalizeForm() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const resumeData = useCurrentResumeData();
 
   const sectionOrder = useSelector(

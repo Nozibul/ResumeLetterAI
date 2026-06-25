@@ -8,7 +8,7 @@
  * MAX_CP_PLATFORMS used (matches backend LIMITS constant name)
  */
 
-import { memo } from 'prop-types';
+import { memo } from 'react';
 import PropTypes from 'prop-types';
 import { LIMITS } from '@/shared/lib/constants';
 

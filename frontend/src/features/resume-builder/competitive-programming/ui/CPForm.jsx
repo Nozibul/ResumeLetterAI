@@ -12,7 +12,7 @@
  * - MAX_CP_PLATFORMS used (matches backend LIMITS)
  */
 
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCurrentResumeData } from '@/shared/store/hooks/useResume';
 import { useResumeListForm } from '@/shared/hooks/useResumeListForm';
@@ -22,16 +22,12 @@ import AddPlatformButton from './AddPlatformButton';
 import { validateCPForm, getCPQualityScore } from '../model/validation';
 import { LIMITS } from '@/shared/lib/constants';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const ATS_TIPS = [
   'Include competitive programming if relevant to the role',
   'Highlight problem counts and rankings',
   'Mention notable achievements (contest wins, rating milestones)',
   'Add profile links for verification',
 ];
-
-// ── Helpers — defined outside component for stable reference ──────────────────
 
 function createEmptyProfile() {
   return {
@@ -43,15 +39,19 @@ function createEmptyProfile() {
   };
 }
 
-/** Only save entries that have a platform selected */
+/** Filters out profiles with no platform selected before saving to Redux */
 function isNotEmpty(profile) {
   return !!profile.platform?.trim();
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 function CPForm() {
   const resumeData = useCurrentResumeData();
+
+  /**
+   * Tracks which cards the user has interacted with.
+   * Validation errors are shown only for touched cards.
+   */
+  const [touched, setTouched] = useState({});
 
   const {
     items: profiles,
@@ -66,17 +66,16 @@ function CPForm() {
     filterEmpty: isNotEmpty,
   });
 
-  // Validation — UI feedback only, does not block saving
   const errors = useMemo(() => validateCPForm(profiles), [profiles]);
 
-  const hasValidationErrors = Object.keys(errors).length > 0 && !errors._form;
+  /** Only show summary errors for cards the user has already interacted with */
+  const touchedErrors = Object.entries(errors).filter(([key]) => {
+    if (key === '_form') return false;
+    return touched[parseInt(key)];
+  });
 
-  /**
-   * isEmpty: no profile has a platform filled yet.
-   * Works correctly both on initial mount (hook starts with [createEmptyProfile()])
-   * and after Redux initialization (real data loaded).
-   */
-  const isEmpty = !profiles.some((p) => p.platform?.trim());
+  /** True only when no cards exist — empty string platform still shows the card */
+  const isEmpty = profiles.length === 0;
 
   const onAdd = useCallback(() => {
     const added = handleAdd();
@@ -85,31 +84,37 @@ function CPForm() {
     }
   }, [handleAdd]);
 
+  /** Marks a card as touched on first interaction, then delegates to the list hook */
+  const handleUpdateWithTouch = useCallback(
+    (index, field, value) => {
+      setTouched((prev) => ({ ...prev, [index]: true }));
+      handleUpdate(index, field, value);
+    },
+    [handleUpdate]
+  );
+
   return (
     <div className="space-y-6">
       <ATSBanner title="Competitive Programming Tips" tips={ATS_TIPS} />
 
-      {/* Validation summary */}
-      {hasValidationErrors && (
+      {touchedErrors.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm font-medium text-yellow-800 mb-2">
-            ⚠️ Validation Issues:
+            ⚠️ Please fix the following:
           </p>
           <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
-            {Object.entries(errors).map(([key, value]) => {
-              if (key === '_form') return null;
-              return (
-                <li key={key}>
-                  Platform #{parseInt(key) + 1}:{' '}
-                  {typeof value === 'object' ? 'Check fields' : value}
-                </li>
-              );
-            })}
+            {touchedErrors.map(([key, value]) => (
+              <li key={key}>
+                Platform #{parseInt(key) + 1}:{' '}
+                {typeof value === 'object'
+                  ? Object.values(value).join(', ')
+                  : value}
+              </li>
+            ))}
           </ul>
         </div>
       )}
 
-      {/* Empty state */}
       {isEmpty && (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <div className="max-w-sm mx-auto">
@@ -158,17 +163,17 @@ function CPForm() {
         </div>
       )}
 
-      {/* Profiles list */}
       {!isEmpty && (
         <div className="space-y-6">
           {profiles.map((profile, index) => {
             const qualityScore = getCPQualityScore(profile);
+            const cardTouched = !!touched[index];
+            const cardErrors = errors[index];
             const hasErrors =
-              errors[index] && Object.keys(errors[index]).length > 0;
+              cardTouched && cardErrors && Object.keys(cardErrors).length > 0;
 
             return (
               <div key={profile._tempId || index} className="relative">
-                {/* Error indicator */}
                 {hasErrors && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
@@ -177,7 +182,6 @@ function CPForm() {
                   </div>
                 )}
 
-                {/* Complete indicator */}
                 {!hasErrors && qualityScore.score === 100 && (
                   <div className="absolute -top-2 -right-2 z-10">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold">
@@ -189,12 +193,13 @@ function CPForm() {
                 <CPItem
                   index={index}
                   profile={profile}
-                  onUpdate={handleUpdate}
+                  errors={cardTouched ? cardErrors || {} : {}}
+                  autoFocus={!profile.platform}
+                  onUpdate={handleUpdateWithTouch}
                   onRemove={handleRemove}
                 />
 
-                {/* Quality suggestions */}
-                {qualityScore.suggestions.length > 0 && (
+                {cardTouched && qualityScore.suggestions.length > 0 && (
                   <div className="mt-2 bg-teal-50 border border-teal-200 rounded-lg p-3">
                     <p className="text-xs font-medium text-teal-800 mb-1">
                       💡 Suggestions (Score: {qualityScore.score}/100):
@@ -212,7 +217,6 @@ function CPForm() {
         </div>
       )}
 
-      {/* Add button — only shown when at least one profile exists */}
       {!isEmpty && profiles.length < LIMITS.MAX_CP_PLATFORMS && (
         <AddPlatformButton currentCount={profiles.length} onClick={onAdd} />
       )}
