@@ -1,27 +1,34 @@
-// modules/cover-letter/controllers/CoverLetterController.js
+/**
+ * @file CoverLetterController.js
+ * @description Cover letter controller — HTTP layer only, no business logic
+ * @module modules/cover-letter/controllers/CoverLetterController
+ * @author Nozibul Islam
+ * @version 1.0.0
+ */
 
-const { validationResult } = require('express-validator');
+const catchAsync = require('../../../shared/utils/catchAsync');
 const CoverLetterService = require('../services/CoverLetterService');
 
-const generate = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
+/**
+ * @desc  Generate a cover letter with SSE streaming
+ * @route POST /api/v1/cover-letters/generate
+ */
+exports.generate = catchAsync(async (req, res) => {
   const { resumeSource, resumeId, resumeText, jobDescription, tone } = req.body;
   const userId = req.user._id;
 
-  // Streaming headers
+  // SSE headers — client receives chunks in real time
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
 
   try {
     const coverLetter = await CoverLetterService.generate({
       resumeSource,
       resumeId,
       resumeText,
+      // resumeSource === 'upload' ? req.file?.extractedText : resumeText,
       jobDescription,
       tone,
       userId,
@@ -30,45 +37,61 @@ const generate = async (req, res) => {
       },
     });
 
-    // Send cover letter id at the end of the stream
-    // You will need this id to save it in the frontend
+    // Signal completion and return id for save action
     res.write(
       `data: ${JSON.stringify({ done: true, id: coverLetter._id })}\n\n`
     );
     res.end();
   } catch (error) {
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ error: error.message || 'Generation failed' })}\n\n`
+    );
     res.end();
   }
-};
+});
 
-const save = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+/**
+ * @desc  Mark a cover letter as saved
+ * @route POST /api/v1/cover-letters/save
+ */
+exports.save = catchAsync(async (req, res) => {
+  const { coverLetterId } = req.body;
 
-  try {
-    const { coverLetterId } = req.body;
-    const userId = req.user._id;
+  await CoverLetterService.save({ coverLetterId, userId: req.user._id });
 
-    await CoverLetterService.save({ coverLetterId, userId });
+  res.status(200).json({
+    success: true,
+    message: 'Cover letter saved successfully',
+  });
+});
 
-    res.status(200).json({ message: 'Cover letter saved successfully' });
-  } catch (error) {
-    res.status(error.message === 'Cover letter not found' ? 404 : 500).json({
-      message: error.message,
-    });
-  }
-};
+/**
+ * @desc  Get all saved cover letters
+ * @route GET /api/v1/cover-letters
+ */
+exports.list = catchAsync(async (req, res) => {
+  const coverLetters = await CoverLetterService.list(req.user._id);
 
-const list = async (req, res) => {
-  try {
-    const coverLetters = await CoverLetterService.list(req.user._id);
-    res.status(200).json({ coverLetters });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch cover letters' });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: 'Cover letters retrieved successfully',
+    data: { coverLetters },
+  });
+});
 
-module.exports = { generate, save, list };
+/**
+ * @desc  Get single cover letter with full content
+ * @route GET /api/v1/cover-letters/:id
+ */
+exports.getById = catchAsync(async (req, res) => {
+  const coverLetter = await CoverLetterService.getById({
+    coverLetterId: req.params.id,
+    userId: req.user._id,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Cover letter retrieved successfully',
+    data: { coverLetter },
+  });
+});

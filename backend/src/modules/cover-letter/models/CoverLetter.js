@@ -1,4 +1,10 @@
-// modules/cover-letter/models/CoverLetter.js
+/**
+ * @file CoverLetter.js
+ * @description Mongoose model for generated cover letters
+ * @module modules/cover-letter/models/CoverLetter
+ * @author Nozibul Islam
+ * @version 1.0.0
+ */
 
 const mongoose = require('mongoose');
 
@@ -16,6 +22,7 @@ const CoverLetterSchema = new mongoose.Schema(
       required: [true, 'Resume source is required'],
     },
 
+    // Only set when resumeSource === 'db'
     resumeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Resume',
@@ -29,7 +36,7 @@ const CoverLetterSchema = new mongoose.Schema(
       },
     },
 
-    // Service layer responsibility populate
+    // Service layer is responsible for populating this before save
     resumeText: {
       type: String,
       required: [true, 'Resume text is required'],
@@ -49,9 +56,10 @@ const CoverLetterSchema = new mongoose.Schema(
     content: {
       type: String,
       required: [true, 'Cover letter content is required'],
-      maxlength: [5000, 'Cover letter content cannot exceed 5000 characters'],
+      maxlength: [5000, 'Cover letter cannot exceed 5000 characters'],
     },
 
+    // User must explicitly save — auto-generated ones default to false
     isSaved: {
       type: Boolean,
       default: false,
@@ -62,6 +70,8 @@ const CoverLetterSchema = new mongoose.Schema(
     versionKey: false,
     toJSON: {
       transform: function (doc, ret) {
+        // resumeText is large — exclude from list responses
+        // Detail view fetches by id so this is fine
         delete ret.resumeText;
         return ret;
       },
@@ -69,6 +79,8 @@ const CoverLetterSchema = new mongoose.Schema(
   }
 );
 
+// Compound indexes cover all query patterns
+// userId alone is served by the first compound index (leftmost prefix rule)
 CoverLetterSchema.index({ userId: 1, createdAt: -1 });
 CoverLetterSchema.index({ userId: 1, isSaved: 1 });
 

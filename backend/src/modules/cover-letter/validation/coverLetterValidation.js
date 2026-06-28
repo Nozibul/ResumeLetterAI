@@ -1,46 +1,77 @@
-// modules/cover-letter/validation/coverLetterValidation.js
+/**
+ * @file coverLetterValidation.js
+ * @description Zod validation schemas for cover letter API operations
+ * @module modules/cover-letter/validation/coverLetterValidation
+ * @author Nozibul Islam
+ * @version 1.0.0
+ */
 
-const { body } = require('express-validator');
+const { z } = require('zod');
 
-const generateValidation = [
-  body('resumeSource')
-    .notEmpty()
-    .withMessage('Resume source is required')
-    .isIn(['db', 'paste', 'upload'])
-    .withMessage('Invalid resume source'),
+const objectIdSchema = z
+  .string()
+  .trim()
+  .length(24, 'ID must be exactly 24 characters')
+  .regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId format');
 
-  body('resumeId')
-    .if(body('resumeSource').equals('db'))
-    .notEmpty()
-    .withMessage('Resume ID is required when source is db')
-    .isMongoId()
-    .withMessage('Invalid resume ID'),
+const toneSchema = z
+  .enum(['professional', 'creative', 'concise', 'enthusiastic', 'formal'])
+  .default('professional');
 
-  body('resumeText')
-    .if(body('resumeSource').equals('paste'))
-    .notEmpty()
-    .withMessage('Resume text is required when source is paste')
-    .isLength({ min: 100 })
-    .withMessage('Resume text is too short'),
+exports.generateCoverLetterSchema = z.object({
+  body: z
+    .object({
+      resumeSource: z.enum(['db', 'paste', 'upload'], {
+        errorMap: () => ({
+          message: 'resumeSource must be db, paste, or upload',
+        }),
+      }),
 
-  body('jobDescription')
-    .notEmpty()
-    .withMessage('Job description is required')
-    .isLength({ min: 50 })
-    .withMessage('Job description is too short'),
+      resumeId: objectIdSchema.optional(),
 
-  body('tone')
-    .optional()
-    .isIn(['professional', 'creative', 'concise', 'enthusiastic', 'formal'])
-    .withMessage('Invalid tone'),
-];
+      resumeText: z.string().trim().optional(),
 
-const saveValidation = [
-  body('coverLetterId')
-    .notEmpty()
-    .withMessage('Cover letter ID is required')
-    .isMongoId()
-    .withMessage('Invalid cover letter ID'),
-];
+      jobDescription: z
+        .string()
+        .trim()
+        .min(50, 'Job description must be at least 50 characters')
+        .max(5000, 'Job description cannot exceed 5000 characters'),
 
-module.exports = { generateValidation, saveValidation };
+      tone: toneSchema,
+    })
+    .refine(
+      (data) => {
+        if (data.resumeSource === 'db') return !!data.resumeId;
+        return true;
+      },
+      {
+        message: 'resumeId is required when resumeSource is "db"',
+        path: ['resumeId'],
+      }
+    )
+    .refine(
+      (data) => {
+        if (data.resumeSource === 'paste') {
+          return !!data.resumeText && data.resumeText.length >= 100;
+        }
+        return true;
+      },
+      {
+        message:
+          'resumeText must be at least 100 characters when source is "paste"',
+        path: ['resumeText'],
+      }
+    ),
+});
+
+exports.saveCoverLetterSchema = z.object({
+  body: z.object({
+    coverLetterId: objectIdSchema,
+  }),
+});
+
+exports.getCoverLetterSchema = z.object({
+  params: z.object({
+    id: objectIdSchema,
+  }),
+});

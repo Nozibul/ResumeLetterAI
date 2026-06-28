@@ -13,6 +13,7 @@ const tokenRoutes = require('../modules/auth/routes/tokenRoutes');
 const templateRoutes = require('../modules/templates/routes/templateRoutes');
 const resumeRoutes = require('../modules/resume/routes/resumeRoutes');
 const pdf = require('../modules/pdf/routes/pdfRoutes');
+const coverLetterRoutes = require('../modules/cover-letter/routes/coverLetterRoutes');
 
 // ==========================================
 // API INFO ENDPOINTS
@@ -32,6 +33,8 @@ router.get('/', (_, res) => {
       token: '/api/v1/token',
       users: '/api/v1/users',
       templates: '/api/v1/templates',
+      coverLetters: '/api/v1/cover-letters',
+      resumes: '/api/v1/resumes',
     },
     timestamp: new Date().toISOString(),
   });
@@ -98,5 +101,11 @@ router.use('/resumes', resumeRoutes);
  * @path /api/v1/pdf
  */
 router.use('/pdf', pdf);
+
+/**
+ * Cover letter routes
+ * @path /api/v1/cover-letters
+ */
+router.use('/cover-letters', coverLetterRoutes);
 
 module.exports = router;

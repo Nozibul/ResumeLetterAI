@@ -1,4 +1,13 @@
-// lib/resumeFormatter.js
+/**
+ * @file resumeFormatter.js
+ * @description Converts Resume DB document to AI-readable plain text
+ * @module lib/resumeFormatter
+ * @author Nozibul Islam
+ * @version 1.0.0
+ *
+ * Only visible sections are included.
+ * Service layer is responsible for passing a valid resume document.
+ */
 
 const formatResumeForAI = (resume) => {
   const {
@@ -39,6 +48,10 @@ const formatResumeForAI = (resume) => {
       text += `Frontend: ${skills.frontend.join(', ')}\n`;
     if (skills.backend?.length)
       text += `Backend: ${skills.backend.join(', ')}\n`;
+    if (skills.database?.length)
+      text += `Database: ${skills.database.join(', ')}\n`;
+    if (skills.devOps?.length) text += `DevOps: ${skills.devOps.join(', ')}\n`;
+    if (skills.tools?.length) text += `Tools: ${skills.tools.join(', ')}\n`;
     text += '\n';
   }
 

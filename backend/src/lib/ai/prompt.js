@@ -1,4 +1,10 @@
-// lib/ai/prompt.js
+/**
+ * @file prompt.js
+ * @description Cover letter prompt builder
+ * @module lib/ai/prompt
+ * @author Nozibul Islam
+ * @version 1.0.0
+ */
 
 const TONE_INSTRUCTIONS = {
   professional: 'Write in a professional and confident tone.',
@@ -8,6 +14,10 @@ const TONE_INSTRUCTIONS = {
   formal: 'Write in a formal and traditional business letter style.',
 };
 
+/**
+ * Builds the prompt sent to the AI model.
+ * Kept separate so prompt changes never touch service or controller.
+ */
 const buildCoverLetterPrompt = ({ resumeText, jobDescription, tone }) => {
   const toneInstruction =
     TONE_INSTRUCTIONS[tone] || TONE_INSTRUCTIONS.professional;
