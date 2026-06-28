@@ -23,8 +23,6 @@ const generateWithGemini = async ({
   tone,
   onChunk,
 }) => {
-  console.log('Using model: gemini-2.5-flash');
-
   if (!process.env.GEMINI_API_KEY) {
     throw new AppError('AI service is not configured', 503);
   }
