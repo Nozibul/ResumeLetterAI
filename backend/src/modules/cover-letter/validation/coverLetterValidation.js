@@ -66,7 +66,13 @@ exports.generateCoverLetterSchema = z.object({
 
 exports.saveCoverLetterSchema = z.object({
   body: z.object({
-    coverLetterId: objectIdSchema,
+    coverLetterId: z
+      .string({
+        required_error: 'Cover letter ID is required',
+        invalid_type_error: 'Cover letter ID must be a string',
+      })
+      .length(24, 'ID must be exactly 24 characters')
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid cover letter ID format'),
   }),
 });
 

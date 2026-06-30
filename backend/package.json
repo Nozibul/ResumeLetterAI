@@ -51,6 +51,7 @@
     "puppeteer": "^24.40.0",
     "rate-limit-redis": "^4.2.2",
     "redis": "^5.8.2",
+    "sanitize-html": "^2.17.5",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "validator": "^13.15.15",

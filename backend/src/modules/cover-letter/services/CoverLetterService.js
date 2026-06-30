@@ -11,6 +11,7 @@ const Resume = require('../../resume/models/Resume');
 const { generateCoverLetter } = require('../../../lib/ai/provider');
 const { formatResumeForAI } = require('../../../lib/resumeFormatter');
 const AppError = require('../../../shared/utils/AppError');
+const { sanitizeText } = require('../../../lib/sanitizeInput');
 
 // ============================================================
 // PRIVATE HELPERS
@@ -71,12 +72,22 @@ exports.generate = async ({
   userId,
   onChunk,
 }) => {
+  // Sanitize before anything touches DB or AI
+  const cleanJobDescription = sanitizeText(jobDescription);
+  const cleanResumeText =
+    resumeSource === 'paste' ? sanitizeText(resumeText) : resumeText;
+
   const { text: finalResumeText, resumeId: finalResumeId } =
-    await resolveResumeText({ resumeSource, resumeId, resumeText, userId });
+    await resolveResumeText({
+      resumeSource,
+      resumeId,
+      resumeText: cleanResumeText,
+      userId,
+    });
 
   const content = await generateCoverLetter({
     resumeText: finalResumeText,
-    jobDescription,
+    jobDescription: cleanJobDescription,
     tone: tone || 'professional',
     onChunk,
   });
@@ -86,7 +97,7 @@ exports.generate = async ({
     resumeSource,
     resumeId: finalResumeId,
     resumeText: finalResumeText,
-    jobDescription,
+    jobDescription: cleanJobDescription,
     tone: tone || 'professional',
     content,
     isSaved: false,
@@ -94,7 +105,6 @@ exports.generate = async ({
 
   return coverLetter;
 };
-
 /**
  * Mark a cover letter as saved.
  * Verifies ownership before update.

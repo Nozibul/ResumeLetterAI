@@ -8,6 +8,7 @@
 
 const express = require('express');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
@@ -36,10 +37,23 @@ const upload = multer({
   },
 });
 
+const generateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+  message: {
+    success: false,
+    message: 'Too many cover letters generated. Please try again later.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.use(protect);
 
 router.post(
   '/generate',
+  generateLimiter,
   upload.single('resume'),
   validate(generateCoverLetterSchema),
   CoverLetterController.generate
