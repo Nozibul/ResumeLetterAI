@@ -5,20 +5,12 @@
  */
 
 'use client';
-
+import { memo } from 'react';
 import { TONE_OPTIONS } from '../model/coverLetter.constants';
 import ResumeSourceSelector from '@/shared/components/molecules/resumeSourceSelector/ResumeSourceSelector';
 import CoverLetterTextarea from '@/shared/components/atoms/coverLetter/CoverLetterTextarea';
 import CoverLetterDropdown from '@/shared/components/atoms/coverLetter/CoverLetterDropdown';
 import Button from '@/shared/components/atoms/buttons/Button';
-
-const TONE_OPTIONS = [
-  { value: 'professional', label: 'Professional' },
-  { value: 'creative', label: 'Creative' },
-  { value: 'concise', label: 'Concise' },
-  { value: 'enthusiastic', label: 'Enthusiastic' },
-  { value: 'formal', label: 'Formal' },
-];
 
 function InputPanel({
   resumeSource,

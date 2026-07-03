@@ -78,7 +78,7 @@ export function Navigation() {
                     asChild
                     className={clsx(navigationMenuTriggerStyle(), 'text-sm')}
                   >
-                    <Link href="/cover-letter-AI">Cover Letter</Link>
+                    <Link href="/cover-letter">Cover Letter</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
@@ -188,7 +188,7 @@ export function Navigation() {
                 Resume Templates
               </Link>
               <Link
-                href="/cover-letter-AI"
+                href="/cover-letter"
                 className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
