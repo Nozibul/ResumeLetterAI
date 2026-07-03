@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     if (!authChecked || loading) return;
     if (!isAuthenticated || authError) {
-      router.push('/login');
+      router.push(`/login?redirect=${pathname}`);
     }
   }, [authChecked, loading, isAuthenticated, authError, router]);
 

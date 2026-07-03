@@ -7,13 +7,14 @@ import { useState, useEffect } from 'react';
 import { LogIn } from 'lucide-react';
 import LoginForm from '@/features/auth/ui/LoginForm';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAppDispatch } from '@/shared/store/hooks/useAuth';
 import { loginUser } from '@/shared/store/actions/authActions';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
 
   // Lock state management
@@ -49,6 +50,14 @@ export default function LoginPage() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const getSafeRedirect = () => {
+    const redirect = searchParams.get('redirect');
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+      return redirect;
+    }
+    return '/dashboard';
+  };
+
   const handleLogin = async (formData) => {
     try {
       const response = await dispatch(
@@ -63,7 +72,7 @@ export default function LoginPage() {
         position: 'top-center',
       });
 
-      if (response.isEmailVerified) router.push('/dashboard');
+      if (response.isEmailVerified) router.push(getSafeRedirect());
     } catch (error) {
       const statusCode = error.status;
       const backendMessage = error.message;
