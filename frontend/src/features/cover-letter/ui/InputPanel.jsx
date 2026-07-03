@@ -6,11 +6,11 @@
 
 'use client';
 
-import { memo } from 'react';
-import Button from '@/shared/components/atoms/buttons/Button';
+import { TONE_OPTIONS } from '../model/coverLetter.constants';
+import ResumeSourceSelector from '@/shared/components/molecules/resumeSourceSelector/ResumeSourceSelector';
 import CoverLetterTextarea from '@/shared/components/atoms/coverLetter/CoverLetterTextarea';
 import CoverLetterDropdown from '@/shared/components/atoms/coverLetter/CoverLetterDropdown';
-import ResumeSourceSelector from '@/shared/components/molecules/resumeSourceSelector/ResumeSourceSelector';
+import Button from '@/shared/components/atoms/buttons/Button';
 
 const TONE_OPTIONS = [
   { value: 'professional', label: 'Professional' },
