@@ -3,19 +3,38 @@
  * @description Cover letter controller — HTTP layer only, no business logic
  * @module modules/cover-letter/controllers/CoverLetterController
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 const catchAsync = require('../../../shared/utils/catchAsync');
 const CoverLetterService = require('../services/CoverLetterService');
+const AppError = require('../../../shared/utils/AppError');
+
+const ALLOWED_SENIORITY_LEVELS = ['entry', 'mid', 'senior', 'lead'];
 
 /**
  * @desc  Generate a cover letter with SSE streaming
  * @route POST /api/v1/cover-letters/generate
  */
 exports.generate = catchAsync(async (req, res) => {
-  const { resumeSource, resumeId, resumeText, jobDescription, tone } = req.body;
+  const {
+    resumeSource,
+    resumeId,
+    resumeText,
+    jobDescription,
+    tone,
+    seniorityLevel,
+  } = req.body;
   const userId = req.user._id;
+
+  // Validate BEFORE switching to SSE headers, so a normal JSON error response
+  // still goes out if this is invalid.
+  if (seniorityLevel && !ALLOWED_SENIORITY_LEVELS.includes(seniorityLevel)) {
+    throw new AppError(
+      `Invalid seniorityLevel. Allowed values: ${ALLOWED_SENIORITY_LEVELS.join(', ')}`,
+      400
+    );
+  }
 
   // SSE headers — client receives chunks in real time
   res.setHeader('Content-Type', 'text/event-stream');
@@ -31,6 +50,7 @@ exports.generate = catchAsync(async (req, res) => {
       // resumeSource === 'upload' ? req.file?.extractedText : resumeText,
       jobDescription,
       tone,
+      seniorityLevel,
       userId,
       onChunk: (chunk) => {
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);

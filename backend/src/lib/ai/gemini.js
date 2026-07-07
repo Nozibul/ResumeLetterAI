@@ -3,7 +3,7 @@
  * @description Gemini AI provider implementation
  * @module lib/ai/gemini
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -21,6 +21,7 @@ const generateWithGemini = async ({
   resumeText,
   jobDescription,
   tone,
+  seniorityLevel,
   onChunk,
 }) => {
   if (!process.env.GEMINI_API_KEY) {
@@ -31,7 +32,12 @@ const generateWithGemini = async ({
     model: 'gemini-2.5-flash',
   });
 
-  const prompt = buildCoverLetterPrompt({ resumeText, jobDescription, tone });
+  const prompt = buildCoverLetterPrompt({
+    resumeText,
+    jobDescription,
+    tone,
+    seniorityLevel,
+  });
 
   const result = await model.generateContentStream(prompt);
 

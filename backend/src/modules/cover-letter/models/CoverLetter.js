@@ -3,7 +3,7 @@
  * @description Mongoose model for generated cover letters
  * @module modules/cover-letter/models/CoverLetter
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 const mongoose = require('mongoose');
@@ -51,6 +51,13 @@ const CoverLetterSchema = new mongoose.Schema(
       type: String,
       enum: ['professional', 'creative', 'concise', 'enthusiastic', 'formal'],
       default: 'professional',
+    },
+
+    // Optional — null means AI inferred seniority from the resume itself
+    seniorityLevel: {
+      type: String,
+      enum: ['entry', 'mid', 'senior', 'lead'],
+      default: null,
     },
 
     content: {

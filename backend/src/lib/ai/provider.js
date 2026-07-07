@@ -15,9 +15,16 @@ const generateCoverLetter = async ({
   resumeText,
   jobDescription,
   tone,
+  seniorityLevel,
   onChunk,
 }) => {
-  return generateWithGemini({ resumeText, jobDescription, tone, onChunk });
+  return generateWithGemini({
+    resumeText,
+    jobDescription,
+    tone,
+    seniorityLevel,
+    onChunk,
+  });
 };
 
 module.exports = { generateCoverLetter };

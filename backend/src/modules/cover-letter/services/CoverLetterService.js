@@ -69,6 +69,7 @@ exports.generate = async ({
   resumeText,
   jobDescription,
   tone,
+  seniorityLevel,
   userId,
   onChunk,
 }) => {
@@ -89,6 +90,7 @@ exports.generate = async ({
     resumeText: finalResumeText,
     jobDescription: cleanJobDescription,
     tone: tone || 'professional',
+    seniorityLevel: seniorityLevel || null,
     onChunk,
   });
 
@@ -99,6 +101,7 @@ exports.generate = async ({
     resumeText: finalResumeText,
     jobDescription: cleanJobDescription,
     tone: tone || 'professional',
+    seniorityLevel: seniorityLevel || null,
     content,
     isSaved: false,
   });
