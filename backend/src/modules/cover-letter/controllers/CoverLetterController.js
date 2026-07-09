@@ -3,29 +3,31 @@
  * @description Cover letter controller — HTTP layer only, no business logic
  * @module modules/cover-letter/controllers/CoverLetterController
  * @author Nozibul Islam
- * @version 1.1.0
+ * @version 1.2.0
  */
 
 const catchAsync = require('../../../shared/utils/catchAsync');
 const CoverLetterService = require('../services/CoverLetterService');
 const AppError = require('../../../shared/utils/AppError');
+const { extractTextFromFile } = require('../../../lib/fileExtractor');
 
 const ALLOWED_SENIORITY_LEVELS = ['entry', 'mid', 'senior', 'lead'];
 
 /**
  * @desc  Generate a cover letter with SSE streaming
  * @route POST /api/v1/cover-letters/generate
+ *
+ * Content-Type varies by resumeSource:
+ * - 'db' / 'paste' → application/json
+ * - 'upload'       → multipart/form-data (req.file populated by multer,
+ *                     see routes — uploadResume.single('resumeFile'))
  */
 exports.generate = catchAsync(async (req, res) => {
-  const {
-    resumeSource,
-    resumeId,
-    resumeText,
-    jobDescription,
-    tone,
-    seniorityLevel,
-  } = req.body;
+  const { resumeSource, resumeId, jobDescription, tone, seniorityLevel } =
+    req.body;
+  let { resumeText } = req.body;
   const userId = req.user._id;
+  const accountFallbackName = req.user.fullName;
 
   // Validate BEFORE switching to SSE headers, so a normal JSON error response
   // still goes out if this is invalid.
@@ -34,6 +36,13 @@ exports.generate = catchAsync(async (req, res) => {
       `Invalid seniorityLevel. Allowed values: ${ALLOWED_SENIORITY_LEVELS.join(', ')}`,
       400
     );
+  }
+
+  // Upload source: extract text from the uploaded file BEFORE SSE headers,
+  // so a corrupted/unsupported file returns a normal JSON 400 instead of
+  // breaking mid-stream.
+  if (resumeSource === 'upload') {
+    resumeText = await extractTextFromFile(req.file);
   }
 
   // SSE headers — client receives chunks in real time
@@ -47,13 +56,16 @@ exports.generate = catchAsync(async (req, res) => {
       resumeSource,
       resumeId,
       resumeText,
-      // resumeSource === 'upload' ? req.file?.extractedText : resumeText,
       jobDescription,
       tone,
       seniorityLevel,
+      accountFallbackName,
       userId,
       onChunk: (chunk) => {
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      },
+      onStage: (stage) => {
+        res.write(`data: ${JSON.stringify({ stage })}\n\n`);
       },
     });
 

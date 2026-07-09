@@ -3,7 +3,7 @@
  * @description Zod validation schemas for cover letter API operations
  * @module modules/cover-letter/validation/coverLetterValidation
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 const { z } = require('zod');
@@ -17,6 +17,15 @@ const objectIdSchema = z
 const toneSchema = z
   .enum(['professional', 'creative', 'concise', 'enthusiastic', 'formal'])
   .default('professional');
+
+// Optional — empty/absent means "let the AI infer seniority from the resume"
+const seniorityLevelSchema = z
+  .enum(['entry', 'mid', 'senior', 'lead'], {
+    errorMap: () => ({
+      message: 'seniorityLevel must be entry, mid, senior, or lead',
+    }),
+  })
+  .optional();
 
 exports.generateCoverLetterSchema = z.object({
   body: z
@@ -38,6 +47,8 @@ exports.generateCoverLetterSchema = z.object({
         .max(5000, 'Job description cannot exceed 5000 characters'),
 
       tone: toneSchema,
+
+      seniorityLevel: seniorityLevelSchema,
     })
     .refine(
       (data) => {
@@ -62,6 +73,9 @@ exports.generateCoverLetterSchema = z.object({
         path: ['resumeText'],
       }
     ),
+  // Note: for resumeSource === 'upload', file presence/type is validated
+  // by multer (route) + extractTextFromFile (controller) — not here, since
+  // req.file is separate from req.body and this schema only sees the body.
 });
 
 exports.saveCoverLetterSchema = z.object({

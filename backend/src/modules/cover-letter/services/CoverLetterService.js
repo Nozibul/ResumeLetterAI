@@ -3,7 +3,7 @@
  * @description Cover letter service — business logic only
  * @module modules/cover-letter/services/CoverLetterService
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 1.2.0
  */
 
 const CoverLetter = require('../models/CoverLetter');
@@ -61,6 +61,7 @@ const resolveResumeText = async ({
 /**
  * Generate a cover letter and persist it (isSaved: false).
  * Streaming chunks are forwarded via onChunk callback.
+ * Stage transitions ('analyzing' | 'writing') are forwarded via onStage.
  * Returns the saved CoverLetter document.
  */
 exports.generate = async ({
@@ -70,13 +71,18 @@ exports.generate = async ({
   jobDescription,
   tone,
   seniorityLevel,
+  accountFallbackName,
   userId,
   onChunk,
+  onStage,
 }) => {
-  // Sanitize before anything touches DB or AI
+  // Sanitize before anything touches DB or AI.
+  // 'db' resumeText is ignored below anyway (resolveResumeText re-fetches
+  // from DB), so only 'paste' and 'upload' — both raw external input —
+  // need sanitizing here.
   const cleanJobDescription = sanitizeText(jobDescription);
   const cleanResumeText =
-    resumeSource === 'paste' ? sanitizeText(resumeText) : resumeText;
+    resumeSource === 'db' ? resumeText : sanitizeText(resumeText);
 
   const { text: finalResumeText, resumeId: finalResumeId } =
     await resolveResumeText({
@@ -91,7 +97,9 @@ exports.generate = async ({
     jobDescription: cleanJobDescription,
     tone: tone || 'professional',
     seniorityLevel: seniorityLevel || null,
+    accountFallbackName,
     onChunk,
+    onStage,
   });
 
   const coverLetter = await CoverLetter.create({
@@ -108,6 +116,7 @@ exports.generate = async ({
 
   return coverLetter;
 };
+
 /**
  * Mark a cover letter as saved.
  * Verifies ownership before update.
@@ -132,7 +141,7 @@ exports.save = async ({ coverLetterId, userId }) => {
  */
 exports.list = async (userId) => {
   return CoverLetter.find({ userId, isSaved: true })
-    .select('jobDescription tone createdAt')
+    .select('jobDescription tone seniorityLevel createdAt')
     .sort({ createdAt: -1 });
 };
 

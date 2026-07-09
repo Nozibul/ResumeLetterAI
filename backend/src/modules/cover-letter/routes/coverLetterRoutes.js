@@ -20,6 +20,7 @@ const {
   getCoverLetterSchema,
 } = require('../validation/coverLetterValidation');
 const CoverLetterController = require('../controllers/CoverLetterController');
+const AppError = require('../../../shared/utils/AppError');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -32,7 +33,7 @@ const upload = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and DOCX files are allowed'));
+      cb(new AppError('Only PDF and DOCX files are allowed', 400));
     }
   },
 });
@@ -54,7 +55,7 @@ router.use(protect);
 router.post(
   '/generate',
   generateLimiter,
-  upload.single('resume'),
+  upload.single('resumeFile'),
   validate(generateCoverLetterSchema),
   CoverLetterController.generate
 );

@@ -1,15 +1,19 @@
 /**
- * @file widgets/cover-letter/InputPanel.jsx
+ * @file features/cover-letter/ui/InputPanel.jsx
  * @description Left panel — collects resume, job description, and tone
  * @author Nozibul Islam
  */
 
 'use client';
 import { memo } from 'react';
-import { TONE_OPTIONS } from '../model/coverLetter.constants';
+import {
+  TONE_OPTIONS,
+  SENIORITY_OPTIONS,
+} from '../model/coverLetter.constants';
 import ResumeSourceSelector from '@/shared/components/molecules/resumeSourceSelector/ResumeSourceSelector';
 import CoverLetterTextarea from '@/shared/components/atoms/coverLetter/CoverLetterTextarea';
 import CoverLetterDropdown from '@/shared/components/atoms/coverLetter/CoverLetterDropdown';
+import ResumeFileInput from '@/shared/components/atoms/coverLetter/ResumeFileInput';
 import Button from '@/shared/components/atoms/buttons/Button';
 
 function InputPanel({
@@ -21,10 +25,14 @@ function InputPanel({
   savedResumes,
   resumeText,
   onResumeTextChange,
+  resumeFile,
+  onResumeFileChange,
   jobDescription,
   onJobDescriptionChange,
   tone,
   onToneChange,
+  seniorityLevel,
+  onSeniorityLevelChange,
   onGenerate,
   isGenerating,
   errors,
@@ -33,7 +41,9 @@ function InputPanel({
     jobDescription.trim().length >= 50 &&
     (resumeSource === 'db'
       ? !!selectedResumeId
-      : resumeText.trim().length >= 100);
+      : resumeSource === 'upload'
+        ? !!resumeFile
+        : resumeText.trim().length >= 100);
 
   return (
     <div className="flex flex-col gap-5 p-6">
@@ -58,14 +68,13 @@ function InputPanel({
             value: r._id,
             label: r.title,
           }))}
+          error={errors.resumeId}
         />
       )}
 
-      {resumeSource !== 'db' && (
+      {resumeSource === 'paste' && (
         <CoverLetterTextarea
-          label={
-            resumeSource === 'upload' ? 'Or Paste Resume Text' : 'Resume Text'
-          }
+          label="Resume Text"
           name="resumeText"
           value={resumeText}
           onChange={(e) => onResumeTextChange(e.target.value)}
@@ -76,6 +85,14 @@ function InputPanel({
           error={errors.resumeText}
           touched
           helperText="Minimum 100 characters"
+        />
+      )}
+
+      {resumeSource === 'upload' && (
+        <ResumeFileInput
+          file={resumeFile}
+          onFileChange={onResumeFileChange}
+          error={errors.resumeFile}
         />
       )}
 
@@ -93,13 +110,23 @@ function InputPanel({
         helperText="Minimum 50 characters — the more detail, the better the match"
       />
 
-      <CoverLetterDropdown
-        label="Tone"
-        name="tone"
-        value={tone}
-        onChange={(e) => onToneChange(e.target.value)}
-        options={TONE_OPTIONS}
-      />
+      <div className="grid grid-cols-2 gap-4">
+        <CoverLetterDropdown
+          label="Tone"
+          name="tone"
+          value={tone}
+          onChange={(e) => onToneChange(e.target.value)}
+          options={TONE_OPTIONS}
+        />
+
+        <CoverLetterDropdown
+          label="Seniority Level"
+          name="seniorityLevel"
+          value={seniorityLevel}
+          onChange={(e) => onSeniorityLevelChange(e.target.value)}
+          options={SENIORITY_OPTIONS}
+        />
+      </div>
 
       <Button
         variant="primary"

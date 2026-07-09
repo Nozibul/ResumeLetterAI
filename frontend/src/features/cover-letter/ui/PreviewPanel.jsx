@@ -1,5 +1,5 @@
 /**
- * @file widgets/cover-letter/PreviewPanel.jsx
+ * @file features/cover-letter/ui/PreviewPanel.jsx
  * @description Right panel — shows analysis animation, then streams
  * the generated cover letter, then shows action buttons.
  * @author Nozibul Islam
@@ -14,6 +14,7 @@ import AnalysisStepper from '@/shared/components/molecules/analysisStepper/Analy
 
 function PreviewPanel({
   stage, // 'idle' | 'analyzing' | 'generating' | 'complete'
+  backendPhase, // 'analyzing' | 'writing' | null
   streamedContent,
   onStepperComplete,
   onCopy,
@@ -35,7 +36,10 @@ function PreviewPanel({
 
       {/* Analysis animation */}
       {stage === 'analyzing' && (
-        <AnalysisStepper onComplete={onStepperComplete} />
+        <AnalysisStepper
+          backendPhase={backendPhase}
+          onComplete={onStepperComplete}
+        />
       )}
 
       {/* Streaming / complete — document style card */}

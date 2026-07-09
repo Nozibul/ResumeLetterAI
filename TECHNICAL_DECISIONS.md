@@ -28,6 +28,7 @@ differently — and I know exactly why I didn't.
 14. [Logging — Winston vs console.log](#14-logging--winston-vs-consolelog)
 15. [Authentication Strategy — JWT + httpOnly Cookies + Refresh Token Rotation](#15-authentication-strategy--jwt--httponly-cookies--refresh-token-rotation)
 16. [Rate Limiting & Security Middleware](#16-rate-limiting--security-middleware)
+17. [Cover Letter Generation Pipeline — Multi-Provider Architecture with Circuit Breaker](#17-cover-letter-generation-pipeline--multi-provider-architecture-with-circuit-breaker)
 
 ---
 
@@ -799,6 +800,108 @@ If traffic patterns required differentiated limits per user tier — free users
 capped at 100 AI generations per day, premium users at 1000 — the rate limiter
 would need user-aware key generation instead of IP-based counting. At MVP scale,
 IP-based limiting is sufficient.
+
+## 17. Cover Letter Generation Pipeline — Multi-Provider Architecture with Circuit Breaker
+
+**Chosen:** Multi-provider pipeline with typed errors, two-stage fallback,
+tiered post-validation, and a Redis-backed circuit breaker  
+**Alternatives Considered:** Single provider with no fallback, generic error
+handling, client-side retry only
+
+### What I could have done
+
+The simplest approach is a single Gemini API call — if it fails, return an error
+to the user. This is what most AI-powered apps do at MVP stage. It is fast to
+build and easy to reason about. For resume generation, this is acceptable
+because the user can simply retry. For cover letter generation, the stakes are
+different — the pipeline is more complex, the prompts are longer, and Gemini's
+free tier rate limits are hit more frequently with real usage.
+
+### Why I built a multi-provider pipeline
+
+The cover letter generation pipeline is the most AI-intensive feature in the
+application. A single Gemini call failing silently or rate-limiting
+mid-generation produces a broken user experience with no recovery path. The
+design goal was: the user should never see a failure caused by a provider outage
+or rate limit — they should always get output.
+
+The pipeline is built in deliberate layers:
+
+**Provider Config** reads from environment variables and checks API key presence
+at startup. Providers without a configured key are excluded from the priority
+list before any request is made. This means the active provider list is always
+accurate — no runtime surprises.
+
+**Typed Provider Errors** replace generic `Error` throws with specific classes:
+`RateLimitError`, `TimeoutError`, `ServerError`, `AuthError`, `BadRequestError`.
+Each adapter throws the correct type. The orchestrator uses the error type to
+decide whether to fall back or abort — a `BadRequestError` means the prompt is
+malformed and retrying a different provider will not help. A `RateLimitError` or
+`TimeoutError` means the provider is temporarily unavailable and a fallback is
+worth attempting.
+
+**Shared modules** — `extraction.js`, `validation.js`, `quality.js` — are
+provider-agnostic. They normalize output regardless of which provider produced
+it, validate the structure of the extracted cover letter, and enforce quality
+gates (word count, paragraph count, banned phrases, AI disclaimer detection).
+These run identically whether the output came from Gemini, OpenRouter, or Groq.
+
+**Stage-1 Fallback** handles extraction failures. The orchestrator tries each
+provider in the priority list in order. If Gemini is rate-limited, it falls back
+to OpenRouter, then Groq. The first provider that returns a valid extraction
+wins.
+
+**Stage-2 Pre-stream Fallback** handles a specific timing problem: once the
+first chunk of a streaming response has been sent to the client, the HTTP
+response is committed and cannot be changed. Stage-2 fallback is only allowed
+before the first chunk is sent. If the pre-stream validation fails before
+streaming begins, the orchestrator can silently retry with a different provider.
+After streaming starts, there is no recovery path — the connection is committed.
+
+**Tiered Post-validation** separates failures by severity. Hard failures — empty
+output, malformed JSON, wrong paragraph count, AI disclaimer present — trigger
+one automatic retry with the same provider before escalating. Soft failures —
+word count slightly off, banned phrase detected — are logged and passed through.
+The user gets output; the quality issue is recorded for monitoring. This
+prevents a marginally imperfect response from producing a complete failure when
+a perfect response is not available.
+
+**Circuit Breaker** sits on top of the `CircuitStore` interface. The interface
+defines `get`, `set`, and `increment` operations — the concrete implementation
+behind the interface is Redis in production and an in-memory store in unit
+tests. The circuit breaker tracks consecutive failures per provider and opens
+the circuit after a threshold is crossed, excluding that provider from the
+priority list for a configurable cooldown period. This prevents the orchestrator
+from repeatedly calling a provider that is known to be down — wasting time on
+requests that will fail anyway.
+
+### The honest trade-off
+
+This architecture has real complexity cost. The fallback chain, circuit breaker
+state, and two-stage streaming split are non-trivial to reason about and test. A
+new developer reading this codebase needs to understand the provider priority
+list, the typed error contract, the circuit state transitions, and the Stage-1
+vs Stage-2 boundary before they can safely modify the pipeline.
+
+The circuit breaker adds Redis dependency to the cover letter pipeline
+specifically. If Redis is unavailable, the circuit breaker falls back to the
+in-memory store — which means circuit state is not shared across server
+instances, reducing its effectiveness in a multi-instance deployment.
+
+OpenRouter and Groq are free-tier providers with their own rate limits and
+reliability characteristics. The fallback chain improves availability but does
+not guarantee it — if all three providers are simultaneously rate-limited, the
+pipeline will still fail. This is an acceptable risk at current traffic levels.
+
+### When I would change this
+
+If the product moves to a paid tier with SLA commitments, the circuit breaker
+thresholds and cooldown periods would need tuning based on real traffic data.
+The provider priority list would shift — Gemini free tier as primary makes sense
+at MVP scale, but a paid OpenAI or Anthropic tier would become primary once
+revenue supports it. The abstraction layer is already in place for this switch —
+only the provider config and adapters change, not the orchestrator or validation
+logic.
 
 ---
 
