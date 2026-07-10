@@ -55,14 +55,42 @@ const extractionSchema = z.object({
  * inspecting Zod-specific internals or doing instanceof checks against a
  * third-party error class that could change shape across zod versions.
  */
+
 class ExtractionValidationError extends Error {
-  constructor(zodError) {
-    super('Stage-1 extraction output failed schema validation');
+  constructor(
+    zodError,
+    message = 'Stage-1 extraction output failed schema validation'
+  ) {
+    super(message);
     this.name = 'ExtractionValidationError';
     this.issues = zodError.issues;
     this.cause = zodError;
   }
 }
+
+const stripJsonFences = (rawText) =>
+  String(rawText ?? '')
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .trim();
+
+/**
+ * Cleans and parses raw stage-1 text into an object. Not every provider/model
+ * honors responseMimeType:'application/json' consistently — this handles the
+ * common "valid JSON wrapped in a markdown fence" case regardless of source.
+ * @throws {ExtractionValidationError}
+ */
+const parseExtractionJson = (rawText) => {
+  const cleaned = stripJsonFences(rawText);
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    throw new ExtractionValidationError(
+      { issues: [{ message: `Malformed JSON: ${err.message}` }] },
+      'Stage-1 extraction output was not valid JSON'
+    );
+  }
+};
 
 /**
  * @param {object} normalized - output of extraction.normalizeExtraction()
@@ -81,4 +109,6 @@ module.exports = {
   extractionSchema,
   validateExtraction,
   ExtractionValidationError,
+  parseExtractionJson,
+  stripJsonFences,
 };

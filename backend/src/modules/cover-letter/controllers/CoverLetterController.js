@@ -76,7 +76,10 @@ exports.generate = catchAsync(async (req, res) => {
     res.end();
   } catch (error) {
     res.write(
-      `data: ${JSON.stringify({ error: error.message || 'Generation failed' })}\n\n`
+      `data: ${JSON.stringify({
+        error: error.message || 'Generation failed',
+        partial: Boolean(error.streamStarted),
+      })}\n\n`
     );
     res.end();
   }
