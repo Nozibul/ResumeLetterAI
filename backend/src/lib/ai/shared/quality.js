@@ -4,8 +4,8 @@
  * output, and the Stage-1 "did we actually find a match" business check.
  *
  * Tiered by design:
- *   HARD violation  -> caller retries stage-2 once (same or next provider,
- *                       per the pre-stream-fallback rule).
+ *   HARD violation  -> logged loudly, delivered as-is (see orchestrator.js
+ *                       header for why this is NOT retried).
  *   SOFT violation  -> log only, never blocks delivery to the user.
  *
  * @module lib/ai/shared/quality
@@ -139,9 +139,28 @@ const hasUsableExtraction = (trimmed) => {
   return hasStories || hasCapabilities;
 };
 
+/**
+ * Thrown when hasUsableExtraction() is false — valid, schema-correct JSON,
+ * but no genuine overlap between resume and job description.
+ *
+ * This is a BUSINESS outcome, not a technical failure — matching is a
+ * judgment call, not a deterministic fact-check, so a different provider's
+ * model may reach a different conclusion on the identical input. The
+ * orchestrator therefore treats this as "try the next provider", not an
+ * immediate stop — but never retries the SAME provider with identical
+ * input, since that would be a deterministic repeat of the same judgment.
+ */
+class NoUsableMatchError extends Error {
+  constructor() {
+    super('No strong matches found between resume and job description.');
+    this.name = 'NoUsableMatchError';
+  }
+}
+
 module.exports = {
   checkLetterQuality,
   hasUsableExtraction,
+  NoUsableMatchError,
   countWords,
   splitParagraphs,
   findBannedPhrases,

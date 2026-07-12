@@ -1,169 +1,117 @@
 /**
  * @file openrouter.js
- * @description OpenRouter provider adapter — "dumb" by design, mirrors
- * gemini.js's contract (generate/stream, typed errors, streamStarted flag)
- * exactly so the orchestrator treats every adapter identically. Uses raw
- * fetch rather than a new SDK dependency -- OpenRouter's REST API is
- * OpenAI-compatible JSON/SSE, simple enough not to need one.
+ * @description OpenRouter provider adapter — "dumb", mirrors gemini.js's
+ * contract exactly (name, supportsStreaming, supportsJsonMode, generate, stream).
+ *
+ * Uses the official `openai` npm package pointed at OpenRouter's
+ * OpenAI-compatible endpoint, NOT the `@openrouter/sdk` package — OpenRouter's
+ * own docs label that SDK "currently in beta, may have breaking changes
+ * between versions" and recommend pinning it hard if used at all. The
+ * `openai` package is mature/stable, and "swap the baseURL" is OpenRouter's
+ * own documented integration path.
+ *
  * @module lib/ai/openrouter
  * @author Nozibul Islam
  * @version 1.0.0
  */
 
+const OpenAI = require('openai');
 const { getTimeoutMs } = require('./config');
 const {
   classifyThrown,
-  classifyByStatusCode,
   ProviderTimeoutError,
   ProviderServerError,
 } = require('./errors');
 
 const PROVIDER_NAME = 'openrouter';
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-// Overridable via env -- OpenRouter's FREE model catalog rotates especially
-// often (models move to paid or get retired without much notice -- this
-// happened to DeepSeek's and Qwen3 Coder's free tiers already). Verify at
-// openrouter.ai/models (filter: Price = Free) before deploying.
-//
-// meta-llama/llama-3.3-70b-instruct:free chosen deliberately over the
-// several free *coding*-agent models currently listed (Poolside Laguna,
-// Cohere North Mini Code, Qwen3 Coder) -- those are tuned for tool-use/code
-// generation, not general prose writing, which is what both our stages
-// actually need (structured JSON extraction, then natural cover-letter text).
-//
-// IMPORTANT: free-tier OpenRouter models are capped around 20 req/min and
-// ~50-200 req/day (varies with account credit history). Unlike Gemini's
-// paid-tier headroom, this limit is a routine operating condition here, not
-// a rare edge case -- relevant once the circuit breaker (step 12) is built.
+// Overridable via env, same pattern as gemini.js — a provider/model swap on
+// OpenRouter's side never needs a code deploy.
 const EXTRACTION_MODEL =
-  process.env.OPENROUTER_EXTRACTION_MODEL ||
-  'meta-llama/llama-3.3-70b-instruct:free';
+  process.env.OPENROUTER_EXTRACTION_MODEL || 'deepseek/deepseek-v4-pro';
 const WRITER_MODEL =
-  process.env.OPENROUTER_WRITER_MODEL ||
-  'meta-llama/llama-3.3-70b-instruct:free';
+  process.env.OPENROUTER_WRITER_MODEL || 'deepseek/deepseek-v4-pro';
 
-// Optional, purely for OpenRouter's own app-attribution/rankings -- never
-// required for the API call to function, so a missing env var is fine.
-const APP_TITLE = process.env.OPENROUTER_APP_TITLE || null;
-const APP_REFERER = process.env.OPENROUTER_APP_URL || null;
+let client = null;
 
-const getApiKey = () => {
-  const key = process.env.OPENROUTER_API_KEY;
-  if (!key || !key.trim()) {
-    // Unreachable in normal operation -- config.js already excludes
-    // 'openrouter' from routing if this is missing. Guards direct/test calls.
+const getClient = () => {
+  if (client) return client;
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey || !apiKey.trim()) {
+    // Unreachable via the orchestrator in normal operation (config.js already
+    // excludes 'openrouter' from routing if this key is missing) — only
+    // fires if this adapter is called directly, bypassing the orchestrator.
     throw new Error('[openrouter-adapter] OPENROUTER_API_KEY is not set.');
   }
-  return key;
+
+  client = new OpenAI({
+    apiKey,
+    baseURL: 'https://openrouter.ai/api/v1',
+    // NOT cosmetic: the openai SDK retries 429/5xx/timeouts TWICE with
+    // backoff by default, before an error ever reaches our code. That would
+    // silently blow our per-provider timeout budget and violate our own
+    // "no same-provider retry on rate-limit" policy from errors.js.
+    maxRetries: 0,
+    defaultHeaders: {
+      // Reuses the project's existing BACKEND_URL (already in .env) rather
+      // than introducing a redundant, parallel env var for the same
+      // purpose (identifying this app to OpenRouter).
+      'HTTP-Referer': process.env.BACKEND_URL || 'https://resumeletterai.app',
+      'X-Title': 'ResumeLetterAI',
+    },
+  });
+  return client;
 };
 
-const buildHeaders = () => {
-  const headers = {
-    Authorization: `Bearer ${getApiKey()}`,
-    'Content-Type': 'application/json',
-  };
-  if (APP_REFERER) headers['HTTP-Referer'] = APP_REFERER;
-  if (APP_TITLE) headers['X-Title'] = APP_TITLE;
-  return headers;
-};
-
+/**
+ * AbortController-based timeout is the authoritative mechanism here (same
+ * as gemini.js) — the SDK's own `timeout` RequestOption is ALSO passed as a
+ * redundant safety net (confirmed valid in official docs), since its exact
+ * behavior during an active stream isn't clearly documented.
+ */
 const withTimeout = (timeoutMs) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const clear = () => clearTimeout(timer);
   return {
     signal: controller.signal,
     isAborted: () => controller.signal.aborted,
-    clear: () => clearTimeout(timer),
+    clear,
   };
 };
 
-/**
- * Minimal OpenAI-compatible SSE line reader. Yields parsed JSON payloads,
- * skips [DONE] and keep-alive/blank lines. Node's built-in fetch exposes
- * response.body as a web ReadableStream, so this reads it directly rather
- * than pulling in a separate SSE-parsing dependency for one adapter.
- */
-async function* iterateSseLines(body) {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) return;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? ''; // keep the last, possibly-incomplete line
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data:')) continue;
-
-        const payload = trimmed.slice(5).trim();
-        if (payload === '[DONE]') return;
-
-        try {
-          yield JSON.parse(payload);
-        } catch {
-          // A single malformed SSE frame (stray heartbeat/comment) shouldn't
-          // kill the whole stream -- skip it and keep reading.
-          continue;
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
+const isAbortLike = (err) =>
+  err?.name === 'AbortError' ||
+  err?.name === 'APIUserAbortError' ||
+  err?.name === 'APIConnectionTimeoutError';
 
 /**
  * Stage 1 — non-streaming call, expected to return JSON text.
- * Returns RAW text only -- no parsing/validation, same contract as
- * gemini.js's generate().
- *
- * @param {object} params
- * @param {string} params.prompt
- * @param {number} [params.timeoutMs]
- * @returns {Promise<string>} raw response text
- * @throws {import('./errors').ProviderError}
+ * Returns RAW text only — identical contract to gemini.js's generate().
  */
 const generate = async ({ prompt, timeoutMs } = {}) => {
+  const openai = getClient();
   const effectiveTimeout = timeoutMs ?? getTimeoutMs();
   const { signal, isAborted, clear } = withTimeout(effectiveTimeout);
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: buildHeaders(),
-      signal,
-      body: JSON.stringify({
+    const response = await openai.chat.completions.create(
+      {
         model: EXTRACTION_MODEL,
         messages: [{ role: 'user', content: prompt }],
-        // Not all OpenRouter-hosted models honor this consistently -- the
-        // shared parseExtractionJson() fence-stripping + retry-on-malformed
-        // path already covers a model that ignores it, so no adapter-level
-        // special-casing is needed here.
+        // Best-effort JSON mode — not every model behind OpenRouter honors
+        // this consistently. shared/validation.js's parseExtractionJson()
+        // already strips markdown fences defensively, so this is not a
+        // single point of failure even when a model ignores the hint.
         response_format: { type: 'json_object' },
-      }),
-    });
+      },
+      { signal, timeout: effectiveTimeout }
+    );
 
-    if (!response.ok) {
-      const bodyText = await response.text().catch(() => '');
-      throw classifyByStatusCode(
-        PROVIDER_NAME,
-        response.status,
-        new Error(bodyText || response.statusText)
-      );
-    }
-
-    const json = await response.json();
-    const text = json?.choices?.[0]?.message?.content;
-
+    const text = response?.choices?.[0]?.message?.content;
     if (!text || !text.trim()) {
-      const finishReason = json?.choices?.[0]?.finish_reason;
+      const finishReason = response?.choices?.[0]?.finish_reason;
       throw new ProviderServerError(
         PROVIDER_NAME,
         new Error(
@@ -174,7 +122,7 @@ const generate = async ({ prompt, timeoutMs } = {}) => {
 
     return text;
   } catch (err) {
-    if (isAborted() || err?.name === 'AbortError') {
+    if (isAborted() || isAbortLike(err)) {
       throw new ProviderTimeoutError(PROVIDER_NAME, err, effectiveTimeout);
     }
     throw classifyThrown(PROVIDER_NAME, err);
@@ -184,17 +132,9 @@ const generate = async ({ prompt, timeoutMs } = {}) => {
 };
 
 /**
- * Stage 2 — streaming call. Emits each delta to onChunk as it arrives and
- * returns the full concatenated text once the stream completes. Same
- * `streamStarted`-tagging contract as gemini.js's stream().
- *
- * @param {object} params
- * @param {string} params.prompt
- * @param {string} [params.systemInstruction]
- * @param {(chunkText: string) => void} [params.onChunk]
- * @param {number} [params.timeoutMs]
- * @returns {Promise<string>} full concatenated body text
- * @throws {import('./errors').ProviderError} with an added `.streamStarted` boolean
+ * Stage 2 — streaming call. Identical contract to gemini.js's stream():
+ * emits chunks via onChunk, returns full text, tags thrown errors with
+ * `.streamStarted` for the orchestrator's fallback-safety check.
  */
 const stream = async ({
   prompt,
@@ -202,8 +142,12 @@ const stream = async ({
   onChunk,
   timeoutMs,
 } = {}) => {
+  const openai = getClient();
   const effectiveTimeout = timeoutMs ?? getTimeoutMs();
   const { signal, isAborted, clear } = withTimeout(effectiveTimeout);
+
+  let streamStarted = false;
+  let fullText = '';
 
   const messages = systemInstruction
     ? [
@@ -212,40 +156,27 @@ const stream = async ({
       ]
     : [{ role: 'user', content: prompt }];
 
-  let streamStarted = false;
-  let fullText = '';
-
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: buildHeaders(),
-      signal,
-      body: JSON.stringify({ model: WRITER_MODEL, messages, stream: true }),
-    });
+    const completionStream = await openai.chat.completions.create(
+      {
+        model: WRITER_MODEL,
+        messages,
+        stream: true,
+      },
+      { signal, timeout: effectiveTimeout }
+    );
 
-    if (!response.ok) {
-      // Per OpenRouter's own docs: an error before any tokens stream still
-      // returns a normal JSON error body with the right status -- safe to
-      // classify by status code exactly like the non-streaming path.
-      const bodyText = await response.text().catch(() => '');
-      throw classifyByStatusCode(
-        PROVIDER_NAME,
-        response.status,
-        new Error(bodyText || response.statusText)
-      );
-    }
-
-    for await (const event of iterateSseLines(response.body)) {
-      const deltaText = event?.choices?.[0]?.delta?.content;
-      if (!deltaText) continue; // some frames carry only metadata, no text delta
+    for await (const chunk of completionStream) {
+      const chunkText = chunk?.choices?.[0]?.delta?.content;
+      if (!chunkText) continue; // role-only / keepalive chunks carry no text delta
 
       streamStarted = true;
-      fullText += deltaText;
-      onChunk?.(deltaText);
+      fullText += chunkText;
+      onChunk?.(chunkText);
     }
 
     if (!fullText.trim()) {
-      // Nothing meaningful streamed -- streamStarted is still false here,
+      // streamStarted is still false here — nothing reached the client —
       // so this stays safely fallback-eligible.
       throw new ProviderServerError(
         PROVIDER_NAME,
@@ -256,9 +187,10 @@ const stream = async ({
     return fullText;
   } catch (err) {
     const typed =
-      isAborted() || err?.name === 'AbortError'
+      isAborted() || isAbortLike(err)
         ? new ProviderTimeoutError(PROVIDER_NAME, err, effectiveTimeout)
         : classifyThrown(PROVIDER_NAME, err);
+
     typed.streamStarted = streamStarted;
     throw typed;
   } finally {
@@ -272,7 +204,6 @@ module.exports = {
   supportsJsonMode: true,
   generate,
   stream,
-  // exported for tests / observability only
   EXTRACTION_MODEL,
   WRITER_MODEL,
 };
