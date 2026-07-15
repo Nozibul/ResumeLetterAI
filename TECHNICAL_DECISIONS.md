@@ -804,9 +804,9 @@ IP-based limiting is sufficient.
 ## 17. Cover Letter Generation Pipeline — Multi-Provider Architecture with Circuit Breaker
 
 **Chosen:** Multi-provider pipeline with typed errors, two-stage fallback,
-tiered post-validation, and a Redis-backed circuit breaker  
-**Alternatives Considered:** Single provider with no fallback, generic error
-handling, client-side retry only
+tiered post-validation, schema-constrained generation, and a Redis-backed
+circuit breaker **Alternatives Considered:** Single provider with no fallback,
+generic error handling, client-side retry only
 
 ### What I could have done
 
@@ -833,12 +833,14 @@ list before any request is made. This means the active provider list is always
 accurate — no runtime surprises.
 
 **Typed Provider Errors** replace generic `Error` throws with specific classes:
-`RateLimitError`, `TimeoutError`, `ServerError`, `AuthError`, `BadRequestError`.
-Each adapter throws the correct type. The orchestrator uses the error type to
-decide whether to fall back or abort — a `BadRequestError` means the prompt is
-malformed and retrying a different provider will not help. A `RateLimitError` or
-`TimeoutError` means the provider is temporarily unavailable and a fallback is
-worth attempting.
+`ProviderRateLimitError`, `ProviderTimeoutError`, `ProviderServerError`,
+`ProviderAuthError`, `ProviderBadRequestError`. Each adapter throws the correct
+type. The orchestrator uses the error type to decide whether to fall back or
+abort — a `ProviderBadRequestError` means the prompt is malformed and retrying a
+different provider will not help, so the orchestrator aborts immediately instead
+of repeating the same mistake three times. A `ProviderRateLimitError` or
+`ProviderTimeoutError` means the provider is temporarily unavailable and a
+fallback is worth attempting.
 
 **Shared modules** — `extraction.js`, `validation.js`, `quality.js` — are
 provider-agnostic. They normalize output regardless of which provider produced
@@ -846,34 +848,63 @@ it, validate the structure of the extracted cover letter, and enforce quality
 gates (word count, paragraph count, banned phrases, AI disclaimer detection).
 These run identically whether the output came from Gemini, OpenRouter, or Groq.
 
+**Schema-Constrained Generation** builds on the shared validation layer rather
+than replacing it. `validation.js`'s Zod schema is the single source of truth; a
+JSON Schema is derived from it once at module load (Zod v4's native
+`z.toJSONSchema()`) and passed to Gemini (`responseJsonSchema`) and Groq
+(`response_format: json_schema`) to constrain generation at the token level, not
+just request valid JSON via prompt instruction. OpenRouter stays on JSON Mode
+only — structured-output support there is model-dependent across the many
+underlying models it can route to, and can silently degrade to plain JSON mode
+without an explicit opt-in. Zod validation still runs unconditionally on every
+provider's output regardless of schema mode: structural constraints guarantee
+shape (types, required fields, enums), not business rules — the capability
+category whitelist, for example, is an arbitrary predicate with no JSON Schema
+equivalent, and depends entirely on Zod's `.refine()`.
+
 **Stage-1 Fallback** handles extraction failures. The orchestrator tries each
 provider in the priority list in order. If Gemini is rate-limited, it falls back
 to OpenRouter, then Groq. The first provider that returns a valid extraction
-wins.
+wins. A provider returning well-formed JSON that simply finds no genuine overlap
+between resume and job description is treated differently from a technical
+failure — matching is a model judgment call, not a deterministic fact, so a
+different provider is still given the chance to disagree, but the _same_
+provider is never re-asked the identical question twice.
 
 **Stage-2 Pre-stream Fallback** handles a specific timing problem: once the
 first chunk of a streaming response has been sent to the client, the HTTP
 response is committed and cannot be changed. Stage-2 fallback is only allowed
-before the first chunk is sent. If the pre-stream validation fails before
-streaming begins, the orchestrator can silently retry with a different provider.
-After streaming starts, there is no recovery path — the connection is committed.
+before the first chunk is sent. If a provider fails before streaming begins, the
+orchestrator can silently retry with a different provider. After streaming
+starts, there is no recovery path — the connection is committed, and the
+orchestrator surfaces the failure directly rather than risking duplicated or
+inconsistent content.
 
-**Tiered Post-validation** separates failures by severity. Hard failures — empty
-output, malformed JSON, wrong paragraph count, AI disclaimer present — trigger
-one automatic retry with the same provider before escalating. Soft failures —
-word count slightly off, banned phrase detected — are logged and passed through.
-The user gets output; the quality issue is recorded for monitoring. This
-prevents a marginally imperfect response from producing a complete failure when
-a perfect response is not available.
+**Tiered Post-validation** separates failures by severity, and the response
+depends on which stage detects them. Stage-1 (extraction) hard failures — empty
+output, malformed JSON — trigger one automatic retry with the same provider
+before falling back to the next one; nothing has reached the client yet at this
+point, so retrying is safe. Stage-2 (writing) hard failures — wrong paragraph
+count, AI disclaimer present — are logged at high severity instead of retried,
+because Stage-2 is token-streamed live to the client: by the time the full body
+can be validated, every token has already been sent, and a silent server-side
+retry would either diverge from what the client saw or require a "discard and
+restart" protocol the frontend doesn't support. Soft failures — word count
+slightly off, banned phrase detected — are logged at lower severity and passed
+through unconditionally, regardless of stage. The user always gets output;
+quality issues are recorded for prompt-tuning, not surfaced as failures.
 
 **Circuit Breaker** sits on top of the `CircuitStore` interface. The interface
-defines `get`, `set`, and `increment` operations — the concrete implementation
-behind the interface is Redis in production and an in-memory store in unit
-tests. The circuit breaker tracks consecutive failures per provider and opens
-the circuit after a threshold is crossed, excluding that provider from the
-priority list for a configurable cooldown period. This prevents the orchestrator
-from repeatedly calling a provider that is known to be down — wasting time on
-requests that will fail anyway.
+defines `get`, `set`, `increment`, and `setIfNotExists` operations — the last of
+which lets exactly one concurrent request claim the single "half-open trial"
+slot when a cooldown expires, so a recovering provider gets tested by one
+request at a time instead of a thundering herd. The concrete implementation
+behind the interface is Redis; an in-memory implementation exists only for unit
+tests, never as a runtime fallback. The circuit breaker tracks consecutive
+failures per provider and opens the circuit after a threshold is crossed,
+excluding that provider from the priority list for a configurable cooldown
+period. This prevents the orchestrator from repeatedly calling a provider that
+is known to be down — wasting time on requests that will fail anyway.
 
 ### The honest trade-off
 
@@ -883,22 +914,28 @@ new developer reading this codebase needs to understand the provider priority
 list, the typed error contract, the circuit state transitions, and the Stage-1
 vs Stage-2 boundary before they can safely modify the pipeline.
 
-The circuit breaker adds Redis dependency to the cover letter pipeline
-specifically. If Redis is unavailable, the circuit breaker falls back to the
-in-memory store — which means circuit state is not shared across server
-instances, reducing its effectiveness in a multi-instance deployment.
+The circuit breaker adds a hard Redis dependency to the cover letter pipeline
+specifically — there is no in-memory fallback at runtime, only in tests. If
+Redis itself is unreachable, each store operation degrades individually and
+safely (a failed read is treated as "no stored state," a failed write is logged
+and swallowed) rather than the circuit breaker switching implementations. The
+practical effect is that a Redis outage disables circuit-breaker protection
+without disabling generation itself — every request still tries providers
+directly, just without the cross-request memory of which ones are currently
+unhealthy.
 
-OpenRouter and Groq are free-tier providers with their own rate limits and
-reliability characteristics. The fallback chain improves availability but does
-not guarantee it — if all three providers are simultaneously rate-limited, the
-pipeline will still fail. This is an acceptable risk at current traffic levels.
+OpenRouter and Groq have their own rate limits and reliability characteristics,
+independent of Gemini's. The fallback chain improves availability but does not
+guarantee it — if all three providers are simultaneously rate-limited or
+circuit-open, the pipeline will still fail. This is an acceptable risk at
+current traffic levels.
 
 ### When I would change this
 
 If the product moves to a paid tier with SLA commitments, the circuit breaker
 thresholds and cooldown periods would need tuning based on real traffic data.
 The provider priority list would shift — Gemini free tier as primary makes sense
-at MVP scale, but a paid OpenAI or Anthropic tier would become primary once
+at MVP scale, but a paid, higher-reliability tier would become primary once
 revenue supports it. The abstraction layer is already in place for this switch —
 only the provider config and adapters change, not the orchestrator or validation
 logic.

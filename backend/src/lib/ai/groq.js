@@ -4,15 +4,34 @@
  * openrouter.js's contract exactly (name, supportsStreaming, supportsJsonMode,
  * generate, stream).
  *
- * Uses the official `groq-sdk` npm package (stable, not beta). Groq's API is
- * OpenAI-compatible and their SDK is Stainless-generated just like
- * `openai-node` -- same method shapes, same error class names
- * (APIConnectionTimeoutError), same default-retry behavior -- so the same
- * "set maxRetries: 0 explicitly" lesson from openrouter.js applies here too.
+ * Stage-1 (generate) now REQUESTS schema-constrained generation via
+ * response_format: {type:'json_schema', json_schema:{name, schema}} --
+ * `strict: true` is deliberately OMITTED. Groq's strict mode requires
+ * every field to be in `required` and every object to set
+ * `additionalProperties: false`; shared/validation.js's extractionJsonSchema
+ * is deliberately derived WITHOUT additionalProperties (for Gemini
+ * compatibility) and keeps genuinely-optional fields optional, so it does
+ * not meet strict mode's structural requirements. This exact
+ * non-strict shape (name + schema only) matches Groq's own official
+ * documentation example for using z.toJSONSchema() output directly.
+ *
+ * Community-reported compatibility issue exists (Groq forum, Oct 2025):
+ * response_format:'json_schema' may be silently ignored by
+ * openai/gpt-oss-120b (our configured default model), returning free-form
+ * text instead of conforming JSON. Unconfirmed whether still current.
+ * Schema mode stays ENABLED here regardless (best-effort, not a
+ * requirement) -- Zod validation + retry + fallback in the orchestrator is
+ * the authoritative safety net either way: if the model ignores the
+ * schema, parseExtractionJson() fails to parse the free-form text,
+ * correctly raises ExtractionValidationError, and the orchestrator retries
+ * once then falls back to the next provider. Worst case is "no benefit
+ * from schema mode on Groq specifically", not a broken request.
+ *
+ * Stage-2 (stream) is unaffected -- free-form prose, no schema applies.
  *
  * @module lib/ai/groq
  * @author Nozibul Islam
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 const Groq = require('groq-sdk');
@@ -22,13 +41,16 @@ const {
   ProviderTimeoutError,
   ProviderServerError,
 } = require('./errors');
+const { extractionJsonSchema } = require('./shared/validation');
 
 const PROVIDER_NAME = 'groq';
 
 // Overridable via env, same pattern as gemini.js / openrouter.js.
+// NOTE: llama-3.3-70b-versatile is deprecated by Groq, shutdown 08/16/2026 --
+// using openai/gpt-oss-120b instead (Groq's own recommended replacement).
 const EXTRACTION_MODEL =
-  process.env.GROQ_EXTRACTION_MODEL || 'llama-3.3-70b-versatile';
-const WRITER_MODEL = process.env.GROQ_WRITER_MODEL || 'llama-3.3-70b-versatile';
+  process.env.GROQ_EXTRACTION_MODEL || 'openai/gpt-oss-120b';
+const WRITER_MODEL = process.env.GROQ_WRITER_MODEL || 'openai/gpt-oss-120b';
 
 let client = null;
 
@@ -37,28 +59,16 @@ const getClient = () => {
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || !apiKey.trim()) {
-    // Unreachable via the orchestrator in normal operation (config.js already
-    // excludes 'groq' from routing if this key is missing) — only fires if
-    // this adapter is called directly, bypassing the orchestrator.
     throw new Error('[groq-adapter] GROQ_API_KEY is not set.');
   }
 
   client = new Groq({
     apiKey,
-    // Same reasoning as openrouter.js: the SDK retries 429/5xx/timeouts
-    // TWICE with backoff by default, before an error ever reaches our code.
-    // That would silently blow our per-provider timeout budget and violate
-    // our own "no same-provider retry on rate-limit" policy from errors.js.
     maxRetries: 0,
   });
   return client;
 };
 
-/**
- * AbortController-based timeout is the authoritative mechanism (same as
- * gemini.js / openrouter.js) — the SDK's own `timeout` RequestOption is ALSO
- * passed as a redundant safety net.
- */
 const withTimeout = (timeoutMs) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -76,8 +86,8 @@ const isAbortLike = (err) =>
   err?.name === 'APIConnectionTimeoutError';
 
 /**
- * Stage 1 — non-streaming call, expected to return JSON text.
- * Returns RAW text only — identical contract to the other adapters.
+ * Stage 1 — non-streaming call, schema-constrained (best-effort, non-strict)
+ * JSON generation. Returns RAW text only.
  */
 const generate = async ({ prompt, timeoutMs } = {}) => {
   const groq = getClient();
@@ -89,10 +99,13 @@ const generate = async ({ prompt, timeoutMs } = {}) => {
       {
         model: EXTRACTION_MODEL,
         messages: [{ role: 'user', content: prompt }],
-        // Best-effort JSON mode. shared/validation.js's parseExtractionJson()
-        // already strips markdown fences defensively, so this is not a
-        // single point of failure if a specific Groq-hosted model ignores it.
-        response_format: { type: 'json_object' },
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'cover_letter_extraction',
+            schema: extractionJsonSchema,
+          },
+        },
       },
       { signal, timeout: effectiveTimeout }
     );
@@ -120,9 +133,7 @@ const generate = async ({ prompt, timeoutMs } = {}) => {
 };
 
 /**
- * Stage 2 — streaming call. Identical contract to the other adapters: emits
- * chunks via onChunk, returns full text, tags thrown errors with
- * `.streamStarted` for the orchestrator's fallback-safety check.
+ * Stage 2 — streaming call. Free-form prose, no schema constraint applies.
  */
 const stream = async ({
   prompt,
@@ -156,7 +167,7 @@ const stream = async ({
 
     for await (const chunk of completionStream) {
       const chunkText = chunk?.choices?.[0]?.delta?.content;
-      if (!chunkText) continue; // role-only / keepalive chunks carry no text delta
+      if (!chunkText) continue;
 
       streamStarted = true;
       fullText += chunkText;
@@ -164,8 +175,6 @@ const stream = async ({
     }
 
     if (!fullText.trim()) {
-      // streamStarted is still false here — nothing reached the client —
-      // so this stays safely fallback-eligible.
       throw new ProviderServerError(
         PROVIDER_NAME,
         new Error('Empty stream output')
