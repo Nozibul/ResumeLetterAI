@@ -1,34 +1,14 @@
 /**
  * @file provider.js
- * @description AI provider abstraction — Adapter Pattern
+ * @description Public entry point for AI cover-letter generation. Thin
+ * re-export of the orchestrator — CoverLetterService should only ever
+ * import from this file, never from orchestrator.js or any adapter
+ * directly, so internal wiring can change without touching callers.
  * @module lib/ai/provider
  * @author Nozibul Islam
- * @version 1.1.0
- *
- * All code calls this file only.
- * To switch providers, change only the import below.
+ * @version 2.0.0
  */
 
-const { generateWithGemini } = require('./gemini');
-
-const generateCoverLetter = async ({
-  resumeText,
-  jobDescription,
-  tone,
-  seniorityLevel,
-  accountFallbackName,
-  onChunk,
-  onStage,
-}) => {
-  return generateWithGemini({
-    resumeText,
-    jobDescription,
-    tone,
-    seniorityLevel,
-    accountFallbackName,
-    onChunk,
-    onStage,
-  });
-};
+const { generateCoverLetter } = require('./orchestrator');
 
 module.exports = { generateCoverLetter };
