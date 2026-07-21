@@ -43,21 +43,13 @@ const {
   buildClosingBlock,
   wrapAsLetter,
 } = require('./prompt');
-const {
-  normalizeExtraction,
-  trimExtraction,
-  buildContactLine,
-} = require('./shared/extraction');
+const { normalizeExtraction, trimExtraction, buildContactLine } = require('./shared/extraction');
 const {
   validateExtraction,
   parseExtractionJson,
   ExtractionValidationError,
 } = require('./shared/validation');
-const {
-  checkLetterQuality,
-  hasUsableExtraction,
-  NoUsableMatchError,
-} = require('./shared/quality');
+const { checkLetterQuality, hasUsableExtraction, NoUsableMatchError } = require('./shared/quality');
 const { getProviderPriority, getTimeoutMs } = require('./config');
 const { ProviderError } = require('./errors');
 const logger = require('./shared/logger');
@@ -106,12 +98,9 @@ const resolveActiveProviders = () => {
     .map((name) => ({ name, adapter: AVAILABLE_ADAPTERS[name] }))
     .filter(({ name, adapter }) => {
       if (adapter) return true;
-      logger.warn(
-        'Adapter not implemented for configured provider -- skipping',
-        {
-          provider: name,
-        }
-      );
+      logger.warn('Adapter not implemented for configured provider -- skipping', {
+        provider: name,
+      });
       return false;
     });
 
@@ -304,10 +293,7 @@ const runExtractionAcrossProviders = async (providers, input) => {
 
   // Every provider exhausted without success.
   if (sawNoUsableMatch) {
-    throw new AppError(
-      'No strong matches found between resume and job description.',
-      502
-    );
+    throw new AppError('No strong matches found between resume and job description.', 502);
   }
   if (!attemptedAny) {
     // Every provider was circuit-open -- lastError was never set, so
@@ -548,10 +534,10 @@ const generateCoverLetter = async ({
   let providerName;
 
   try {
-    ({ extracted, providerName } = await runExtractionAcrossProviders(
-      activeProviders,
-      { resumeText, jobDescription }
-    ));
+    ({ extracted, providerName } = await runExtractionAcrossProviders(activeProviders, {
+      resumeText,
+      jobDescription,
+    }));
   } catch (err) {
     if (err instanceof AppError) throw err;
 
@@ -627,22 +613,21 @@ those are added separately by the application. Output only the four body paragra
   onStage?.('writing');
   const stage2Start = Date.now();
 
-  const stage2ProviderOrder = buildStage2ProviderOrder(
-    activeProviders,
-    providerName
-  );
+  const stage2ProviderOrder = buildStage2ProviderOrder(activeProviders, providerName);
 
   let fullBody;
   let stage2ProviderName;
   try {
-    ({ fullBody, providerName: stage2ProviderName } =
-      await runWritingAcrossProviders(stage2ProviderOrder, {
+    ({ fullBody, providerName: stage2ProviderName } = await runWritingAcrossProviders(
+      stage2ProviderOrder,
+      {
         prompt: writerPrompt,
         systemInstruction,
         openingBlock,
         onChunk,
         tone,
-      }));
+      }
+    ));
   } catch (err) {
     logger.error('Stage-2 failed across all attempted providers', {
       streamStarted: Boolean(err.streamStarted),

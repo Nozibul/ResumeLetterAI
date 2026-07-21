@@ -21,9 +21,7 @@ const toneSchema = z
 // Optional — empty/absent means "let the AI infer seniority from the resume"
 const seniorityLevelSchema = z
   .enum(['entry', 'mid', 'senior', 'lead'], {
-    errorMap: () => ({
-      message: 'seniorityLevel must be entry, mid, senior, or lead',
-    }),
+    message: 'seniorityLevel must be entry, mid, senior, or lead',
   })
   .optional();
 
@@ -68,8 +66,7 @@ exports.generateCoverLetterSchema = z.object({
         return true;
       },
       {
-        message:
-          'resumeText must be at least 100 characters when source is "paste"',
+        message: 'resumeText must be at least 100 characters when source is "paste"',
         path: ['resumeText'],
       }
     ),

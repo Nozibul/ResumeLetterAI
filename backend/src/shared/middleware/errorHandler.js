@@ -88,8 +88,6 @@ const errorHandler = (err, req, res, _) => {
       userId: req.user?.id,
     });
   } else {
-    console.log('🔴 VALIDATION ERRORS:', JSON.stringify(err.errors, null, 2)); // ADD
-
     logger.warn('Client Error:', {
       message: err.message,
       url: req.originalUrl,

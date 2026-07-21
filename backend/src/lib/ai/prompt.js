@@ -7,15 +7,12 @@
  */
 
 const TONE_INSTRUCTIONS = {
-  professional:
-    'Confident, professional, and grounded — no exaggerated enthusiasm.',
-  creative:
-    'Engaging and distinctive in voice, but still substance-first, not gimmicky.',
+  professional: 'Confident, professional, and grounded — no exaggerated enthusiasm.',
+  creative: 'Engaging and distinctive in voice, but still substance-first, not gimmicky.',
   concise: 'Extremely tight, maximum 3 short paragraphs, zero filler.',
   enthusiastic:
     'Genuine energy for the role, backed by specifics — enthusiasm must be earned by evidence, not stated outright.',
-  formal:
-    'Traditional business letter register, but still direct and concrete.',
+  formal: 'Traditional business letter register, but still direct and concrete.',
 };
 
 const SENIORITY_INSTRUCTIONS = {
@@ -155,7 +152,7 @@ const formatCapabilityGroups = (capabilityGroups = {}) => {
 
 const formatStories = (stories = []) => {
   if (stories.length === 0)
-    return '(none — no quantified achievement stories found)';
+    return '(none provided — do NOT invent a story, employer, project, thesis, or lab experience to fill this gap. Build Paragraph 2 entirely from the capability groups below instead.)';
   return stories
     .map((s) => {
       const companySuffix = s.company ? ` (at ${s.company})` : '';
@@ -177,10 +174,8 @@ const buildCoverLetterPrompt = ({
   tone,
   seniorityLevel,
 }) => {
-  const toneInstruction =
-    TONE_INSTRUCTIONS[tone] || TONE_INSTRUCTIONS.professional;
-  const seniorityInstruction =
-    SENIORITY_INSTRUCTIONS[seniorityLevel] || SENIORITY_INSTRUCTIONS.mid;
+  const toneInstruction = TONE_INSTRUCTIONS[tone] || TONE_INSTRUCTIONS.professional;
+  const seniorityInstruction = SENIORITY_INSTRUCTIONS[seniorityLevel] || SENIORITY_INSTRUCTIONS.mid;
 
   return `You are the candidate, writing the BODY of a cover letter in your own voice. The app adds the date, greeting, and signature separately — you must NOT write those.
 
@@ -207,7 +202,7 @@ ${availabilityNote || '(none — do not invent one)'}
 
 --- STRUCTURE (exactly 4 paragraphs, nothing before or after) ---
 1. Hook: a concrete, specific opening tied to the core value above (2-3 sentences).${companyReason ? ` Naturally connect it to the company-specific detail above — make it clear this letter is for THIS company, not a template.` : ''} Do NOT state the exact number/metric that Paragraph 2 will state — hint at the theme only, save the number for Paragraph 2. The opening should implicitly answer "why this candidate over other applicants," not through a stated claim, but through the specificity of the story you're about to tell.
-2. Achievement stories, told as real moments — not a list. Name the employer if one is given above.
+2. If achievement stories are provided above, tell them as real moments — not a list — and name the employer if one is given. If NO stories are provided (explicitly marked "none provided" above), do NOT invent one — instead, build this paragraph entirely from the capability groups below, describing concrete skills/experience in flowing prose. Never fabricate a project, thesis, lab, employer, or quantified result that wasn't given to you.
 3. The selected capability groups woven into one flowing paragraph, as evidence supporting the core value — not a category-by-category recitation.
 4. Closing: express genuine interest in${targetJobTitle ? ` the ${targetJobTitle} role` : ' this role'}${companyName ? ` at ${companyName}` : ''}. If an availability/location note is provided above, mention it here only if relevant. End with a plain, concrete invitation to talk further.
 
@@ -245,13 +240,9 @@ const buildOpeningBlock = ({ contactLine, targetJobTitle, companyName }) => {
 
   const header = contactLine ? `${contactLine}\n\n` : '';
 
-  const subjectLine = targetJobTitle
-    ? `Subject: Application for ${targetJobTitle}\n\n`
-    : '';
+  const subjectLine = targetJobTitle ? `Subject: Application for ${targetJobTitle}\n\n` : '';
 
-  const greeting = companyName
-    ? `Dear ${companyName} Hiring Team,`
-    : 'Dear Hiring Manager,';
+  const greeting = companyName ? `Dear ${companyName} Hiring Team,` : 'Dear Hiring Manager,';
 
   return `${header}${today}\n\n${subjectLine}${greeting}\n\n`;
 };
@@ -260,13 +251,7 @@ const buildClosingBlock = ({ candidateName }) => {
   return candidateName ? `\n\nSincerely,\n${candidateName}` : '\n\nSincerely,';
 };
 
-const wrapAsLetter = ({
-  body,
-  companyName,
-  candidateName,
-  contactLine,
-  targetJobTitle,
-}) => {
+const wrapAsLetter = ({ body, companyName, candidateName, contactLine, targetJobTitle }) => {
   const opening = buildOpeningBlock({
     contactLine,
     targetJobTitle,
